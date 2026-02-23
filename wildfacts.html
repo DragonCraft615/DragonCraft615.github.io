@@ -1,0 +1,1295 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Wild Facts Quiz – Amazing Facts Challenge</title>
+  <style>
+    :root {
+      --bg:      #1a1a2e;
+      --surface: #16213e;
+      --card:    #0f3460;
+      --hover:   #1a4a80;
+      --accent:  #e94560;
+      --gold:    #f5a623;
+      --green:   #2ecc71;
+      --red:     #e74c3c;
+      --correct: #1e8449;
+      --wrong:   #922b21;
+      --text:    #f0f0f0;
+      --sub:     #b0b8cc;
+      --muted:   #707888;
+      --border:  #2a3550;
+      --teal:    #1abc9c;
+      --fact:    #0d2137;
+      --shadow:  0 14px 40px rgba(0,0,0,.35);
+      --radius:  18px;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(233,69,96,.18), transparent 55%),
+                  radial-gradient(1000px 700px at 80% 30%, rgba(26,188,156,.12), transparent 60%),
+                  var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 28px 14px;
+    }
+
+    .app {
+      width: min(920px, 100%);
+      background: rgba(22,33,62,.92);
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 6px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    header {
+      padding: 22px 24px 18px;
+      background: linear-gradient(180deg, rgba(15,52,96,.92), rgba(22,33,62,.86));
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .title {
+      display:flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: 20px;
+      letter-spacing: .3px;
+    }
+    .title p {
+      margin: 0;
+      color: var(--sub);
+      font-size: 13px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      background: rgba(15,52,96,.55);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--sub);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    .pill strong { color: var(--text); }
+
+    main {
+      padding: 22px 24px 26px;
+    }
+
+    .screen {
+      display:none;
+      animation: pop .18s ease-out;
+    }
+    .screen.active { display:block; }
+
+    @keyframes pop {
+      from { opacity: .3; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero {
+      padding: 18px;
+      background: rgba(15,52,96,.5);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .hero h2 {
+      margin: 0 0 6px;
+      font-size: 24px;
+    }
+    .hero p {
+      margin: 0 0 14px;
+      color: var(--sub);
+      line-height: 1.4;
+    }
+    .grid {
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 820px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--border);
+      background: rgba(233,69,96,.95);
+      color: white;
+      font-weight: 700;
+      letter-spacing: .2px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform .05s ease, filter .15s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn.secondary {
+      background: rgba(15,52,96,.45);
+      color: var(--text);
+    }
+    .btn.secondary:hover { background: rgba(26,74,128,.55); }
+    .btn:hover { filter: brightness(1.05); }
+
+    .card {
+      padding: 16px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: rgba(15,52,96,.45);
+    }
+
+    .toprow {
+      display:flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display:inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 13px;
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      color: white;
+    }
+
+    .progress {
+      display:flex;
+      align-items:center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.18);
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .dot.done.ok { background: var(--green); }
+    .dot.done.bad { background: var(--red); }
+    .dot.current { background: var(--gold); }
+
+    .qtext {
+      font-size: 22px;
+      margin: 8px 0 12px;
+      line-height: 1.25;
+    }
+
+    .options {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    @media (max-width: 640px) {
+      .options { grid-template-columns: 1fr; }
+    }
+
+    .opt {
+      border: 1px solid var(--border);
+      background: rgba(22,33,62,.35);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      text-align: left;
+      transition: background .15s ease, transform .05s ease, border-color .15s ease;
+      min-height: 48px;
+    }
+    .opt:hover { background: rgba(26,74,128,.45); }
+    .opt:active { transform: translateY(1px); }
+    .opt[disabled] {
+      cursor: not-allowed;
+      opacity: .95;
+    }
+    .opt.correct {
+      background: rgba(30,132,73,.35);
+      border-color: rgba(46,204,113,.55);
+    }
+    .opt.wrong {
+      background: rgba(146,43,33,.35);
+      border-color: rgba(231,76,60,.55);
+    }
+
+    .feedback {
+      margin-top: 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: rgba(15,52,96,.35);
+      overflow: hidden;
+    }
+    .feedback .msg {
+      padding: 12px 14px;
+      font-weight: 800;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .feedback .fact {
+      padding: 12px 14px;
+      color: var(--sub);
+      background: rgba(13,33,55,.6);
+    }
+    .feedback.good .msg {
+      background: rgba(30,132,73,.25);
+    }
+    .feedback.bad .msg {
+      background: rgba(146,43,33,.25);
+    }
+
+    .endstats {
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .scorebig {
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: .5px;
+      margin: 0;
+    }
+    .subtle {
+      color: var(--sub);
+      margin: 0;
+      line-height: 1.5;
+    }
+    .row {
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    footer {
+      padding: 14px 24px 18px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      background: rgba(15,52,96,.25);
+      display:flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+  
+/* --- site wrapper: escape/home button --- */
+.escapeBtn{
+  position:fixed;
+  right:16px;
+  bottom:16px;
+  z-index:9999;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid rgba(42,53,80,.9);
+  background:rgba(15,52,96,.75);
+  color:#f0f0f0;
+  font-weight:900;
+  letter-spacing:.2px;
+  text-decoration:none;
+  box-shadow:0 14px 40px rgba(0,0,0,.35);
+  backdrop-filter: blur(6px);
+}
+.escapeBtn:hover{ background:rgba(26,74,128,.78); }
+.escapeBtn:active{ transform: translateY(1px); }
+.escapeBtn kbd{
+  font: 12px/1.1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+  padding: 4px 7px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.18);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+}
+
+</style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Wild Facts Quiz">
+    <header>
+      <div class="title">
+        <h1>Wild Facts Quiz</h1>
+        <p>Amazing Facts Challenge • 10 random questions • auto-advance after answer</p>
+      </div>
+      <div class="pill"><span>Score:</span> <strong id="scorePill">0</strong> <span>•</span> <span>Q</span> <strong id="qPill">0</strong><span>/10</span></div>
+    </header>
+
+    <main>
+      <section id="start" class="screen active">
+        <div class="grid">
+          <div class="hero">
+            <h2>Ready for 10 brain‑tickling questions?</h2>
+            <p>Pick an answer and the game will automatically move on (after a fun WOW fact).</p>
+            <div class="row">
+              <button class="btn" id="startBtn">Start game</button>
+              <button class="btn secondary" id="howBtn">How it works</button>
+            </div>
+          </div>
+
+          <div class="card" id="howCard" style="display:none;">
+            <div style="font-weight:900; margin-bottom:6px;">How it works</div>
+            <ul style="margin:0; padding-left:18px; color: var(--sub); line-height:1.6;">
+              <li>10 random questions per game</li>
+              <li>4 options per question</li>
+              <li>After you answer: you see a message + a WOW fact</li>
+              <li>Then it auto‑advances in 2.6s</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="quiz" class="screen">
+        <div class="toprow">
+          <div class="badge" id="catBadge">🐾 Animals</div>
+          <div class="progress" id="progressDots" aria-label="Progress"></div>
+        </div>
+
+        <div class="card">
+          <div class="qtext" id="qText">Question text</div>
+          <div class="options" id="options"></div>
+
+          <div id="feedback" class="feedback" style="display:none;">
+            <div class="msg" id="fbMsg"></div>
+            <div class="fact" id="fbFact"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="end" class="screen">
+        <div class="grid">
+          <div class="card endstats">
+            <p class="scorebig" id="finalScore">0/10</p>
+            <p class="subtle" id="finalMsg"></p>
+            <div class="row">
+              <button class="btn" id="playAgainBtn">Play again</button>
+              <button class="btn secondary" id="copyBtn">Copy score</button>
+            </div>
+          </div>
+          <div class="card">
+            <div style="font-weight:900; margin-bottom:8px;">Questions this round</div>
+            <div id="roundList" style="color: var(--sub); line-height:1.55;"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>Made from your original Python/Tkinter quiz • runs fully offline in a browser.</div>
+      <div>Tip: commit this file as <strong>index.html</strong> and enable GitHub Pages.</div>
+    </footer>
+  </div>
+
+  <script>
+  const QUESTIONS = [
+  {
+    "q": "Which is the fastest land animal?",
+    "a": "Cheetah",
+    "w": [
+      "Lion",
+      "Horse",
+      "Greyhound"
+    ],
+    "fact": "🐆 Cheetahs reach 70 mph in just 3 seconds — faster than most sports cars!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which is the largest animal that has ever lived on Earth?",
+    "a": "Blue Whale",
+    "w": [
+      "African Elephant",
+      "Polar Bear",
+      "Giant Squid"
+    ],
+    "fact": "🐋 A blue whale's heart is as big as a small car and beats just 2 times per minute!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "How many hearts does an octopus have?",
+    "a": "3",
+    "w": [
+      "1",
+      "2",
+      "4"
+    ],
+    "fact": "🐙 An octopus has 3 hearts AND blue blood — it's basically an alien from the deep!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which is the only mammal that can truly fly?",
+    "a": "Bat",
+    "w": [
+      "Flying Squirrel",
+      "Sugar Glider",
+      "Colugo"
+    ],
+    "fact": "🦇 Flying squirrels can only glide — bats are the ONLY true flying mammals!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "How many legs does a spider have?",
+    "a": "8",
+    "w": [
+      "6",
+      "10",
+      "12"
+    ],
+    "fact": "🕷️ Easy trick: insects = 6 legs, spiders = 8. That's how you tell them apart!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which animal is famous for having an incredible memory?",
+    "a": "Elephant",
+    "w": [
+      "Dolphin",
+      "Crow",
+      "Chimpanzee"
+    ],
+    "fact": "🐘 Elephants can remember the faces of hundreds of friends — even after 20 years apart!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which bird is the fastest swimmer?",
+    "a": "Penguin",
+    "w": [
+      "Duck",
+      "Pelican",
+      "Cormorant"
+    ],
+    "fact": "🐧 Gentoo penguins swim at 22 mph — faster than most humans can run on land!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "What do giant pandas mostly eat?",
+    "a": "Bamboo",
+    "w": [
+      "Fish",
+      "Berries",
+      "Insects"
+    ],
+    "fact": "🐼 Giant pandas eat up to 40 pounds of bamboo daily — like eating 200 sandwiches!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which animal can change its skin colour?",
+    "a": "Chameleon",
+    "w": [
+      "Gecko",
+      "Iguana",
+      "Komodo Dragon"
+    ],
+    "fact": "🦎 Chameleons don't just camouflage — they change colour to show their mood too. It's how they chat!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which animal can regrow a completely lost limb?",
+    "a": "Starfish",
+    "w": [
+      "Crab",
+      "Lobster",
+      "Clam"
+    ],
+    "fact": "⭐ Some starfish can regrow their WHOLE body from just one arm. Unstoppable!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "How many eyes does a honey bee have?",
+    "a": "5",
+    "w": [
+      "2",
+      "3",
+      "6"
+    ],
+    "fact": "🐝 Bees have 2 large compound eyes AND 3 tiny simple eyes on top of their head!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which is the slowest mammal?",
+    "a": "Three-toed Sloth",
+    "w": [
+      "Koala",
+      "Hedgehog",
+      "Giant Tortoise"
+    ],
+    "fact": "🦥 Sloths move so slowly that algae grows on their fur — they're their own tiny ecosystem!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which animal produces silk to build webs and traps?",
+    "a": "Spider",
+    "w": [
+      "Moth",
+      "Beetle",
+      "Ant"
+    ],
+    "fact": "🕸️ Spider silk is stronger than steel of the same thickness — scientists are trying to copy it for body armour!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which animal can sleep standing up?",
+    "a": "Horse",
+    "w": [
+      "Elephant",
+      "Cow",
+      "Giraffe"
+    ],
+    "fact": "🐴 Horses have a 'stay apparatus' in their legs that locks in place so they can nap upright!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which is the tallest living animal?",
+    "a": "Giraffe",
+    "w": [
+      "Elephant",
+      "Camel",
+      "Ostrich"
+    ],
+    "fact": "🦒 A giraffe's neck alone can be 6 feet long — taller than most adults — and it has the same number of neck bones as us: 7!",
+    "cat": "🐾 Animals"
+  },
+  {
+    "q": "Which is the largest planet in our solar system?",
+    "a": "Jupiter",
+    "w": [
+      "Saturn",
+      "Uranus",
+      "Neptune"
+    ],
+    "fact": "🪐 Jupiter is SO huge that all the other planets in our solar system could fit inside it with room to spare!",
+    "cat": "🚀 Space"
+  },
+  {
+    "q": "How many planets are in our solar system?",
+    "a": "8",
+    "w": [
+      "7",
+      "9",
+      "10"
+    ],
+    "fact": "🚀 Poor Pluto! It was demoted from planet to 'dwarf planet' in 2006 — and scientists still argue about it!",
+    "cat": "🚀 Space"
+  },
+  {
+    "q": "Which planet is closest to the Sun?",
+    "a": "Mercury",
+    "w": [
+      "Venus",
+      "Earth",
+      "Mars"
+    ],
+    "fact": "☀️ A year on Mercury lasts just 88 Earth days — your birthday would come round nearly 4 times a year!",
+    "cat": "🚀 Space"
+  },
+  {
+    "q": "Which is the hottest planet in our solar system?",
+    "a": "Venus",
+    "w": [
+      "Mercury",
+      "Mars",
+      "Jupiter"
+    ],
+    "fact": "🔥 Venus beats Mercury despite being further from the Sun — its thick clouds trap heat like a massive oven at 465°C!",
+    "cat": "🚀 Space"
+  },
+  {
+    "q": "How long does light from the Sun take to reach Earth?",
+    "a": "About 8 minutes",
+    "w": [
+      "About 1 second",
+      "About 1 hour",
+      "About 1 day"
+    ],
+    "fact": "💡 Light travels 186,000 miles per second — and it STILL takes 8 whole minutes to get from the Sun to us!",
+    "cat": "🚀 Space"
+  },
+  {
+    "q": "Which planet spins completely tilted on its side?",
+    "a": "Uranus",
+    "w": [
+      "Saturn",
+      "Neptune",
+      "Mars"
+    ],
+    "fact": "🌀 Scientists think a massive rock crashed into Uranus billions of years ago and knocked it sideways!",
+    "cat": "🚀 Space"
+  },
+  {
+    "q": "What is a shooting star really made of?",
+    "a": "A rock or speck of dust burning up",
+    "w": [
+      "A dying star",
+      "A comet's tail",
+      "A satellite"
+    ],
+    "fact": "⭐ Shooting stars aren't stars at all — tiny space rocks burn up in our atmosphere at 40,000 mph!",
+    "cat": "🚀 Space"
+  },
+  {
+    "q": "How long does it take light to travel from the Moon to Earth?",
+    "a": "About 1.3 seconds",
+    "w": [
+      "About 8 minutes",
+      "About 1 hour",
+      "Instantly"
+    ],
+    "fact": "🌙 The Moon is 239,000 miles away. Astronauts chatting from the Moon had a 2.6-second delay — awkward!",
+    "cat": "🚀 Space"
+  },
+  {
+    "q": "Which planet has the most moons?",
+    "a": "Saturn",
+    "w": [
+      "Jupiter",
+      "Uranus",
+      "Neptune"
+    ],
+    "fact": "🪐 Saturn has 146 known moons — including Titan, which has its own thick atmosphere and lakes of liquid methane!",
+    "cat": "🚀 Space"
+  },
+  {
+    "q": "How many bones are in the adult human body?",
+    "a": "206",
+    "w": [
+      "106",
+      "256",
+      "300"
+    ],
+    "fact": "🦴 Babies are born with about 270 bones — they gradually fuse together as you grow up!",
+    "cat": "🧬 Human Body"
+  },
+  {
+    "q": "Which is the largest organ in the human body?",
+    "a": "Skin",
+    "w": [
+      "Liver",
+      "Brain",
+      "Lungs"
+    ],
+    "fact": "🫁 Your skin stretches about 2 square metres and weighs 3–4 kg. It's your armour against the world!",
+    "cat": "🧬 Human Body"
+  },
+  {
+    "q": "How many chambers does the human heart have?",
+    "a": "4",
+    "w": [
+      "2",
+      "3",
+      "6"
+    ],
+    "fact": "❤️ Your heart beats about 100,000 times every single day — over 2.5 billion beats in a lifetime!",
+    "cat": "🧬 Human Body"
+  },
+  {
+    "q": "How long is the human small intestine?",
+    "a": "About 6–7 metres",
+    "w": [
+      "About 1 metre",
+      "About 3 metres",
+      "About 15 metres"
+    ],
+    "fact": "🌀 Your small intestine is coiled up tightly inside you — if unrolled it'd be taller than a double-decker bus!",
+    "cat": "🧬 Human Body"
+  },
+  {
+    "q": "Which part of the body keeps growing throughout your whole life?",
+    "a": "Ears and nose",
+    "w": [
+      "Fingers",
+      "Eyes",
+      "Teeth"
+    ],
+    "fact": "👃 Ears and noses never stop growing — that's why older people tend to have larger ears and noses!",
+    "cat": "🧬 Human Body"
+  },
+  {
+    "q": "How many taste buds does a human tongue have?",
+    "a": "About 10,000",
+    "w": [
+      "About 100",
+      "About 1,000",
+      "About 100,000"
+    ],
+    "fact": "👅 Each taste bud lives only about 10 days before it's replaced — your mouth is constantly refreshing itself!",
+    "cat": "🧬 Human Body"
+  },
+  {
+    "q": "How many teeth does a healthy adult human have?",
+    "a": "32",
+    "w": [
+      "28",
+      "30",
+      "36"
+    ],
+    "fact": "🦷 That count includes wisdom teeth — many people have them removed because there simply isn't room!",
+    "cat": "🧬 Human Body"
+  },
+  {
+    "q": "What is the tallest mountain on Earth?",
+    "a": "Mount Everest",
+    "w": [
+      "K2",
+      "Mont Blanc",
+      "Kilimanjaro"
+    ],
+    "fact": "⛰️ Mount Everest is 8,849 metres tall — and it's still growing about 4mm taller every year!",
+    "cat": "🌍 Earth"
+  },
+  {
+    "q": "Which is the largest ocean on Earth?",
+    "a": "Pacific Ocean",
+    "w": [
+      "Atlantic Ocean",
+      "Indian Ocean",
+      "Arctic Ocean"
+    ],
+    "fact": "🌊 The Pacific Ocean is so vast that all the continents combined could fit inside it with room to spare!",
+    "cat": "🌍 Earth"
+  },
+  {
+    "q": "How many continents are there on Earth?",
+    "a": "7",
+    "w": [
+      "5",
+      "6",
+      "8"
+    ],
+    "fact": "🌍 Africa, Antarctica, Asia, Australia, Europe, North America, South America — can you name them all from memory?",
+    "cat": "🌍 Earth"
+  },
+  {
+    "q": "Which is the largest country in the world by area?",
+    "a": "Russia",
+    "w": [
+      "China",
+      "USA",
+      "Canada"
+    ],
+    "fact": "🌏 Russia spans 11 time zones — when it's midnight in one part, it's midday in another!",
+    "cat": "🌍 Earth"
+  },
+  {
+    "q": "Which is the smallest country in the world?",
+    "a": "Vatican City",
+    "w": [
+      "Monaco",
+      "San Marino",
+      "Nauru"
+    ],
+    "fact": "🏛️ Vatican City is smaller than most theme parks — yet it has its own bank, post office, and Swiss Guard army!",
+    "cat": "🌍 Earth"
+  },
+  {
+    "q": "What percentage of Earth's surface is covered by water?",
+    "a": "About 71%",
+    "w": [
+      "About 50%",
+      "About 60%",
+      "About 85%"
+    ],
+    "fact": "🌊 97% of all that water is salty ocean — only 3% is the fresh water we can drink!",
+    "cat": "🌍 Earth"
+  },
+  {
+    "q": "Which country has the most people in the world?",
+    "a": "India",
+    "w": [
+      "China",
+      "USA",
+      "Indonesia"
+    ],
+    "fact": "🌏 India overtook China as the world's most populous country in 2023 with over 1.4 billion people!",
+    "cat": "🌍 Earth"
+  },
+  {
+    "q": "How many colours are in a rainbow?",
+    "a": "7",
+    "w": [
+      "5",
+      "6",
+      "8"
+    ],
+    "fact": "🌈 Red, Orange, Yellow, Green, Blue, Indigo, Violet — remember them with ROY G BIV!",
+    "cat": "🔬 Science"
+  },
+  {
+    "q": "What is the fastest thing in the universe?",
+    "a": "Light",
+    "w": [
+      "Sound",
+      "Electricity",
+      "Gravity"
+    ],
+    "fact": "💡 Light travels 186,000 miles per SECOND — it could circle the Earth 7 times in just one second!",
+    "cat": "🔬 Science"
+  },
+  {
+    "q": "What gas makes fizzy drinks fizzy?",
+    "a": "Carbon dioxide",
+    "w": [
+      "Oxygen",
+      "Nitrogen",
+      "Hydrogen"
+    ],
+    "fact": "🫧 CO₂ is pumped into drinks under pressure — when you open the bottle, it all rushes out as bubbles. Pop!",
+    "cat": "🔬 Science"
+  },
+  {
+    "q": "What is the most common gas in Earth's atmosphere?",
+    "a": "Nitrogen",
+    "w": [
+      "Oxygen",
+      "Carbon dioxide",
+      "Argon"
+    ],
+    "fact": "💨 Earth's air is 78% nitrogen and 21% oxygen — most people guess oxygen, but nitrogen wins by a mile!",
+    "cat": "🔬 Science"
+  },
+  {
+    "q": "What is the hardest natural substance on Earth?",
+    "a": "Diamond",
+    "w": [
+      "Granite",
+      "Quartz",
+      "Steel"
+    ],
+    "fact": "💎 Diamonds are pure carbon — the same atoms as pencil lead! Same stuff, totally different structure.",
+    "cat": "🔬 Science"
+  },
+  {
+    "q": "How many sides does a hexagon have?",
+    "a": "6",
+    "w": [
+      "5",
+      "7",
+      "8"
+    ],
+    "fact": "🐝 Honeycombs are made of hexagons — it's the most efficient shape for packing space with no gaps!",
+    "cat": "🔬 Science"
+  },
+  {
+    "q": "What do plants use to make their own food?",
+    "a": "Sunlight",
+    "w": [
+      "Soil",
+      "Rain",
+      "Wind"
+    ],
+    "fact": "🌱 Photosynthesis converts sunlight into sugar — and releases the oxygen we breathe as a bonus. Thanks, plants!",
+    "cat": "🔬 Science"
+  },
+  {
+    "q": "How fast does sound travel through air?",
+    "a": "About 767 mph",
+    "w": [
+      "About 100 mph",
+      "About 300 mph",
+      "About 2,000 mph"
+    ],
+    "fact": "🔊 A thunderclap is the sound of lightning — the gap between flash and bang tells you how far away it is!",
+    "cat": "🔬 Science"
+  },
+  {
+    "q": "How many players are in a football (soccer) team on the pitch?",
+    "a": "11",
+    "w": [
+      "9",
+      "10",
+      "12"
+    ],
+    "fact": "⚽ That's 10 outfield players plus 1 goalkeeper — with up to 5 substitutes allowed in most competitions!",
+    "cat": "⚽ Sports"
+  },
+  {
+    "q": "Which sport uses a shuttlecock?",
+    "a": "Badminton",
+    "w": [
+      "Tennis",
+      "Squash",
+      "Pickleball"
+    ],
+    "fact": "🏸 A shuttlecock can travel over 200 mph when hit by pros — the fastest projectile in all of sport!",
+    "cat": "⚽ Sports"
+  },
+  {
+    "q": "How many rings are on the Olympic flag?",
+    "a": "5",
+    "w": [
+      "4",
+      "6",
+      "7"
+    ],
+    "fact": "🏅 The 5 rings represent 5 continents — and every national flag contains at least one of the ring colours!",
+    "cat": "⚽ Sports"
+  },
+  {
+    "q": "In football, what is it called when a player scores 3 goals in one match?",
+    "a": "Hat-trick",
+    "w": [
+      "Triple",
+      "Three-peat",
+      "Grand slam"
+    ],
+    "fact": "🎩 The term comes from cricket — a bowler who took 3 wickets in a row was given an actual hat as a prize!",
+    "cat": "⚽ Sports"
+  },
+  {
+    "q": "How high is a basketball hoop from the floor?",
+    "a": "10 feet",
+    "w": [
+      "8 feet",
+      "12 feet",
+      "9 feet"
+    ],
+    "fact": "🏀 The 10-foot height was set in 1891 when the inventor nailed a peach basket to a 10-foot elevated track — and it stuck!",
+    "cat": "⚽ Sports"
+  },
+  {
+    "q": "Which country invented pizza?",
+    "a": "Italy",
+    "w": [
+      "USA",
+      "Greece",
+      "France"
+    ],
+    "fact": "🍕 Pizza was invented in Naples in the 1800s — now over 5 billion pizzas are sold worldwide every year!",
+    "cat": "🎨 Did You Know?"
+  },
+  {
+    "q": "Which is the tallest building in the world?",
+    "a": "Burj Khalifa",
+    "w": [
+      "Empire State Building",
+      "Eiffel Tower",
+      "Shanghai Tower"
+    ],
+    "fact": "🏙️ The Burj Khalifa in Dubai stands 828 metres tall — you can see it from 95 kilometres away on a clear day!",
+    "cat": "🎨 Did You Know?"
+  },
+  {
+    "q": "What is the most spoken language in the world?",
+    "a": "Mandarin Chinese",
+    "w": [
+      "English",
+      "Spanish",
+      "Hindi"
+    ],
+    "fact": "🗣️ Over 1 billion people speak Mandarin! English is second and Spanish third — all very close!",
+    "cat": "🎨 Did You Know?"
+  },
+  {
+    "q": "How many strings does a standard guitar have?",
+    "a": "6",
+    "w": [
+      "4",
+      "5",
+      "8"
+    ],
+    "fact": "🎸 A bass has 4, a standard guitar 6, but some pro players use 7 or even 8-string guitars!",
+    "cat": "🎨 Did You Know?"
+  },
+  {
+    "q": "How many keys does a standard piano have?",
+    "a": "88",
+    "w": [
+      "52",
+      "72",
+      "100"
+    ],
+    "fact": "🎹 A piano has 52 white keys and 36 black keys — totalling 88. Some concert grands have even more!",
+    "cat": "🎨 Did You Know?"
+  }
+];
+  const CORRECT_MSGS = [
+  "🎉 CORRECT! You clearly have a brilliant brain!",
+  "🌟 Right! Are you secretly a genius?!",
+  "🔥 Nailed it! Look at that big brain go!",
+  "⭐ YES! Absolutely spot on!",
+  "🧠 Correct! Your brain just levelled up!",
+  "🎯 Bulls-eye! That was quick!",
+  "🚀 BOOM! Right answer — zero hesitation!",
+  "👑 Correct! You're basically a walking encyclopaedia!",
+  "😎 Too easy for you! Nicely done!",
+  "🤩 YES! You are absolutely ON FIRE today!",
+  "💡 Ding ding! That brain is glowing!",
+  "🏆 Right! Have you been secretly studying?!",
+  "✨ Correct! Spectacular stuff!",
+  "🎊 Bingo! Knew you'd get that one!",
+  "🦸 RIGHT! Superhero brain activated!"
+];
+  const WRONG_MSGS = [
+  "😅 Oops! The answer was: {a}!",
+  "🙈 Not quite! It's {a} — sneaky, right?!",
+  "🤔 Almost! The answer is {a}!",
+  "😬 Oof! It was {a}! Now you'll know forever!",
+  "🦊 Tricked ya! The answer is {a}!",
+  "😲 Oh no! It was {a}! Wild, isn't it?!",
+  "🎭 Nope! {a} — who knew?!",
+  "🫣 Eek! The correct answer is {a}!",
+  "📚 It's {a}! Quick, write it down ten times!",
+  "🚩 {a}! That one catches everyone out!",
+  "🌀 {a}! Even the experts get that one wrong sometimes!",
+  "🤯 Whoa, it's {a}! Mind = completely blown!",
+  "🙃 {a}! The world is absolutely full of surprises!"
+];
+
+  const CAT_COLORS = {
+    "🐾 Animals":       "#1abc9c",
+    "🚀 Space":         "#8e44ad",
+    "🧬 Human Body":    "#e94560",
+    "🌍 Earth":         "#27ae60",
+    "🔬 Science":       "#2980b9",
+    "⚽ Sports":        "#f39c12",
+    "🎨 Did You Know?": "#e67e22",
+  };
+
+  const QS = 10;
+  const OPTS = 4;
+  const AUTO_ADVANCE_MS = 2600;
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function pickRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
+  }
+
+  let round = [];
+  let idx = 0;
+  let score = 0;
+  let answered = false;
+  let dotStates = [];
+  let advanceTimer = null;
+
+  const screens = {
+    start: document.getElementById("start"),
+    quiz:  document.getElementById("quiz"),
+    end:   document.getElementById("end"),
+  };
+  const scorePill = document.getElementById("scorePill");
+  const qPill = document.getElementById("qPill");
+  const startBtn = document.getElementById("startBtn");
+  const howBtn = document.getElementById("howBtn");
+  const howCard = document.getElementById("howCard");
+  const catBadge = document.getElementById("catBadge");
+  const progressDots = document.getElementById("progressDots");
+  const qText = document.getElementById("qText");
+  const optionsEl = document.getElementById("options");
+  const feedbackEl = document.getElementById("feedback");
+  const fbMsg = document.getElementById("fbMsg");
+  const fbFact = document.getElementById("fbFact");
+  const finalScore = document.getElementById("finalScore");
+  const finalMsg = document.getElementById("finalMsg");
+  const playAgainBtn = document.getElementById("playAgainBtn");
+  const copyBtn = document.getElementById("copyBtn");
+  const roundList = document.getElementById("roundList");
+
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.remove("active"));
+    screens[name].classList.add("active");
+  }
+
+  function resetRound() {
+    if (advanceTimer) {
+      clearTimeout(advanceTimer);
+      advanceTimer = null;
+    }
+    score = 0;
+    idx = 0;
+    answered = false;
+    dotStates = Array(QS).fill(null);
+    scorePill.textContent = "0";
+    qPill.textContent = "0";
+    feedbackEl.style.display = "none";
+    feedbackEl.classList.remove("good","bad");
+
+    round = shuffle(QUESTIONS).slice(0, QS).map(q => {
+      const opts = shuffle([q.a, ...q.w]).slice(0, OPTS);
+      return { ...q, opts };
+    });
+  }
+
+  function renderDots() {
+    progressDots.innerHTML = "";
+    for (let i = 0; i < QS; i++) {
+      const d = document.createElement("div");
+      d.className = "dot";
+      if (i === idx) d.classList.add("current");
+      if (dotStates[i] === "ok") d.classList.add("done","ok");
+      if (dotStates[i] === "bad") d.classList.add("done","bad");
+      progressDots.appendChild(d);
+    }
+  }
+
+  function renderQuestion() {
+    answered = false;
+    feedbackEl.style.display = "none";
+    feedbackEl.classList.remove("good","bad");
+
+    const q = round[idx];
+    qPill.textContent = String(idx + 1);
+
+    const cat = q.cat || "🎨 Did You Know?";
+    catBadge.textContent = cat;
+    const col = CAT_COLORS[cat] || "#e94560";
+    catBadge.style.background = "linear-gradient(180deg, " + col + "cc, " + col + "88)";
+
+    qText.textContent = q.q;
+
+    optionsEl.innerHTML = "";
+    q.opts.forEach(opt => {
+      const b = document.createElement("button");
+      b.className = "opt";
+      b.type = "button";
+      b.textContent = opt;
+      b.addEventListener("click", () => choose(opt));
+      optionsEl.appendChild(b);
+    });
+
+    renderDots();
+  }
+
+  function lockOptions() {
+    [...optionsEl.querySelectorAll("button")].forEach(b => b.disabled = true);
+  }
+
+  function markOptions(correct, chosen) {
+    [...optionsEl.querySelectorAll("button")].forEach(b => {
+      if (b.textContent === correct) b.classList.add("correct");
+      if (b.textContent === chosen && chosen !== correct) b.classList.add("wrong");
+    });
+  }
+
+  function choose(chosen) {
+    if (answered) return;
+    answered = true;
+
+    const q = round[idx];
+    const isCorrect = chosen === q.a;
+
+    lockOptions();
+    markOptions(q.a, chosen);
+
+    if (isCorrect) {
+      score += 1;
+      dotStates[idx] = "ok";
+      scorePill.textContent = String(score);
+      feedbackEl.classList.add("good");
+      fbMsg.textContent = pickRandom(CORRECT_MSGS);
+    } else {
+      dotStates[idx] = "bad";
+      feedbackEl.classList.add("bad");
+      fbMsg.textContent = pickRandom(WRONG_MSGS).replaceAll("{a}", q.a);
+    }
+
+    fbFact.textContent = q.fact || "";
+    feedbackEl.style.display = "block";
+    renderDots();
+
+    advanceTimer = setTimeout(() => {
+      advanceTimer = null;
+      next();
+    }, AUTO_ADVANCE_MS);
+  }
+
+  function next() {
+    if (idx < QS - 1) {
+      idx += 1;
+      renderQuestion();
+    } else {
+      endGame();
+    }
+  }
+
+  function endGame() {
+    showScreen("end");
+    finalScore.textContent = score + "/" + QS;
+
+    let msg = "";
+    if (score === QS) msg = "Perfect score — you're basically a walking encyclopaedia 🏆";
+    else if (score >= 8) msg = "Super strong! A couple of sneaky ones tried to catch you out 😎";
+    else if (score >= 5) msg = "Nice work — keep going and you'll be unstoppable 🚀";
+    else msg = "Warm-up round complete — play again and smash it 💪";
+    finalMsg.textContent = msg;
+
+    roundList.innerHTML = round.map((q, i) => {
+      const state = dotStates[i] === "ok" ? "✅" : "❌";
+      return `<div style="margin: 6px 0;"><span style="display:inline-block; width: 22px;">${state}</span>${escapeHtml(q.q)}<div style="color: var(--muted); margin-left: 22px;">Answer: <strong style="color: var(--text);">${escapeHtml(q.a)}</strong></div></div>`;
+    }).join("");
+
+    qPill.textContent = String(QS);
+    scorePill.textContent = String(score);
+  }
+
+  howBtn.addEventListener("click", () => {
+    howCard.style.display = (howCard.style.display === "none") ? "block" : "none";
+  });
+
+  startBtn.addEventListener("click", () => {
+    resetRound();
+    showScreen("quiz");
+    renderQuestion();
+  });
+
+  playAgainBtn.addEventListener("click", () => {
+    resetRound();
+    showScreen("quiz");
+    renderQuestion();
+  });
+
+  copyBtn.addEventListener("click", async () => {
+    const txt = "Wild Facts Quiz score: " + score + "/" + QS;
+    try {
+      await navigator.clipboard.writeText(txt);
+      copyBtn.textContent = "Copied!";
+      setTimeout(() => copyBtn.textContent = "Copy score", 900);
+    } catch {
+      alert(txt);
+    }
+  });
+  </script>
+
+<a class="escapeBtn" id="escapeBtn" href="index.html" aria-label="Return to home (Escape)"><span>⎋ Escape</span><kbd>Esc</kbd></a>
+<script>
+  // Return to home on Escape, without interfering with typing in inputs (none in these games, but safe anyway).
+  window.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){
+      e.preventDefault();
+      window.location.href = "index.html";
+    }
+  });
+</script>
+
+</body>
+</html>
