@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alien Invasion! 👽</title>
+<style>
+:root {
+  --bg:      #1a1a2e;
+  --surface: #16213e;
+  --card:    #0f3460;
+  --hover:   #1a4a80;
+  --accent:  #4ade80;
+  --gold:    #f5a623;
+  --green:   #4ade80;
+  --red:     #f87171;
+  --text:    #f0f0f0;
+  --sub:     #b0b8cc;
+  --muted:   #6b7280;
+  --border:  #2a3550;
+  --teal:    #1abc9c;
+  --yellow:  #fbbf24;
+  --purple:  #c084fc;
+  --blue:    #60a5fa;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 16px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wrap { width: 100%; max-width: 680px; }
+
+/* ── Screens ─────────────────────────────────────────────────────────── */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.game-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 18px;
+}
+.back-btn {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.back-btn:hover { color: var(--sub); }
+.header-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--accent);
+  flex: 1;
+  text-align: center;
+}
+.fight-counter {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px 10px;
+}
+
+/* ── Splash ──────────────────────────────────────────────────────────── */
+.splash-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 32px 28px 28px;
+  text-align: center;
+}
+.splash-emoji { font-size: 64px; line-height: 1; margin-bottom: 16px; }
+.splash-title {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.splash-sub {
+  font-size: 15px;
+  color: var(--sub);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.enemy-lineup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.lineup-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  gap: 5px;
+}
+.lineup-emoji { font-size: 28px; line-height: 1; }
+.lineup-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.boss-item { border-color: rgba(248,113,113,0.6); }
+.boss-item .lineup-name { color: var(--red); }
+.lineup-arrow { font-size: 16px; color: var(--muted); }
+
+.rules-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--sub);
+  line-height: 1.5;
+}
+.rule-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+.start-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--accent);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.3px;
+}
+.start-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.start-btn:active { transform: translateY(0); }
+
+/* ── Arena ───────────────────────────────────────────────────────────── */
+.arena {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 16px 16px;
+  margin-bottom: 12px;
+}
+.fighter {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.fighter-name {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+}
+.fighter-emoji {
+  font-size: 64px;
+  line-height: 1;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.fighter-hp-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+.hp-bar-wrap {
+  width: 100%;
+  height: 10px;
+  background: #111c30;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.hp-bar {
+  height: 100%;
+  border-radius: 5px;
+  transition: width 0.45s ease, background-color 0.45s ease;
+}
+.arena-vs {
+  font-size: 22px;
+  color: var(--muted);
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+/* ── Battle log ──────────────────────────────────────────────────────── */
+.battle-log {
+  background: #090f1e;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  height: 130px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+  scroll-behavior: smooth;
+}
+.battle-log p {
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 0;
+  margin: 0;
+}
+.log-player { color: #4ade80; }
+.log-enemy  { color: #f87171; }
+.log-info   { color: #fbbf24; font-weight: 700; }
+.log-taunt  { color: #c084fc; font-style: italic; }
+.log-system { color: var(--sub); }
+
+/* ── Action buttons ──────────────────────────────────────────────────── */
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.action-btn {
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 14px 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.2s;
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.action-btn:hover:not(:disabled) {
+  background: var(--hover);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.action-btn:active:not(:disabled) { transform: translateY(0); }
+.action-btn:disabled {
+  opacity: 0.30;
+  cursor: not-allowed;
+  transform: none;
+}
+.charge-badge {
+  font-size: 11px;
+  font-weight: 800;
+  background: rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 2px 7px;
+  color: var(--muted);
+}
+
+/* ── Upgrade screen ──────────────────────────────────────────────────── */
+.upgrade-header {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 26px 24px 22px;
+  text-align: center;
+  margin-bottom: 18px;
+}
+.upgrade-trophy { font-size: 44px; margin-bottom: 10px; }
+.upgrade-title {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.upgrade-sub {
+  font-size: 14px;
+  color: var(--sub);
+  line-height: 1.6;
+}
+.upgrade-sub.boss-warning { color: var(--red); font-weight: 700; }
+
+.upgrade-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.upgrade-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  padding: 20px 14px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.upgrade-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(74,222,128,0.15);
+}
+.upgrade-emoji { font-size: 36px; line-height: 1; margin-bottom: 2px; }
+.upgrade-name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.3;
+}
+.upgrade-desc {
+  font-size: 12px;
+  color: var(--sub);
+  line-height: 1.5;
+  flex: 1;
+}
+.upgrade-choose-btn {
+  margin-top: 8px;
+  background: var(--accent);
+  color: #0a0a0a;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  transition: opacity 0.15s;
+}
+.upgrade-choose-btn:hover { opacity: 0.85; }
+
+.upgrade-preview {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+.upgrade-preview-label { font-weight: 700; margin-right: 6px; color: var(--sub); }
+
+/* ── End screen ──────────────────────────────────────────────────────── */
+.end-card {
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  padding: 40px 28px 36px;
+  text-align: center;
+  transition: border-color 0.3s;
+}
+.end-emoji { font-size: 64px; line-height: 1; margin-bottom: 16px; }
+.end-headline {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--accent);
+  margin-bottom: 10px;
+  transition: color 0.3s;
+}
+.end-sub {
+  font-size: 15px;
+  color: var(--sub);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+.end-stats {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 28px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.stat-row { font-size: 14px; color: var(--sub); }
+.stat-row strong { color: var(--text); }
+
+.end-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.end-buttons .start-btn { max-width: 240px; }
+.back-arcade {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.back-arcade:hover { color: var(--sub); }
+
+/* ── Animations ──────────────────────────────────────────────────────── */
+@keyframes shake {
+  0%, 100% { transform: translateX(0) translateY(0); }
+  20%       { transform: translateX(-7px) translateY(-2px); }
+  40%       { transform: translateX(7px) translateY(0); }
+  60%       { transform: translateX(-4px) translateY(2px); }
+  80%       { transform: translateX(4px) translateY(0); }
+}
+.shake { animation: shake 0.35s ease; }
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 500px) {
+  body { padding: 10px 10px 50px; }
+  .splash-card { padding: 24px 18px 22px; }
+  .fighter-emoji { font-size: 48px; min-height: 58px; }
+  .battle-log { height: 110px; font-size: 12px; }
+  .action-btn { font-size: 13px; padding: 12px 6px; min-height: 52px; }
+  .upgrade-grid { grid-template-columns: 1fr; }
+  .lineup-emoji { font-size: 22px; }
+  .lineup-item { padding: 8px 10px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══════════════════ SPLASH SCREEN ═══════════════════════════════════ -->
+<div class="screen active" id="screen-splash">
+  <div class="game-header">
+    <a href="index.html" class="back-btn">← Arcade</a>
+    <span class="header-title">👽 Alien Invasion!</span>
+    <span></span>
+  </div>
+
+  <div class="splash-card">
+    <div class="splash-emoji">👽</div>
+    <h1 class="splash-title">Alien Invasion!</h1>
+    <p class="splash-sub">
+      The aliens have landed and they are NOT friendly.<br>
+      Fight your way through their ranks. Save the planet.
+    </p>
+
+    <div class="enemy-lineup">
+      <div class="lineup-item">
+        <span class="lineup-emoji">👽</span>
+        <span class="lineup-name">Zork</span>
+      </div>
+      <span class="lineup-arrow">→</span>
+      <div class="lineup-item">
+        <span class="lineup-emoji">👾</span>
+        <span class="lineup-name">Blorp</span>
+      </div>
+      <span class="lineup-arrow">→</span>
+      <div class="lineup-item">
+        <span class="lineup-emoji">🦑</span>
+        <span class="lineup-name">Gloop</span>
+      </div>
+      <span class="lineup-arrow">→</span>
+      <div class="lineup-item boss-item">
+        <span class="lineup-emoji">🤖</span>
+        <span class="lineup-name">⚠️ Boss</span>
+      </div>
+    </div>
+
+    <div class="rules-box">
+      <div class="rule">
+        <span class="rule-icon">⚔️</span>
+        <span>Each turn: <strong>Attack</strong> with your spear, <strong>Defend</strong> with your shield, drink a <strong>Potion</strong>, or <strong>Enchant</strong> your weapon for a double hit</span>
+      </div>
+      <div class="rule">
+        <span class="rule-icon">🎁</span>
+        <span>Pick one <strong>upgrade</strong> after each fight to grow stronger before the next</span>
+      </div>
+      <div class="rule">
+        <span class="rule-icon">❤️</span>
+        <span>You start with <strong>100 HP</strong> and <strong>3 potions</strong> — don't let HP reach zero!</span>
+      </div>
+      <div class="rule">
+        <span class="rule-icon">👑</span>
+        <span>Defeat the three alien warriors to face <strong>Emperor Zorgax</strong> — the final boss</span>
+      </div>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">⚔️ Start Campaign</button>
+  </div>
+</div>
+
+<!-- ══════════════════ BATTLE SCREEN ═══════════════════════════════════ -->
+<div class="screen" id="screen-battle">
+  <div class="game-header">
+    <a href="index.html" class="back-btn">← Arcade</a>
+    <span class="header-title">👽 Alien Invasion!</span>
+    <span class="fight-counter" id="fight-counter">Fight 1 / 4</span>
+  </div>
+
+  <!-- Arena -->
+  <div class="arena">
+    <div class="fighter">
+      <div class="fighter-name">⚔️ You</div>
+      <div class="fighter-emoji" id="player-emoji">🧑‍⚔️</div>
+      <div class="fighter-hp-text" id="player-hp-text">100 / 100</div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar" id="player-hp-bar" style="width:100%;background:hsl(120,75%,45%)"></div>
+      </div>
+    </div>
+
+    <div class="arena-vs">⚡</div>
+
+    <div class="fighter">
+      <div class="fighter-name" id="enemy-name-label">Zork Lv.1</div>
+      <div class="fighter-emoji" id="enemy-emoji">👽</div>
+      <div class="fighter-hp-text" id="enemy-hp-text">80 / 80</div>
+      <div class="hp-bar-wrap">
+        <div class="hp-bar" id="enemy-hp-bar" style="width:100%;background:hsl(120,75%,45%)"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Battle log -->
+  <div class="battle-log" id="battle-log"></div>
+
+  <!-- Actions -->
+  <div class="action-grid">
+    <button class="action-btn" id="btn-attack" onclick="playerAction('attack')">
+      ⚔️ Attack
+    </button>
+    <button class="action-btn" id="btn-defend" onclick="playerAction('defend')">
+      🛡️ Defend
+    </button>
+    <button class="action-btn" id="btn-potion" onclick="playerAction('potion')">
+      🧪 Potion <span class="charge-badge" id="charge-potions">3</span>
+    </button>
+    <button class="action-btn" id="btn-enchant" onclick="playerAction('enchant')">
+      ✨ Enchant <span class="charge-badge" id="charge-enchants">2</span>
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════ UPGRADE SCREEN ══════════════════════════════════ -->
+<div class="screen" id="screen-upgrade">
+  <div class="game-header">
+    <a href="index.html" class="back-btn">← Arcade</a>
+    <span class="header-title">👽 Alien Invasion!</span>
+    <span></span>
+  </div>
+
+  <div class="upgrade-header">
+    <div class="upgrade-trophy" id="upgrade-trophy">🎉</div>
+    <h2 class="upgrade-title" id="upgrade-title">Victory!</h2>
+    <p class="upgrade-sub" id="upgrade-sub">Choose one upgrade before the next fight:</p>
+  </div>
+
+  <div class="upgrade-grid" id="upgrade-grid"></div>
+
+  <div class="upgrade-preview">
+    <span class="upgrade-preview-label">Your current stats:</span>
+    <span id="upgrade-stats-preview"></span>
+  </div>
+</div>
+
+<!-- ══════════════════ END SCREEN ══════════════════════════════════════ -->
+<div class="screen" id="screen-end">
+  <div class="game-header">
+    <a href="index.html" class="back-btn">← Arcade</a>
+    <span class="header-title">👽 Alien Invasion!</span>
+    <span></span>
+  </div>
+
+  <div class="end-card" id="end-card">
+    <div class="end-emoji" id="end-emoji">🏆</div>
+    <div class="end-headline" id="end-headline">YOU SAVED THE PLANET!</div>
+    <div class="end-sub" id="end-sub"></div>
+    <div class="end-stats" id="end-stats"></div>
+    <div class="end-buttons">
+      <button class="start-btn" onclick="startGame()">↺ Play Again</button>
+      <a href="index.html" class="back-arcade">← Back to Arcade</a>
+    </div>
+  </div>
+</div>
+
+</div><!-- .wrap -->
+
+<script>
+// ══ ENEMIES ══════════════════════════════════════════════════════════════════
+const ENEMIES = [
+  {
+    id: 'zork', name: 'Zork the Scout', emoji: '👽',
+    hp: 80, maxHP: 80, level: 1,
+    flavour: 'A scrawny little alien. Big attitude, very small brains.',
+    attacks: [
+      { dmg: [10, 18], msg: 'fires a wobbly zap shot at you' },
+      { dmg: [8,  15], msg: 'chucks a bendy alien spear at you' },
+    ],
+    special: null,
+    taunts: [
+      "You'll never beat me!",
+      "Zap zap ZAP!",
+      "My mum is scarier than you!",
+      "Is that all you've got?!",
+    ],
+  },
+  {
+    id: 'blorp', name: 'Blorp the Warrior', emoji: '👾',
+    hp: 130, maxHP: 130, level: 2,
+    flavour: 'Stocky. Mean. Has a plasma bow and absolutely terrible breath.',
+    attacks: [
+      { dmg: [14, 24], msg: 'fires a sizzling plasma arrow at you' },
+      { dmg: [12, 20], msg: 'charges and BASHES you with an alien shield' },
+    ],
+    special: { type: 'attack', dmg: [20, 32], msg: 'unleashes a RAGE VOLLEY at you', chance: 0.20 },
+    taunts: [
+      "RARGH!",
+      "You're just a tiny human!",
+      "I've squished worse things than you!",
+      "Blorp SMASH!",
+    ],
+  },
+  {
+    id: 'gloop', name: 'Gloop the Gooey', emoji: '🦑',
+    hp: 180, maxHP: 180, level: 3,
+    flavour: 'A massive slime alien. Hits like a wet spaceship falling on your head.',
+    attacks: [
+      { dmg: [16, 26], msg: 'smashes you with a gooey tentacle' },
+      { dmg: [14, 22], msg: 'fires a revolting ooze blast at you' },
+    ],
+    special: { type: 'heal', heal: 18, msg: 'slurps up some gross alien goo and heals', chance: 0.25 },
+    taunts: [
+      'BLORRRRP!',
+      'You taste funny.',
+      'Gloop will squish you!',
+      'Glooooop…',
+    ],
+  },
+  {
+    id: 'zorgax', name: 'Emperor Zorgax', emoji: '🤖',
+    hp: 280, maxHP: 280, level: 4, isBoss: true,
+    flavour: 'Ruler of the entire Alien Empire. He is NOT happy you made it this far.',
+    attacks: [
+      { dmg: [22, 36], msg: 'unleashes a GALACTIC SMASH on you' },
+      { dmg: [18, 30], msg: 'fires a laser volley at you' },
+    ],
+    special: { type: 'attack', dmg: [30, 50], msg: 'calls down a METEOR STRIKE on you 🌠', chance: 0.22 },
+    taunts: [
+      'You puny human!',
+      'My boots cost more than your entire planet!',
+      "Is that the best you've got?!",
+      "My gran hits harder than you — and she's 400 years old!",
+      'IMPOSSIBLE! Nobody defeats Emperor Zorgax!',
+      'I will have my revenge!',
+    ],
+  },
+];
+
+// ══ UPGRADES ═════════════════════════════════════════════════════════════════
+const UPGRADE_POOL = [
+  {
+    emoji: '⚔️', name: 'Sharpened Spear',
+    desc: '+8 damage on every attack.',
+    apply: s => { s.atkMin += 8; s.atkMax += 8; },
+  },
+  {
+    emoji: '🛡️', name: 'Iron Shield',
+    desc: '+25 max HP, and heals 25 HP right now.',
+    apply: s => { s.maxHP += 25; s.hp = Math.min(s.hp + 25, s.maxHP); },
+  },
+  {
+    emoji: '🧪', name: 'Extra Potions',
+    desc: '+2 potion charges. Each heals 30 HP.',
+    apply: s => { s.potions += 2; },
+  },
+  {
+    emoji: '✨', name: 'Magic Enchantment',
+    desc: '+1 enchant charge. Doubles your next attack.',
+    apply: s => { s.enchants += 1; },
+  },
+  {
+    emoji: '🍀', name: 'Lucky Clover',
+    desc: '20% chance to completely dodge incoming attacks.',
+    apply: s => { s.dodgeChance = Math.min(s.dodgeChance + 0.20, 0.60); },
+  },
+  {
+    emoji: '💥', name: 'Battle Rage',
+    desc: '25% chance to deal double damage on any attack.',
+    apply: s => { s.rageChance = Math.min(s.rageChance + 0.25, 0.75); },
+  },
+  {
+    emoji: '🎯', name: 'Eagle Eye',
+    desc: '20% chance to score a critical hit (+50% damage).',
+    apply: s => { s.critChance = Math.min(s.critChance + 0.20, 0.60); },
+  },
+  {
+    emoji: '🩸', name: 'Life Drain',
+    desc: 'Heal 5 HP each time you land an attack.',
+    apply: s => { s.lifeDrain += 5; },
+  },
+];
+
+// ══ STATE ════════════════════════════════════════════════════════════════════
+let G = {};
+let _upgradePool = [];
+let _nextEnemyIdx = 0;
+
+function initState() {
+  G = {
+    hp: 100, maxHP: 100,
+    atkMin: 12, atkMax: 22,
+    potions: 3,
+    enchants: 2,
+    dodgeChance: 0,
+    rageChance: 0,
+    critChance: 0,
+    lifeDrain: 0,
+    defending: false,
+    enchanted: false,
+    enemyIndex: 0,
+    enemy: null,
+    locked: false,
+  };
+}
+
+// ══ UTILITIES ════════════════════════════════════════════════════════════════
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function log(msg, type = 'system') {
+  const el = document.getElementById('battle-log');
+  const p = document.createElement('p');
+  p.className = 'log-' + type;
+  p.textContent = msg;
+  el.appendChild(p);
+  // Cap at 30 lines to avoid memory bloat
+  while (el.children.length > 30) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+function hpColor(pct) {
+  const h = Math.round(Math.max(0, Math.min(1, pct)) * 120);
+  return `hsl(${h}, 75%, 45%)`;
+}
+
+function shakeEl(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('shake');
+  void el.offsetWidth; // force reflow
+  el.classList.add('shake');
+  setTimeout(() => el.classList.remove('shake'), 400);
+}
+
+// ══ GAME FLOW ════════════════════════════════════════════════════════════════
+function startGame() {
+  initState();
+  loadEnemy(0);
+  showScreen('battle');
+}
+
+function loadEnemy(idx) {
+  const tpl = ENEMIES[idx];
+  G.enemyIndex = idx;
+  G.enemy = { ...tpl, hp: tpl.maxHP };
+  G.defending = false;
+  G.enchanted = false;
+  G.locked = false;
+
+  // Header counter
+  document.getElementById('fight-counter').textContent = `Fight ${idx + 1} / ${ENEMIES.length}`;
+
+  // Enemy display
+  document.getElementById('enemy-name-label').textContent =
+    tpl.isBoss ? `${tpl.name} 👑` : `${tpl.name} Lv.${tpl.level}`;
+  document.getElementById('enemy-emoji').textContent = tpl.emoji;
+
+  // Clear log and write intro
+  document.getElementById('battle-log').innerHTML = '';
+  if (tpl.isBoss) {
+    log('⚠️  WARNING — BOSS FIGHT! ⚠️', 'info');
+    log(`Emperor Zorgax has arrived. Ruler of the Alien Empire.`, 'system');
+    log(`🤖 Zorgax: "${tpl.taunts[0]}"`, 'taunt');
+    log('Give it everything you have!', 'info');
+  } else {
+    log(`${tpl.name} steps forward...`, 'system');
+    log(`"${tpl.flavour}"`, 'system');
+    log('Choose your action!', 'system');
+  }
+
+  updateUI();
+}
+
+// ══ UI ═══════════════════════════════════════════════════════════════════════
+function updateUI() {
+  const e = G.enemy;
+
+  // Player HP bar
+  const pPct = G.hp / G.maxHP;
+  document.getElementById('player-hp-text').textContent = `${G.hp} / ${G.maxHP}`;
+  const pBar = document.getElementById('player-hp-bar');
+  pBar.style.width = `${Math.max(0, pPct * 100)}%`;
+  pBar.style.backgroundColor = hpColor(pPct);
+
+  // Enemy HP bar
+  if (e) {
+    const ePct = e.hp / e.maxHP;
+    document.getElementById('enemy-hp-text').textContent = `${e.hp} / ${e.maxHP}`;
+    const eBar = document.getElementById('enemy-hp-bar');
+    eBar.style.width = `${Math.max(0, ePct * 100)}%`;
+    eBar.style.backgroundColor = hpColor(ePct);
+  }
+
+  // Charge badges
+  document.getElementById('charge-potions').textContent = G.potions;
+  document.getElementById('charge-enchants').textContent = G.enchants;
+
+  // Lock/unlock all buttons
+  const locked = G.locked;
+  ['btn-attack', 'btn-defend', 'btn-potion', 'btn-enchant'].forEach(id => {
+    document.getElementById(id).disabled = locked;
+  });
+
+  if (!locked) {
+    document.getElementById('btn-potion').disabled  = G.potions <= 0 || G.hp >= G.maxHP;
+    document.getElementById('btn-enchant').disabled = G.enchants <= 0 || G.enchanted;
+  }
+
+  // Enchanted glow on Attack button
+  const atkBtn = document.getElementById('btn-attack');
+  if (G.enchanted && !locked) {
+    atkBtn.style.borderColor = '#f5a623';
+    atkBtn.style.boxShadow   = '0 0 14px rgba(245,166,35,0.5)';
+    atkBtn.textContent = '✨ Attack (ENCHANTED!)';
+  } else {
+    atkBtn.style.borderColor = '';
+    atkBtn.style.boxShadow   = '';
+    atkBtn.textContent = '⚔️ Attack';
+  }
+
+  // Defending glow on Defend button
+  const defBtn = document.getElementById('btn-defend');
+  if (G.defending && !locked) {
+    defBtn.style.borderColor = '#60a5fa';
+    defBtn.style.background  = '#1e3a5f';
+    defBtn.textContent = '🛡️ Defending…';
+  } else {
+    defBtn.style.borderColor = '';
+    defBtn.style.background  = '';
+    defBtn.textContent = '🛡️ Defend';
+  }
+}
+
+// ══ PLAYER ACTION ═══════════════════════════════════════════════════════════
+function playerAction(type) {
+  if (G.locked) return;
+  G.locked = true;
+  updateUI();
+
+  if (type === 'attack') {
+    let dmg = rand(G.atkMin, G.atkMax);
+    const mods = [];
+
+    if (G.enchanted) {
+      dmg = Math.round(dmg * 2);
+      mods.push('✨ ENCHANTED x2!');
+      G.enchanted = false;
+    }
+    if (G.rageChance > 0 && Math.random() < G.rageChance) {
+      dmg = Math.round(dmg * 2);
+      mods.push('💥 BATTLE RAGE!');
+    }
+    if (G.critChance > 0 && Math.random() < G.critChance) {
+      dmg = Math.round(dmg * 1.5);
+      mods.push('🎯 CRITICAL HIT!');
+    }
+
+    G.enemy.hp = Math.max(0, G.enemy.hp - dmg);
+    shakeEl('enemy-emoji');
+
+    let msg = `⚔️ You attack for ${dmg} damage!`;
+    if (mods.length) msg += '  ' + mods.join(' ');
+    log(msg, 'player');
+
+    if (G.lifeDrain > 0 && dmg > 0) {
+      const healed = Math.min(G.lifeDrain, G.maxHP - G.hp);
+      if (healed > 0) {
+        G.hp += healed;
+        log(`🩸 Life Drain heals you for ${healed} HP!`, 'player');
+      }
+    }
+
+    updateUI();
+
+    if (G.enemy.hp <= 0) {
+      log(`💥 ${G.enemy.name} is DEFEATED! 🎉`, 'info');
+      setTimeout(onEnemyDead, 700);
+      return;
+    }
+
+  } else if (type === 'defend') {
+    G.defending = true;
+    log('🛡️ You raise your shield and brace for impact!', 'player');
+    updateUI();
+
+  } else if (type === 'potion') {
+    if (G.potions <= 0 || G.hp >= G.maxHP) { G.locked = false; updateUI(); return; }
+    const healed = Math.min(30, G.maxHP - G.hp);
+    G.hp += healed;
+    G.potions--;
+    log(`🧪 You gulp a potion and recover ${healed} HP!`, 'player');
+    updateUI();
+
+  } else if (type === 'enchant') {
+    if (G.enchants <= 0 || G.enchanted) { G.locked = false; updateUI(); return; }
+    G.enchanted = true;
+    G.enchants--;
+    log('✨ Your weapon GLOWS with magic power! Next attack hits TWICE as hard!', 'player');
+    updateUI();
+  }
+
+  // Trigger enemy turn after brief pause
+  setTimeout(enemyTurn, 520);
+}
+
+// ══ ENEMY TURN ═══════════════════════════════════════════════════════════════
+function enemyTurn() {
+  const e = G.enemy;
+  const roll = Math.random();
+
+  if (e.special && roll < e.special.chance) {
+    // Use special ability
+    if (e.special.type === 'heal') {
+      const healed = Math.min(e.special.heal, e.maxHP - e.hp);
+      e.hp = Math.min(e.hp + healed, e.maxHP);
+      log(`💚 ${e.name} ${e.special.msg}! (+${healed} HP)`, 'enemy');
+      updateUI();
+    } else if (e.special.type === 'attack') {
+      dealEnemyDamage(rand(...e.special.dmg), `💥 ${e.name} ${e.special.msg}`, true);
+    }
+  } else {
+    // Regular attack
+    const atk = e.attacks[Math.floor(Math.random() * e.attacks.length)];
+    dealEnemyDamage(rand(...atk.dmg), `${e.name} ${atk.msg}`, false);
+  }
+
+  // Occasional taunt (after the attack resolves)
+  if (e.taunts && G.hp > 0 && Math.random() < 0.28) {
+    const taunt = e.taunts[Math.floor(Math.random() * e.taunts.length)];
+    setTimeout(() => log(`💬 ${e.name}: "${taunt}"`, 'taunt'), 160);
+  }
+
+  // Clear defending flag after this turn
+  G.defending = false;
+
+  if (G.hp <= 0) {
+    setTimeout(() => showEnd(false), 800);
+    return;
+  }
+
+  G.locked = false;
+  updateUI();
+}
+
+function dealEnemyDamage(rawDmg, msgPrefix, isSpecial) {
+  // Dodge check
+  if (G.dodgeChance > 0 && Math.random() < G.dodgeChance) {
+    log(`🍀 ${msgPrefix} — but you DODGED it! Nice one!`, 'info');
+    return;
+  }
+
+  let dmg = rawDmg;
+  let suffix = '';
+
+  if (G.defending) {
+    dmg = Math.round(dmg * 0.60);
+    suffix = ' (your shield reduced it!)';
+  }
+
+  G.hp = Math.max(0, G.hp - dmg);
+  log(`${msgPrefix} — ${dmg} damage!${suffix}`, 'enemy');
+  shakeEl('player-emoji');
+  updateUI();
+}
+
+// ══ AFTER ENEMY DIES ═════════════════════════════════════════════════════════
+function onEnemyDead() {
+  if (G.enemy.isBoss) {
+    showEnd(true);
+  } else {
+    showUpgradeScreen(G.enemyIndex);
+  }
+}
+
+// ══ UPGRADE SCREEN ═══════════════════════════════════════════════════════════
+function showUpgradeScreen(defeatedIdx) {
+  _nextEnemyIdx = defeatedIdx + 1;
+  const enemy     = ENEMIES[defeatedIdx];
+  const nextEnemy = ENEMIES[_nextEnemyIdx];
+
+  document.getElementById('upgrade-trophy').textContent = '🎉';
+  document.getElementById('upgrade-title').textContent  = `${enemy.name} defeated!`;
+
+  const subEl = document.getElementById('upgrade-sub');
+  if (nextEnemy.isBoss) {
+    subEl.textContent = '⚠️ Next up: EMPEROR ZORGAX — the final boss. Choose wisely…';
+    subEl.className = 'upgrade-sub boss-warning';
+  } else {
+    subEl.textContent = `Choose one upgrade before fighting ${nextEnemy.name}:`;
+    subEl.className = 'upgrade-sub';
+  }
+
+  // Current stats display
+  document.getElementById('upgrade-stats-preview').innerHTML =
+    `⚔️ ${G.atkMin}–${G.atkMax} dmg &nbsp;·&nbsp; ❤️ ${G.hp}/${G.maxHP} HP &nbsp;·&nbsp; 🧪 ×${G.potions} &nbsp;·&nbsp; ✨ ×${G.enchants}`;
+
+  // Pick 3 random upgrades
+  _upgradePool = shuffle(UPGRADE_POOL).slice(0, 3);
+  const grid = document.getElementById('upgrade-grid');
+  grid.innerHTML = '';
+
+  _upgradePool.forEach((upg, i) => {
+    const card = document.createElement('div');
+    card.className = 'upgrade-card';
+    card.innerHTML = `
+      <div class="upgrade-emoji">${upg.emoji}</div>
+      <div class="upgrade-name">${upg.name}</div>
+      <div class="upgrade-desc">${upg.desc}</div>
+      <button class="upgrade-choose-btn" onclick="pickUpgrade(${i})">Choose →</button>
+    `;
+    grid.appendChild(card);
+  });
+
+  showScreen('upgrade');
+}
+
+function pickUpgrade(i) {
+  const upg = _upgradePool[i];
+  upg.apply(G);
+  loadEnemy(_nextEnemyIdx);
+  showScreen('battle');
+  setTimeout(() => log(`✅ Equipped: ${upg.emoji} ${upg.name} — ${upg.desc}`, 'info'), 120);
+}
+
+// ══ END SCREEN ═══════════════════════════════════════════════════════════════
+function showEnd(won) {
+  const card     = document.getElementById('end-card');
+  const headline = document.getElementById('end-headline');
+
+  // Reset styles from previous game
+  card.style.borderColor = '';
+  headline.style.color   = '';
+
+  if (won) {
+    document.getElementById('end-emoji').textContent     = '🏆';
+    headline.textContent                                  = 'YOU SAVED THE PLANET!';
+    document.getElementById('end-sub').innerHTML =
+      `You defeated <strong>all 4 alien warriors</strong> including the mighty Emperor Zorgax. Earth is safe! 🌍`;
+    document.getElementById('end-stats').innerHTML = `
+      <div class="stat-row">💚 Remaining HP: <strong>${G.hp} / ${G.maxHP}</strong></div>
+      <div class="stat-row">⚔️ Final attack power: <strong>${G.atkMin}–${G.atkMax} damage</strong></div>
+      <div class="stat-row">🧪 Potions remaining: <strong>${G.potions}</strong></div>
+      <div class="stat-row">✨ Enchants remaining: <strong>${G.enchants}</strong></div>
+    `;
+  } else {
+    card.style.borderColor  = 'var(--red)';
+    headline.style.color    = 'var(--red)';
+    document.getElementById('end-emoji').textContent = '💀';
+    headline.textContent = 'DEFEATED!';
+    const fightsDone = G.enemyIndex;
+    document.getElementById('end-sub').innerHTML =
+      `<strong>${G.enemy.name}</strong> was just too tough this time. You made it through ${fightsDone} fight${fightsDone !== 1 ? 's' : ''}. Don't give up!`;
+    document.getElementById('end-stats').innerHTML = `
+      <div class="stat-row">🌟 So close! Give it another try.</div>
+      <div class="stat-row">💡 Tip: Defend before you expect a big hit, and stack the Iron Shield upgrade early.</div>
+    `;
+  }
+
+  showScreen('end');
+}
+</script>
+</body>
+</html>
