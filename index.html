@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz Arcade</title>
+<style>
+  :root {
+    --bg:#1a1a2e;
+    --surface:#16213e;
+    --card:#0f3460;
+    --hover:#1a4a80;
+    --accent:#e94560;
+    --gold:#f5a623;
+    --green:#2ecc71;
+    --red:#e74c3c;
+    --text:#f0f0f0;
+    --sub:#b0b8cc;
+    --muted:#6b7280;
+    --border:#2a3550;
+    --teal:#1abc9c;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:40px 16px 60px;
+  }
+
+  .wrap{width:100%;max-width:800px;}
+
+  /* Hero header */
+  .hero{text-align:center;margin-bottom:48px;}
+  .hero-title{
+    font-size:clamp(36px,8vw,60px);
+    font-weight:900;
+    background:linear-gradient(135deg,#fff 20%,var(--gold) 80%);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+    line-height:1.1;
+    margin-bottom:14px;
+    letter-spacing:-1px;
+  }
+  .hero-sub{
+    font-size:clamp(14px,3vw,18px);
+    color:var(--sub);
+    max-width:480px;
+    margin:0 auto;
+    line-height:1.6;
+  }
+
+  /* Games grid */
+  .games-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+    margin-bottom:48px;
+  }
+
+  /* Individual game card */
+  .game-card{
+    display:flex;
+    flex-direction:column;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:20px;
+    overflow:hidden;
+    text-decoration:none;
+    color:var(--text);
+    transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+  }
+  .game-card:hover{
+    transform:translateY(-3px);
+    box-shadow:0 12px 40px rgba(0,0,0,.35);
+  }
+
+  .card-accent-bar{height:6px;width:100%;flex-shrink:0;}
+
+  .card-body{
+    display:flex;
+    flex-direction:column;
+    flex:1;
+    padding:22px 22px 20px;
+  }
+
+  .card-emoji{
+    font-size:48px;
+    line-height:1;
+    margin-bottom:14px;
+  }
+
+  .card-title{
+    font-size:20px;
+    font-weight:700;
+    color:var(--text);
+    margin-bottom:8px;
+    line-height:1.2;
+  }
+
+  .card-desc{
+    font-size:14px;
+    color:var(--sub);
+    line-height:1.6;
+    flex:1;
+    margin-bottom:16px;
+  }
+
+  .card-meta{
+    display:inline-block;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:4px 12px;
+    font-size:12px;
+    font-weight:600;
+    color:var(--muted);
+    margin-bottom:18px;
+    align-self:flex-start;
+  }
+
+  .card-play-btn{
+    display:block;
+    width:100%;
+    padding:13px;
+    border-radius:12px;
+    border:none;
+    font-size:15px;
+    font-weight:700;
+    color:#fff;
+    text-align:center;
+    cursor:pointer;
+    transition:opacity .2s, filter .2s;
+    margin-top:auto;
+    text-decoration:none;
+  }
+  .game-card:hover .card-play-btn{
+    filter:brightness(1.1);
+  }
+
+  /* Hover border brightening per card */
+  .game-card[data-accent="flag"]:hover    { border-color:#e94560; }
+  .game-card[data-accent="capital"]:hover { border-color:#1abc9c; }
+  .game-card[data-accent="facts"]:hover   { border-color:#f5a623; }
+  .game-card[data-accent="sp500"]:hover   { border-color:#8e44ad; }
+
+  /* Footer */
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-size:13px;
+    margin-top:auto;
+    padding-top:24px;
+    border-top:1px solid var(--border);
+    width:100%;
+    max-width:800px;
+  }
+
+  @media(max-width:600px){
+    .games-grid{grid-template-columns:1fr;}
+    body{padding:28px 14px 48px;}
+    .hero{margin-bottom:32px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <h1 class="hero-title">🎮 Quiz Arcade</h1>
+    <p class="hero-sub">Four brain-stretching quiz games. No timers, no stress — just facts.</p>
+  </header>
+
+  <main class="games-grid">
+
+    <!-- Flag Quiz -->
+    <a class="game-card" href="flag_quiz.html" data-accent="flag">
+      <div class="card-accent-bar" style="background:#e94560;"></div>
+      <div class="card-body">
+        <div class="card-emoji">🏳️</div>
+        <div class="card-title">Guess the Flag</div>
+        <div class="card-desc">195 world flags. 10 questions. How many can you spot?</div>
+        <div class="card-meta">195 countries · 10 questions</div>
+        <span class="card-play-btn" style="background:#e94560;">Play →</span>
+      </div>
+    </a>
+
+    <!-- Capital Quiz -->
+    <a class="game-card" href="capital_quiz.html" data-accent="capital">
+      <div class="card-accent-bar" style="background:#1abc9c;"></div>
+      <div class="card-body">
+        <div class="card-emoji">🌍</div>
+        <div class="card-title">Capital City Challenge</div>
+        <div class="card-desc">Show the country, guess the capital. Trickier than it sounds.</div>
+        <div class="card-meta">195 countries · 10 questions</div>
+        <span class="card-play-btn" style="background:#1abc9c;">Play →</span>
+      </div>
+    </a>
+
+    <!-- Wild Facts Quiz -->
+    <a class="game-card" href="wild_facts.html" data-accent="facts">
+      <div class="card-accent-bar" style="background:#f5a623;"></div>
+      <div class="card-body">
+        <div class="card-emoji">🧠</div>
+        <div class="card-title">Wild Facts Quiz</div>
+        <div class="card-desc">Animals, space, science, sport — 50+ WOW facts waiting.</div>
+        <div class="card-meta">52 questions · WOW facts revealed</div>
+        <span class="card-play-btn" style="background:#f5a623;">Play →</span>
+      </div>
+    </a>
+
+    <!-- S&P 500 Guesser -->
+    <a class="game-card" href="sp500_guesser.html" data-accent="sp500">
+      <div class="card-accent-bar" style="background:#8e44ad;"></div>
+      <div class="card-body">
+        <div class="card-emoji">📈</div>
+        <div class="card-title">S&amp;P 500 Guesser</div>
+        <div class="card-desc">Market cap, sector, key fact — three clues to name the company.</div>
+        <div class="card-meta">40 companies · 3 clues · Max 30 pts</div>
+        <span class="card-play-btn" style="background:#8e44ad;">Play →</span>
+      </div>
+    </a>
+
+  </main>
+
+  <footer>Made with Claude &middot; Open source</footer>
+
+</div>
+</body>
+</html>

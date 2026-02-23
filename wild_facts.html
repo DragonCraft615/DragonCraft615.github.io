@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wild Facts Quiz</title>
+<style>
+  :root {
+    --bg:#1a1a2e;
+    --surface:#16213e;
+    --card:#0f3460;
+    --hover:#1a4a80;
+    --accent:#e94560;
+    --gold:#f5a623;
+    --green:#2ecc71;
+    --red:#e74c3c;
+    --correct:#1e8449;
+    --wrong:#922b21;
+    --text:#f0f0f0;
+    --sub:#b0b8cc;
+    --muted:#6b7280;
+    --border:#2a3550;
+    --teal:#1abc9c;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px;}
+  a{color:var(--sub);text-decoration:none;}
+  a:hover{color:var(--text);}
+  .wrap{width:100%;max-width:660px;}
+
+  /* Header */
+  .site-header{display:flex;align-items:center;justify-content:space-between;padding:12px 0 24px;}
+  .back-link{font-size:14px;color:var(--sub);display:flex;align-items:center;gap:6px;transition:color .2s;}
+  .back-link:hover{color:var(--text);}
+  .header-title{font-size:22px;font-weight:700;text-align:center;flex:1;}
+  .score-pill{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 16px;font-size:14px;font-weight:600;color:var(--gold);white-space:nowrap;}
+
+  /* Progress dots */
+  .progress-dots{display:flex;gap:8px;justify-content:center;margin-bottom:20px;}
+  .dot{width:28px;height:8px;border-radius:4px;background:var(--border);transition:background .3s;}
+  .dot.done{background:var(--teal);}
+  .dot.current{background:var(--gold);}
+
+  /* Category badge */
+  .cat-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;margin-bottom:14px;}
+
+  /* Question card */
+  .question-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 24px 20px;margin-bottom:16px;}
+  .question-text{font-size:20px;font-weight:700;line-height:1.4;color:var(--text);}
+
+  /* Options grid */
+  .options-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .opt-btn{background:var(--card);border:2px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:600;padding:14px 12px;cursor:pointer;transition:background .15s,border-color .15s,opacity .25s;text-align:center;line-height:1.3;}
+  .opt-btn:hover:not(:disabled){background:var(--hover);border-color:#3a5570;}
+  .opt-btn.correct{background:var(--correct);border-color:var(--green);}
+  .opt-btn.wrong{background:var(--wrong);border-color:var(--red);}
+  .opt-btn.dim{opacity:.35;}
+  .opt-btn:disabled{cursor:default;}
+
+  /* Feedback */
+  .feedback{border-radius:12px;padding:14px 18px;font-size:15px;font-weight:600;text-align:center;min-height:52px;transition:opacity .3s;margin-bottom:0;}
+  .feedback.hidden{opacity:0;pointer-events:none;}
+  .feedback.correct-fb{background:rgba(30,132,73,.25);border:1px solid var(--correct);color:var(--green);}
+  .feedback.wrong-fb{background:rgba(146,43,33,.25);border:1px solid var(--wrong);color:#f1948a;}
+  .wow-fact{color:var(--teal);font-size:13px;font-weight:500;text-align:center;margin-top:10px;line-height:1.5;min-height:20px;transition:opacity .3s;}
+  .wow-fact.hidden{opacity:0;}
+
+  /* End card */
+  .end-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px 28px;text-align:center;display:none;}
+  .end-card.show{display:block;}
+  .end-title{font-size:24px;font-weight:700;margin-bottom:8px;}
+  .end-score{font-size:72px;font-weight:900;line-height:1;margin:12px 0;}
+  .end-label{font-size:16px;color:var(--sub);margin-bottom:18px;}
+  .end-msg{font-size:17px;font-weight:600;line-height:1.5;margin-bottom:24px;}
+  .result-dots{display:flex;gap:8px;justify-content:center;margin-bottom:28px;flex-wrap:wrap;}
+  .r-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .r-dot.c{background:var(--correct);}
+  .r-dot.w{background:var(--wrong);}
+  .end-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  .btn-play{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+  .btn-play:hover{opacity:.85;}
+  .btn-back{background:var(--card);color:var(--sub);border:1px solid var(--border);border-radius:12px;padding:14px 28px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background .2s;}
+  .btn-back:hover{background:var(--hover);color:var(--text);}
+
+  /* Game area */
+  #game-area{display:block;}
+
+  @media(max-width:480px){
+    .options-grid{grid-template-columns:1fr;}
+    .question-text{font-size:17px;}
+    .end-score{font-size:56px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site-header">
+    <a class="back-link" href="index.html">← Arcade</a>
+    <span class="header-title">🧠 Wild Facts Quiz</span>
+    <span class="score-pill" id="score-pill">Score: 0</span>
+  </header>
+
+  <div id="game-area">
+    <div class="progress-dots" id="progress-dots"></div>
+    <div style="text-align:center;">
+      <span class="cat-badge" id="cat-badge"></span>
+    </div>
+    <div class="question-card">
+      <div class="question-text" id="question-text"></div>
+    </div>
+    <div class="options-grid" id="options-grid"></div>
+    <div class="feedback hidden" id="feedback"></div>
+    <div class="wow-fact hidden" id="wow-fact"></div>
+  </div>
+
+  <div class="end-card" id="end-card">
+    <div class="end-title">Quiz Complete!</div>
+    <div class="end-score" id="end-score"></div>
+    <div class="end-label">out of 10</div>
+    <div class="end-msg" id="end-msg"></div>
+    <div class="result-dots" id="result-dots"></div>
+    <div class="end-btns">
+      <button class="btn-play" onclick="startGame()">🔄 Play Again</button>
+      <a class="btn-back" href="index.html">← Back to Quiz Arcade</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {q:"Which is the fastest land animal?",a:"Cheetah",w:["Lion","Horse","Greyhound"],fact:"🐆 Cheetahs reach 70 mph in just 3 seconds — faster than most sports cars!",cat:"🐾 Animals"},
+  {q:"Which is the largest animal that has ever lived on Earth?",a:"Blue Whale",w:["African Elephant","Polar Bear","Giant Squid"],fact:"🐋 A blue whale's heart is as big as a small car and beats just 2 times per minute!",cat:"🐾 Animals"},
+  {q:"How many hearts does an octopus have?",a:"3",w:["1","2","4"],fact:"🐙 An octopus has 3 hearts AND blue blood — it's basically an alien from the deep!",cat:"🐾 Animals"},
+  {q:"Which is the only mammal that can truly fly?",a:"Bat",w:["Flying Squirrel","Sugar Glider","Colugo"],fact:"🦇 Flying squirrels can only glide — bats are the ONLY true flying mammals!",cat:"🐾 Animals"},
+  {q:"How many legs does a spider have?",a:"8",w:["6","10","12"],fact:"🕷️ Easy trick: insects = 6 legs, spiders = 8. That's how you tell them apart!",cat:"🐾 Animals"},
+  {q:"Which animal is famous for having an incredible memory?",a:"Elephant",w:["Dolphin","Crow","Chimpanzee"],fact:"🐘 Elephants can remember the faces of hundreds of friends — even after 20 years apart!",cat:"🐾 Animals"},
+  {q:"Which bird is the fastest swimmer?",a:"Penguin",w:["Duck","Pelican","Cormorant"],fact:"🐧 Gentoo penguins swim at 22 mph — faster than most humans can run on land!",cat:"🐾 Animals"},
+  {q:"What do giant pandas mostly eat?",a:"Bamboo",w:["Fish","Berries","Insects"],fact:"🐼 Giant pandas eat up to 40 pounds of bamboo daily — like eating 200 sandwiches!",cat:"🐾 Animals"},
+  {q:"Which animal can change its skin colour?",a:"Chameleon",w:["Gecko","Iguana","Komodo Dragon"],fact:"🦎 Chameleons don't just camouflage — they change colour to show their mood too!",cat:"🐾 Animals"},
+  {q:"Which animal can regrow a completely lost limb?",a:"Starfish",w:["Crab","Lobster","Clam"],fact:"⭐ Some starfish can regrow their WHOLE body from just one arm. Unstoppable!",cat:"🐾 Animals"},
+  {q:"How many eyes does a honey bee have?",a:"5",w:["2","3","6"],fact:"🐝 Bees have 2 large compound eyes AND 3 tiny simple eyes on top of their head!",cat:"🐾 Animals"},
+  {q:"Which is the slowest mammal?",a:"Three-toed Sloth",w:["Koala","Hedgehog","Giant Tortoise"],fact:"🦥 Sloths move so slowly that algae grows on their fur — they're their own tiny ecosystem!",cat:"🐾 Animals"},
+  {q:"Which animal produces silk to build webs and traps?",a:"Spider",w:["Moth","Beetle","Ant"],fact:"🕸️ Spider silk is stronger than steel of the same thickness — scientists want to copy it for body armour!",cat:"🐾 Animals"},
+  {q:"Which is the tallest living animal?",a:"Giraffe",w:["Elephant","Camel","Ostrich"],fact:"🦒 A giraffe's neck alone can be 6 feet long — and it has the same 7 neck bones as humans!",cat:"🐾 Animals"},
+  {q:"Which is the largest planet in our solar system?",a:"Jupiter",w:["Saturn","Uranus","Neptune"],fact:"🪐 Jupiter is SO huge that all the other planets could fit inside it with room to spare!",cat:"🚀 Space"},
+  {q:"How many planets are in our solar system?",a:"8",w:["7","9","10"],fact:"🚀 Poor Pluto! It was demoted from planet to 'dwarf planet' in 2006 — scientists still argue!",cat:"🚀 Space"},
+  {q:"Which planet is closest to the Sun?",a:"Mercury",w:["Venus","Earth","Mars"],fact:"☀️ A year on Mercury lasts just 88 Earth days — your birthday comes round nearly 4 times a year!",cat:"🚀 Space"},
+  {q:"Which is the hottest planet in our solar system?",a:"Venus",w:["Mercury","Mars","Jupiter"],fact:"🔥 Venus beats Mercury despite being further from the Sun — its clouds trap heat like an oven at 465°C!",cat:"🚀 Space"},
+  {q:"How long does light from the Sun take to reach Earth?",a:"About 8 minutes",w:["About 1 second","About 1 hour","About 1 day"],fact:"💡 Light travels 186,000 miles per second — and it STILL takes 8 whole minutes to reach us!",cat:"🚀 Space"},
+  {q:"Which planet spins completely tilted on its side?",a:"Uranus",w:["Saturn","Neptune","Mars"],fact:"🌀 Scientists think a massive rock crashed into Uranus billions of years ago and knocked it sideways!",cat:"🚀 Space"},
+  {q:"What is a shooting star really made of?",a:"A rock or speck of dust burning up",w:["A dying star","A comet's tail","A satellite"],fact:"⭐ Shooting stars aren't stars at all — tiny space rocks burn up in our atmosphere at 40,000 mph!",cat:"🚀 Space"},
+  {q:"Which planet has the most moons?",a:"Saturn",w:["Jupiter","Uranus","Neptune"],fact:"🪐 Saturn has 146 known moons — including Titan, which has its own thick atmosphere!",cat:"🚀 Space"},
+  {q:"How many bones are in the adult human body?",a:"206",w:["106","256","300"],fact:"🦴 Babies are born with about 270 bones — they gradually fuse together as you grow up!",cat:"🧬 Human Body"},
+  {q:"Which is the largest organ in the human body?",a:"Skin",w:["Liver","Brain","Lungs"],fact:"🫁 Your skin stretches about 2 square metres and weighs 3–4 kg. It's your armour against the world!",cat:"🧬 Human Body"},
+  {q:"How many chambers does the human heart have?",a:"4",w:["2","3","6"],fact:"❤️ Your heart beats about 100,000 times every single day — over 2.5 billion beats in a lifetime!",cat:"🧬 Human Body"},
+  {q:"How long is the human small intestine?",a:"About 6–7 metres",w:["About 1 metre","About 3 metres","About 15 metres"],fact:"🌀 Your small intestine is coiled up tightly — if unrolled it'd be taller than a double-decker bus!",cat:"🧬 Human Body"},
+  {q:"Which part of the body keeps growing throughout your whole life?",a:"Ears and nose",w:["Fingers","Eyes","Teeth"],fact:"👃 Ears and noses never stop growing — that's why older people tend to have larger ones!",cat:"🧬 Human Body"},
+  {q:"How many taste buds does a human tongue have?",a:"About 10,000",w:["About 100","About 1,000","About 100,000"],fact:"👅 Each taste bud lives only about 10 days before it's replaced — your mouth constantly refreshes!",cat:"🧬 Human Body"},
+  {q:"What is the tallest mountain on Earth?",a:"Mount Everest",w:["K2","Mont Blanc","Kilimanjaro"],fact:"⛰️ Mount Everest is 8,849 metres tall — and it's still growing about 4mm taller every year!",cat:"🌍 Earth"},
+  {q:"Which is the largest ocean on Earth?",a:"Pacific Ocean",w:["Atlantic Ocean","Indian Ocean","Arctic Ocean"],fact:"🌊 The Pacific Ocean is so vast that all the continents combined could fit inside it with room to spare!",cat:"🌍 Earth"},
+  {q:"How many continents are there on Earth?",a:"7",w:["5","6","8"],fact:"🌍 Africa, Antarctica, Asia, Australia, Europe, North America, South America — name them all!",cat:"🌍 Earth"},
+  {q:"Which is the largest country in the world by area?",a:"Russia",w:["China","USA","Canada"],fact:"🌏 Russia spans 11 time zones — when it's midnight in one part, it's midday in another!",cat:"🌍 Earth"},
+  {q:"Which is the smallest country in the world?",a:"Vatican City",w:["Monaco","San Marino","Nauru"],fact:"🏛️ Vatican City is smaller than most theme parks — yet it has its own bank, post office and army!",cat:"🌍 Earth"},
+  {q:"What percentage of Earth's surface is covered by water?",a:"About 71%",w:["About 50%","About 60%","About 85%"],fact:"🌊 97% of all that water is salty ocean — only 3% is the fresh water we can drink!",cat:"🌍 Earth"},
+  {q:"Which country has the most people in the world?",a:"India",w:["China","USA","Indonesia"],fact:"🌏 India overtook China as the world's most populous country in 2023 with over 1.4 billion people!",cat:"🌍 Earth"},
+  {q:"How many colours are in a rainbow?",a:"7",w:["5","6","8"],fact:"🌈 Red, Orange, Yellow, Green, Blue, Indigo, Violet — remember them with ROY G BIV!",cat:"🔬 Science"},
+  {q:"What is the fastest thing in the universe?",a:"Light",w:["Sound","Electricity","Gravity"],fact:"💡 Light travels 186,000 miles per SECOND — it could circle the Earth 7 times in just one second!",cat:"🔬 Science"},
+  {q:"What gas makes fizzy drinks fizzy?",a:"Carbon dioxide",w:["Oxygen","Nitrogen","Hydrogen"],fact:"🫧 CO₂ is pumped into drinks under pressure — when you open the bottle, it all rushes out. Pop!",cat:"🔬 Science"},
+  {q:"What is the most common gas in Earth's atmosphere?",a:"Nitrogen",w:["Oxygen","Carbon dioxide","Argon"],fact:"💨 Earth's air is 78% nitrogen and 21% oxygen — most people guess oxygen, but nitrogen wins!",cat:"🔬 Science"},
+  {q:"What is the hardest natural substance on Earth?",a:"Diamond",w:["Granite","Quartz","Steel"],fact:"💎 Diamonds are pure carbon — the same atoms as pencil lead! Same stuff, totally different structure.",cat:"🔬 Science"},
+  {q:"How many sides does a hexagon have?",a:"6",w:["5","7","8"],fact:"🐝 Honeycombs are made of hexagons — it's the most efficient shape for packing space with no gaps!",cat:"🔬 Science"},
+  {q:"What do plants use to make their own food?",a:"Sunlight",w:["Soil","Rain","Wind"],fact:"🌱 Photosynthesis converts sunlight into sugar — and releases the oxygen we breathe as a bonus!",cat:"🔬 Science"},
+  {q:"How many players are in a football (soccer) team on the pitch?",a:"11",w:["9","10","12"],fact:"⚽ That's 10 outfield players plus 1 goalkeeper — with up to 5 substitutes allowed in most competitions!",cat:"⚽ Sports"},
+  {q:"Which sport uses a shuttlecock?",a:"Badminton",w:["Tennis","Squash","Pickleball"],fact:"🏸 A shuttlecock can travel over 200 mph when hit by pros — the fastest projectile in all of sport!",cat:"⚽ Sports"},
+  {q:"How many rings are on the Olympic flag?",a:"5",w:["4","6","7"],fact:"🏅 The 5 rings represent 5 continents — and every national flag contains at least one ring colour!",cat:"⚽ Sports"},
+  {q:"In football, what is it called when a player scores 3 goals in one match?",a:"Hat-trick",w:["Triple","Three-peat","Grand slam"],fact:"🎩 The term comes from cricket — a bowler who took 3 wickets in a row was given an actual hat!",cat:"⚽ Sports"},
+  {q:"How high is a basketball hoop from the floor?",a:"10 feet",w:["8 feet","12 feet","9 feet"],fact:"🏀 The 10-foot height was set in 1891 when the inventor nailed a peach basket to a 10-foot track!",cat:"⚽ Sports"},
+  {q:"Which country invented pizza?",a:"Italy",w:["USA","Greece","France"],fact:"🍕 Pizza was invented in Naples in the 1800s — now over 5 billion pizzas are sold worldwide every year!",cat:"🎨 Did You Know?"},
+  {q:"Which is the tallest building in the world?",a:"Burj Khalifa",w:["Empire State Building","Eiffel Tower","Shanghai Tower"],fact:"🏙️ The Burj Khalifa in Dubai stands 828 metres tall — you can see it from 95 km away!",cat:"🎨 Did You Know?"},
+  {q:"What is the most spoken language in the world?",a:"Mandarin Chinese",w:["English","Spanish","Hindi"],fact:"🗣️ Over 1 billion people speak Mandarin! English is second and Spanish third.",cat:"🎨 Did You Know?"},
+  {q:"How many strings does a standard guitar have?",a:"6",w:["4","5","8"],fact:"🎸 A bass has 4, a standard guitar 6, but some pro players use 7 or even 8-string guitars!",cat:"🎨 Did You Know?"},
+  {q:"How many keys does a standard piano have?",a:"88",w:["52","72","100"],fact:"🎹 A piano has 52 white keys and 36 black keys — totalling 88. Some concert grands have even more!",cat:"🎨 Did You Know?"}
+];
+
+const CAT_COLORS = {
+  "🐾 Animals":"#1abc9c",
+  "🚀 Space":"#8e44ad",
+  "🧬 Human Body":"#e94560",
+  "🌍 Earth":"#27ae60",
+  "🔬 Science":"#2980b9",
+  "⚽ Sports":"#f39c12",
+  "🎨 Did You Know?":"#e67e22"
+};
+
+const CORRECT_MSGS = [
+  "🎉 CORRECT! You clearly have a brilliant brain!",
+  "🌟 Right! Are you secretly a genius?!",
+  "🔥 Nailed it! Look at that big brain go!",
+  "⭐ YES! Absolutely spot on!",
+  "🧠 Correct! Your brain just levelled up!",
+  "🎯 Bulls-eye! That was quick!",
+  "🚀 BOOM! Right answer — zero hesitation!",
+  "👑 Correct! You're basically a walking encyclopaedia!",
+  "😎 Too easy for you! Nicely done!",
+  "🤩 YES! You are absolutely ON FIRE today!",
+  "💡 Ding ding! That brain is glowing!",
+  "🏆 Right! Have you been secretly studying?!",
+  "✨ Correct! Spectacular stuff!",
+  "🎊 Bingo! Knew you'd get that one!",
+  "🦸 RIGHT! Superhero brain activated!"
+];
+
+const WRONG_MSGS = [
+  "😅 Oops! The answer was: {a}!",
+  "🙈 Not quite! It's {a} — sneaky, right?!",
+  "🤔 Almost! The answer is {a}!",
+  "😬 Oof! It was {a}! Now you'll know forever!",
+  "🦊 Tricked ya! The answer is {a}!",
+  "😲 Oh no! It was {a}! Wild, isn't it?!",
+  "🎭 Nope! {a} — who knew?!",
+  "🫣 Eek! The correct answer is {a}!",
+  "📚 It's {a}! Quick, write it down ten times!",
+  "🚩 {a}! That one catches everyone out!",
+  "🌀 {a}! Even the experts get that one wrong sometimes!",
+  "🤯 Whoa, it's {a}! Mind = completely blown!",
+  "🙃 {a}! The world is absolutely full of surprises!"
+];
+
+const END_MSGS = [
+  {text:"Zero?! 🚩 IMPOSSIBLE! The facts must have been cheating! Demand an immediate rematch!",color:"#e74c3c"},
+  {text:"One right! 🌟 Look, some of these facts are WILD! Even grown-ups get confused.",color:"#b0b8cc"},
+  {text:"Two right! 😏 Those facts were extra sneaky today. Give them another go!",color:"#b0b8cc"},
+  {text:"Three! 🎉 THREE facts tried to fool you and FAILED! That's a solid start.",color:"#f5a623"},
+  {text:"Four right! 💪 Those facts fought back hard... But revenge is just one Play Again button away!",color:"#f5a623"},
+  {text:"Exactly half! 🤝 Perfectly balanced, as all things should be! A rematch is CLEARLY required.",color:"#f5a623"},
+  {text:"Six out of ten! 😄 More than half — you're winning! The other four were just extra sneaky today.",color:"#5dade2"},
+  {text:"Seven right! 🧠 Honestly very impressive! You've got a proper big brain on you!",color:"#5dade2"},
+  {text:"Eight! 🔥 You know an INCREDIBLE amount! Those other two were clearly wearing disguises.",color:"#2ecc71"},
+  {text:"Nine out of ten! 🌟 One sneaky fact got away! That rogue question is out there, laughing...",color:"#2ecc71"},
+  {text:"PERFECT 10! 🤯 Are you secretly a professor?! Every single answer correct. Truly unbelievable.",color:"#f5a623"}
+];
+
+let gameQuestions = [];
+let currentQ = 0;
+let score = 0;
+let answered = false;
+let resultLog = [];
+let advanceTimer = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function startGame() {
+  gameQuestions = shuffle(QUESTIONS).slice(0, 10);
+  currentQ = 0;
+  score = 0;
+  answered = false;
+  resultLog = [];
+  if (advanceTimer) clearTimeout(advanceTimer);
+
+  document.getElementById('end-card').classList.remove('show');
+  document.getElementById('game-area').style.display = 'block';
+  document.getElementById('score-pill').textContent = 'Score: 0';
+
+  renderQuestion();
+}
+
+function renderDots() {
+  const container = document.getElementById('progress-dots');
+  container.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < currentQ ? ' done' : i === currentQ ? ' current' : '');
+    container.appendChild(d);
+  }
+}
+
+function renderQuestion() {
+  answered = false;
+  renderDots();
+
+  const q = gameQuestions[currentQ];
+  const catBadge = document.getElementById('cat-badge');
+  catBadge.textContent = q.cat;
+  catBadge.style.background = (CAT_COLORS[q.cat] || '#555') + '33';
+  catBadge.style.color = CAT_COLORS[q.cat] || '#aaa';
+  catBadge.style.border = '1px solid ' + (CAT_COLORS[q.cat] || '#555') + '66';
+
+  document.getElementById('question-text').textContent = q.q;
+
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback hidden';
+  fb.textContent = '';
+
+  const wf = document.getElementById('wow-fact');
+  wf.className = 'wow-fact hidden';
+  wf.textContent = '';
+
+  const options = shuffle([q.a, ...q.w]);
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => handleAnswer(opt, q));
+    grid.appendChild(btn);
+  });
+}
+
+function handleAnswer(chosen, q) {
+  if (answered) return;
+  answered = true;
+
+  const isCorrect = chosen === q.a;
+  if (isCorrect) score++;
+
+  document.getElementById('score-pill').textContent = 'Score: ' + score;
+  resultLog.push(isCorrect);
+
+  const buttons = document.querySelectorAll('.opt-btn');
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    const text = btn.textContent;
+    if (text === q.a) {
+      btn.classList.add('correct');
+    } else if (text === chosen && !isCorrect) {
+      btn.classList.add('wrong');
+    } else {
+      btn.classList.add('dim');
+    }
+  });
+
+  const fb = document.getElementById('feedback');
+  const wf = document.getElementById('wow-fact');
+
+  if (isCorrect) {
+    fb.textContent = pick(CORRECT_MSGS);
+    fb.className = 'feedback correct-fb';
+  } else {
+    const msg = pick(WRONG_MSGS).replace('{a}', q.a);
+    fb.textContent = msg;
+    fb.className = 'feedback wrong-fb';
+  }
+
+  wf.textContent = '💡 WOW Fact: ' + q.fact;
+  wf.className = 'wow-fact';
+
+  advanceTimer = setTimeout(() => {
+    currentQ++;
+    if (currentQ >= 10) {
+      showEnd();
+    } else {
+      renderQuestion();
+    }
+  }, 2600);
+}
+
+function showEnd() {
+  document.getElementById('game-area').style.display = 'none';
+  const ec = document.getElementById('end-card');
+  ec.classList.add('show');
+
+  document.getElementById('end-score').textContent = score;
+  document.getElementById('end-score').style.color = END_MSGS[score].color;
+
+  const msg = document.getElementById('end-msg');
+  msg.textContent = END_MSGS[score].text;
+  msg.style.color = END_MSGS[score].color;
+
+  const rd = document.getElementById('result-dots');
+  rd.innerHTML = '';
+  resultLog.forEach((r, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'r-dot ' + (r ? 'c' : 'w');
+    dot.textContent = r ? '✓' : '✗';
+    rd.appendChild(dot);
+  });
+}
+
+startGame();
+</script>
+</body>
+</html>

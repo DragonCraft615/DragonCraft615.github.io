@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guess the Flag — Quiz Arcade</title>
+<style>
+  :root {
+    --bg:#1a1a2e; --surface:#16213e; --card:#0f3460; --hover:#1a4a80;
+    --accent:#e94560; --gold:#f5a623; --green:#2ecc71; --red:#e74c3c;
+    --correct:#1e8449; --wrong:#922b21; --text:#f0f0f0; --sub:#b0b8cc;
+    --muted:#6b7280; --border:#2a3550; --teal:#1abc9c;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  a { color: var(--sub); text-decoration: none; transition: color 0.2s; }
+  a:hover { color: var(--text); }
+
+  /* HEADER */
+  header {
+    width: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.9rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .back-link {
+    font-size: 0.9rem;
+    color: var(--sub);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+  }
+  .back-link:hover { color: var(--text); }
+  header h1 {
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: center;
+    flex: 1;
+  }
+  .score-pill {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gold);
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  /* MAIN CONTENT */
+  main {
+    width: 100%;
+    max-width: 620px;
+    padding: 1.5rem 1rem 3rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.4rem;
+  }
+
+  /* PROGRESS DOTS */
+  .progress-dots {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    transition: all 0.3s;
+  }
+  .dot.active { border-color: var(--gold); background: var(--card); }
+  .dot.correct { background: var(--correct); border-color: var(--green); color: #fff; }
+  .dot.wrong { background: var(--wrong); border-color: var(--red); color: #fff; }
+
+  /* FLAG CARD */
+  .flag-card {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  .flag-wrapper {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .flag-img {
+    max-width: 320px;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: block;
+  }
+  .flag-img.loaded { opacity: 1; }
+  .flag-error {
+    display: none;
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem 3rem;
+    color: var(--muted);
+    font-size: 1rem;
+    text-align: center;
+    width: 100%;
+    max-width: 320px;
+  }
+  .flag-error.visible { display: block; }
+  .flag-loader {
+    position: absolute;
+    color: var(--muted);
+    font-size: 0.85rem;
+    animation: pulse 1s ease infinite;
+  }
+  .flag-loader.hidden { display: none; }
+  .flag-prompt {
+    font-size: 0.9rem;
+    color: var(--sub);
+    text-align: center;
+  }
+
+  /* OPTIONS GRID */
+  .options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    width: 100%;
+  }
+  .opt-btn {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.9rem 0.75rem;
+    text-align: center;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s, opacity 0.3s;
+    line-height: 1.3;
+  }
+  .opt-btn:hover:not(:disabled) {
+    background: var(--hover);
+    border-color: var(--sub);
+    transform: translateY(-2px);
+  }
+  .opt-btn:disabled { cursor: default; }
+  .opt-btn.correct-ans {
+    background: var(--correct);
+    border-color: var(--green);
+    color: #fff;
+  }
+  .opt-btn.wrong-ans {
+    background: var(--wrong);
+    border-color: var(--red);
+    color: #fff;
+  }
+  .opt-btn.dimmed {
+    opacity: 0.35;
+  }
+
+  /* FEEDBACK */
+  .feedback {
+    min-height: 48px;
+    width: 100%;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sub);
+    padding: 0.5rem 1rem;
+    border-radius: 10px;
+    transition: all 0.3s;
+    line-height: 1.4;
+  }
+  .feedback.show-correct {
+    background: rgba(46, 204, 113, 0.12);
+    color: var(--green);
+    border: 1px solid rgba(46, 204, 113, 0.3);
+  }
+  .feedback.show-wrong {
+    background: rgba(231, 76, 60, 0.12);
+    color: #ff6b6b;
+    border: 1px solid rgba(231, 76, 60, 0.3);
+  }
+
+  /* QUESTION COUNTER */
+  .q-counter {
+    font-size: 0.85rem;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  /* END SCREEN */
+  .end-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+    text-align: center;
+    animation: fadeInUp 0.5s ease forwards;
+  }
+  .end-screen.visible { display: flex; }
+  .end-title {
+    font-size: clamp(1.4rem, 5vw, 2rem);
+    font-weight: 800;
+    color: var(--text);
+  }
+  .end-score {
+    font-size: clamp(3rem, 12vw, 5rem);
+    font-weight: 900;
+    color: var(--gold);
+    line-height: 1;
+  }
+  .end-score span { font-size: 0.45em; color: var(--sub); vertical-align: middle; }
+  .end-msg {
+    font-size: 1.05rem;
+    font-weight: 600;
+    max-width: 440px;
+    line-height: 1.5;
+  }
+  .end-dots {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .end-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+  }
+  .end-dot.c { background: var(--correct); }
+  .end-dot.w { background: var(--wrong); }
+  .end-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.5rem;
+  }
+  .play-again-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 0.9rem 2.5rem;
+    transition: background 0.2s, transform 0.1s;
+    letter-spacing: 0.5px;
+  }
+  .play-again-btn:hover {
+    background: #c73652;
+    transform: translateY(-2px);
+  }
+  .back-arcade-link {
+    font-size: 0.9rem;
+    color: var(--sub);
+  }
+  .back-arcade-link:hover { color: var(--text); }
+
+  /* QUIZ AREA */
+  .quiz-area {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.4rem;
+  }
+  .quiz-area.hidden { display: none; }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  @media (max-width: 400px) {
+    .options-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="index.html">&#8592; Arcade</a>
+  <h1>🏳️ Guess the Flag</h1>
+  <div class="score-pill" id="scorePill">0 / 10</div>
+</header>
+
+<main>
+  <!-- QUIZ AREA -->
+  <div class="quiz-area" id="quizArea">
+    <div class="q-counter" id="qCounter">Question 1 of 10</div>
+
+    <div class="progress-dots" id="progressDots">
+      <!-- dots injected by JS -->
+    </div>
+
+    <div class="flag-card">
+      <div class="flag-wrapper">
+        <div class="flag-loader" id="flagLoader">Loading flag...</div>
+        <img class="flag-img" id="flagImg" src="" alt="Country flag" />
+        <div class="flag-error" id="flagError">🏳️ Flag unavailable</div>
+      </div>
+      <div class="flag-prompt">Which country does this flag belong to?</div>
+    </div>
+
+    <div class="options-grid" id="optionsGrid">
+      <!-- buttons injected by JS -->
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+  </div>
+
+  <!-- END SCREEN -->
+  <div class="end-screen" id="endScreen">
+    <div class="end-title">Quiz Complete!</div>
+    <div class="end-score" id="endScore">0 <span>/ 10</span></div>
+    <div class="end-msg" id="endMsg"></div>
+    <div class="end-dots" id="endDots"></div>
+    <div class="end-actions">
+      <button class="play-again-btn" onclick="initGame()">&#9654; Play Again</button>
+      <a class="back-arcade-link" href="index.html">&#8592; Back to Quiz Arcade</a>
+    </div>
+  </div>
+</main>
+
+<script>
+const COUNTRIES=[
+  {c:"AF",n:"Afghanistan",k:"Kabul"},{c:"AL",n:"Albania",k:"Tirana"},{c:"DZ",n:"Algeria",k:"Algiers"},
+  {c:"AD",n:"Andorra",k:"Andorra la Vella"},{c:"AO",n:"Angola",k:"Luanda"},{c:"AG",n:"Antigua and Barbuda",k:"Saint John's"},
+  {c:"AR",n:"Argentina",k:"Buenos Aires"},{c:"AM",n:"Armenia",k:"Yerevan"},{c:"AU",n:"Australia",k:"Canberra"},
+  {c:"AT",n:"Austria",k:"Vienna"},{c:"AZ",n:"Azerbaijan",k:"Baku"},{c:"BS",n:"Bahamas",k:"Nassau"},
+  {c:"BH",n:"Bahrain",k:"Manama"},{c:"BD",n:"Bangladesh",k:"Dhaka"},{c:"BB",n:"Barbados",k:"Bridgetown"},
+  {c:"BY",n:"Belarus",k:"Minsk"},{c:"BE",n:"Belgium",k:"Brussels"},{c:"BZ",n:"Belize",k:"Belmopan"},
+  {c:"BJ",n:"Benin",k:"Porto-Novo"},{c:"BT",n:"Bhutan",k:"Thimphu"},{c:"BO",n:"Bolivia",k:"Sucre"},
+  {c:"BA",n:"Bosnia and Herzegovina",k:"Sarajevo"},{c:"BW",n:"Botswana",k:"Gaborone"},{c:"BR",n:"Brazil",k:"Brasília"},
+  {c:"BN",n:"Brunei",k:"Bandar Seri Begawan"},{c:"BG",n:"Bulgaria",k:"Sofia"},{c:"BF",n:"Burkina Faso",k:"Ouagadougou"},
+  {c:"BI",n:"Burundi",k:"Gitega"},{c:"CV",n:"Cape Verde",k:"Praia"},{c:"KH",n:"Cambodia",k:"Phnom Penh"},
+  {c:"CM",n:"Cameroon",k:"Yaoundé"},{c:"CA",n:"Canada",k:"Ottawa"},{c:"CF",n:"Central African Republic",k:"Bangui"},
+  {c:"TD",n:"Chad",k:"N'Djamena"},{c:"CL",n:"Chile",k:"Santiago"},{c:"CN",n:"China",k:"Beijing"},
+  {c:"CO",n:"Colombia",k:"Bogotá"},{c:"KM",n:"Comoros",k:"Moroni"},{c:"CD",n:"DR Congo",k:"Kinshasa"},
+  {c:"CG",n:"Republic of the Congo",k:"Brazzaville"},{c:"CR",n:"Costa Rica",k:"San José"},{c:"HR",n:"Croatia",k:"Zagreb"},
+  {c:"CU",n:"Cuba",k:"Havana"},{c:"CY",n:"Cyprus",k:"Nicosia"},{c:"CZ",n:"Czech Republic",k:"Prague"},
+  {c:"DK",n:"Denmark",k:"Copenhagen"},{c:"DJ",n:"Djibouti",k:"Djibouti City"},{c:"DM",n:"Dominica",k:"Roseau"},
+  {c:"DO",n:"Dominican Republic",k:"Santo Domingo"},{c:"EC",n:"Ecuador",k:"Quito"},{c:"EG",n:"Egypt",k:"Cairo"},
+  {c:"SV",n:"El Salvador",k:"San Salvador"},{c:"GQ",n:"Equatorial Guinea",k:"Malabo"},{c:"ER",n:"Eritrea",k:"Asmara"},
+  {c:"EE",n:"Estonia",k:"Tallinn"},{c:"SZ",n:"Eswatini",k:"Mbabane"},{c:"ET",n:"Ethiopia",k:"Addis Ababa"},
+  {c:"FJ",n:"Fiji",k:"Suva"},{c:"FI",n:"Finland",k:"Helsinki"},{c:"FR",n:"France",k:"Paris"},
+  {c:"GA",n:"Gabon",k:"Libreville"},{c:"GM",n:"Gambia",k:"Banjul"},{c:"GE",n:"Georgia",k:"Tbilisi"},
+  {c:"DE",n:"Germany",k:"Berlin"},{c:"GH",n:"Ghana",k:"Accra"},{c:"GR",n:"Greece",k:"Athens"},
+  {c:"GD",n:"Grenada",k:"Saint George's"},{c:"GT",n:"Guatemala",k:"Guatemala City"},{c:"GN",n:"Guinea",k:"Conakry"},
+  {c:"GW",n:"Guinea-Bissau",k:"Bissau"},{c:"GY",n:"Guyana",k:"Georgetown"},{c:"HT",n:"Haiti",k:"Port-au-Prince"},
+  {c:"HN",n:"Honduras",k:"Tegucigalpa"},{c:"HU",n:"Hungary",k:"Budapest"},{c:"IS",n:"Iceland",k:"Reykjavik"},
+  {c:"IN",n:"India",k:"New Delhi"},{c:"ID",n:"Indonesia",k:"Jakarta"},{c:"IR",n:"Iran",k:"Tehran"},
+  {c:"IQ",n:"Iraq",k:"Baghdad"},{c:"IE",n:"Ireland",k:"Dublin"},{c:"IL",n:"Israel",k:"Jerusalem"},
+  {c:"IT",n:"Italy",k:"Rome"},{c:"JM",n:"Jamaica",k:"Kingston"},{c:"JP",n:"Japan",k:"Tokyo"},
+  {c:"JO",n:"Jordan",k:"Amman"},{c:"KZ",n:"Kazakhstan",k:"Astana"},{c:"KE",n:"Kenya",k:"Nairobi"},
+  {c:"KI",n:"Kiribati",k:"South Tarawa"},{c:"KW",n:"Kuwait",k:"Kuwait City"},{c:"KG",n:"Kyrgyzstan",k:"Bishkek"},
+  {c:"LA",n:"Laos",k:"Vientiane"},{c:"LV",n:"Latvia",k:"Riga"},{c:"LB",n:"Lebanon",k:"Beirut"},
+  {c:"LS",n:"Lesotho",k:"Maseru"},{c:"LR",n:"Liberia",k:"Monrovia"},{c:"LY",n:"Libya",k:"Tripoli"},
+  {c:"LI",n:"Liechtenstein",k:"Vaduz"},{c:"LT",n:"Lithuania",k:"Vilnius"},{c:"LU",n:"Luxembourg",k:"Luxembourg City"},
+  {c:"MG",n:"Madagascar",k:"Antananarivo"},{c:"MW",n:"Malawi",k:"Lilongwe"},{c:"MY",n:"Malaysia",k:"Kuala Lumpur"},
+  {c:"MV",n:"Maldives",k:"Malé"},{c:"ML",n:"Mali",k:"Bamako"},{c:"MT",n:"Malta",k:"Valletta"},
+  {c:"MH",n:"Marshall Islands",k:"Majuro"},{c:"MR",n:"Mauritania",k:"Nouakchott"},{c:"MU",n:"Mauritius",k:"Port Louis"},
+  {c:"MX",n:"Mexico",k:"Mexico City"},{c:"FM",n:"Micronesia",k:"Palikir"},{c:"MD",n:"Moldova",k:"Chișinău"},
+  {c:"MC",n:"Monaco",k:"Monaco"},{c:"MN",n:"Mongolia",k:"Ulaanbaatar"},{c:"ME",n:"Montenegro",k:"Podgorica"},
+  {c:"MA",n:"Morocco",k:"Rabat"},{c:"MZ",n:"Mozambique",k:"Maputo"},{c:"MM",n:"Myanmar",k:"Naypyidaw"},
+  {c:"NA",n:"Namibia",k:"Windhoek"},{c:"NR",n:"Nauru",k:"Yaren"},{c:"NP",n:"Nepal",k:"Kathmandu"},
+  {c:"NL",n:"Netherlands",k:"Amsterdam"},{c:"NZ",n:"New Zealand",k:"Wellington"},{c:"NI",n:"Nicaragua",k:"Managua"},
+  {c:"NE",n:"Niger",k:"Niamey"},{c:"NG",n:"Nigeria",k:"Abuja"},{c:"MK",n:"North Macedonia",k:"Skopje"},
+  {c:"NO",n:"Norway",k:"Oslo"},{c:"OM",n:"Oman",k:"Muscat"},{c:"PK",n:"Pakistan",k:"Islamabad"},
+  {c:"PW",n:"Palau",k:"Ngerulmud"},{c:"PA",n:"Panama",k:"Panama City"},{c:"PG",n:"Papua New Guinea",k:"Port Moresby"},
+  {c:"PY",n:"Paraguay",k:"Asunción"},{c:"PE",n:"Peru",k:"Lima"},{c:"PH",n:"Philippines",k:"Manila"},
+  {c:"PL",n:"Poland",k:"Warsaw"},{c:"PT",n:"Portugal",k:"Lisbon"},{c:"QA",n:"Qatar",k:"Doha"},
+  {c:"RO",n:"Romania",k:"Bucharest"},{c:"RU",n:"Russia",k:"Moscow"},{c:"RW",n:"Rwanda",k:"Kigali"},
+  {c:"KN",n:"Saint Kitts and Nevis",k:"Basseterre"},{c:"LC",n:"Saint Lucia",k:"Castries"},
+  {c:"VC",n:"Saint Vincent and the Grenadines",k:"Kingstown"},{c:"WS",n:"Samoa",k:"Apia"},
+  {c:"SM",n:"San Marino",k:"San Marino"},{c:"ST",n:"São Tomé and Príncipe",k:"São Tomé"},
+  {c:"SA",n:"Saudi Arabia",k:"Riyadh"},{c:"SN",n:"Senegal",k:"Dakar"},{c:"RS",n:"Serbia",k:"Belgrade"},
+  {c:"SC",n:"Seychelles",k:"Victoria"},{c:"SL",n:"Sierra Leone",k:"Freetown"},{c:"SG",n:"Singapore",k:"Singapore"},
+  {c:"SK",n:"Slovakia",k:"Bratislava"},{c:"SI",n:"Slovenia",k:"Ljubljana"},{c:"SB",n:"Solomon Islands",k:"Honiara"},
+  {c:"SO",n:"Somalia",k:"Mogadishu"},{c:"ZA",n:"South Africa",k:"Pretoria"},{c:"SS",n:"South Sudan",k:"Juba"},
+  {c:"ES",n:"Spain",k:"Madrid"},{c:"LK",n:"Sri Lanka",k:"Sri Jayawardenepura Kotte"},{c:"SD",n:"Sudan",k:"Khartoum"},
+  {c:"SR",n:"Suriname",k:"Paramaribo"},{c:"SE",n:"Sweden",k:"Stockholm"},{c:"CH",n:"Switzerland",k:"Bern"},
+  {c:"SY",n:"Syria",k:"Damascus"},{c:"TW",n:"Taiwan",k:"Taipei"},{c:"TJ",n:"Tajikistan",k:"Dushanbe"},
+  {c:"TZ",n:"Tanzania",k:"Dodoma"},{c:"TH",n:"Thailand",k:"Bangkok"},{c:"TL",n:"Timor-Leste",k:"Dili"},
+  {c:"TG",n:"Togo",k:"Lomé"},{c:"TO",n:"Tonga",k:"Nukuʻalofa"},{c:"TT",n:"Trinidad and Tobago",k:"Port of Spain"},
+  {c:"TN",n:"Tunisia",k:"Tunis"},{c:"TR",n:"Turkey",k:"Ankara"},{c:"TM",n:"Turkmenistan",k:"Ashgabat"},
+  {c:"TV",n:"Tuvalu",k:"Funafuti"},{c:"UG",n:"Uganda",k:"Kampala"},{c:"UA",n:"Ukraine",k:"Kyiv"},
+  {c:"AE",n:"United Arab Emirates",k:"Abu Dhabi"},{c:"GB",n:"United Kingdom",k:"London"},
+  {c:"US",n:"United States",k:"Washington D.C."},{c:"UY",n:"Uruguay",k:"Montevideo"},{c:"UZ",n:"Uzbekistan",k:"Tashkent"},
+  {c:"VU",n:"Vanuatu",k:"Port Vila"},{c:"VA",n:"Vatican City",k:"Vatican City"},{c:"VE",n:"Venezuela",k:"Caracas"},
+  {c:"VN",n:"Vietnam",k:"Hanoi"},{c:"YE",n:"Yemen",k:"Sana'a"},{c:"ZM",n:"Zambia",k:"Lusaka"},
+  {c:"ZW",n:"Zimbabwe",k:"Harare"}
+];
+
+const CORRECT_MSGS = [
+  "🎉 Yes! That's {country}!",
+  "🌟 Spot on! {country} — recognised instantly!",
+  "🔥 Right! {country} — no messing around!",
+  "⭐ Correct! {country} — flag master!",
+  "🧠 Got it! {country} — your flag knowledge is elite!",
+  "😎 {country}! Too easy for you clearly!",
+  "🤩 {country}! YES! Absolute flag legend!",
+  "💡 Nailed it! {country} — geography A+!",
+  "🏆 {country}! Right! Have you memorised them all?!",
+  "🎯 Bulls-eye! That's {country}!"
+];
+
+const WRONG_MSGS = [
+  "😅 Nope! That was {country}! ({code})",
+  "🙈 Wrong! It was {country} — sneaky flag!",
+  "🤔 Not quite! That's {country}'s flag! ({code})",
+  "😬 Oof! {country} got you! ({code})",
+  "🦊 Tricked! The flag belongs to {country}!",
+  "😲 Oh no! That was {country}! Learn it!",
+  "🎭 Nope — {country}! Who knew?! ({code})",
+  "🫣 That's {country}! ({code}) — add it to the list!",
+  "📚 {country}! Quick, look up their flag!"
+];
+
+const END_MSGS = [
+  { msg: "🚩 ZERO! How?! Flags are right there! Try again!", color: "#e74c3c" },
+  { msg: "🌐 One! At least you didn't score zero. Barely.", color: "#b0b8cc" },
+  { msg: "😏 Two right! Were you looking at the flags at all?!", color: "#b0b8cc" },
+  { msg: "🎉 Three flags recognised! The others are embarrassed.", color: "#f5a623" },
+  { msg: "💪 Four! Some flags really fooled you today.", color: "#f5a623" },
+  { msg: "🤝 Five! Dead even. The flags were fighting back.", color: "#f5a623" },
+  { msg: "😄 Six out of ten — passing grade in Flag Studies!", color: "#5dade2" },
+  { msg: "🧠 Seven! Strong flag knowledge — better than most!", color: "#5dade2" },
+  { msg: "🔥 Eight flags! Seriously good. Collectors would be jealous.", color: "#2ecc71" },
+  { msg: "🌟 Nine! One flag slipped past you — which was it?!", color: "#2ecc71" },
+  { msg: "🏆 PERFECT! You're a certified flag master! Incredible.", color: "#f5a623" }
+];
+
+// Game state
+let questions = [];
+let currentQ = 0;
+let score = 0;
+let results = [];
+let advanceTimer = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function buildQuestions() {
+  const shuffled = shuffle(COUNTRIES);
+  const selected = shuffled.slice(0, 10);
+  return selected.map(country => {
+    const wrong = shuffle(COUNTRIES.filter(c => c.c !== country.c)).slice(0, 3);
+    const options = shuffle([country, ...wrong]);
+    return { country, options };
+  });
+}
+
+function initGame() {
+  if (advanceTimer) clearTimeout(advanceTimer);
+  questions = buildQuestions();
+  currentQ = 0;
+  score = 0;
+  results = [];
+
+  document.getElementById('quizArea').classList.remove('hidden');
+  const endScreen = document.getElementById('endScreen');
+  endScreen.classList.remove('visible');
+  endScreen.style.display = 'none';
+
+  updateScorePill();
+  buildDots();
+  showQuestion();
+}
+
+function buildDots() {
+  const container = document.getElementById('progressDots');
+  container.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 0 ? ' active' : '');
+    dot.textContent = i + 1;
+    dot.id = 'dot-' + i;
+    container.appendChild(dot);
+  }
+}
+
+function updateDot(index, result) {
+  const dot = document.getElementById('dot-' + index);
+  if (!dot) return;
+  dot.classList.remove('active', 'correct', 'wrong');
+  dot.classList.add(result);
+}
+
+function setActiveDot(index) {
+  const dot = document.getElementById('dot-' + index);
+  if (!dot) return;
+  dot.classList.add('active');
+}
+
+function updateScorePill() {
+  document.getElementById('scorePill').textContent = score + ' / 10';
+}
+
+function showQuestion() {
+  const q = questions[currentQ];
+  document.getElementById('qCounter').textContent = 'Question ' + (currentQ + 1) + ' of 10';
+
+  // Reset flag display
+  const img = document.getElementById('flagImg');
+  const loader = document.getElementById('flagLoader');
+  const errDiv = document.getElementById('flagError');
+
+  img.classList.remove('loaded');
+  img.style.display = 'block';
+  errDiv.classList.remove('visible');
+  loader.classList.remove('hidden');
+
+  const flagUrl = 'https://flagcdn.com/w320/' + q.country.c.toLowerCase() + '.png';
+
+  img.onload = function() {
+    loader.classList.add('hidden');
+    img.classList.add('loaded');
+  };
+
+  img.onerror = function() {
+    loader.classList.add('hidden');
+    img.style.display = 'none';
+    errDiv.classList.add('visible');
+  };
+
+  img.src = flagUrl;
+  img.alt = 'Flag of ' + q.country.n;
+
+  // Build option buttons
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = '';
+  q.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = opt.n;
+    btn.dataset.code = opt.c;
+    btn.addEventListener('click', () => handleAnswer(opt.c, btn));
+    grid.appendChild(btn);
+  });
+
+  const fb = document.getElementById('feedback');
+  fb.textContent = '';
+  fb.className = 'feedback';
+}
+
+function handleAnswer(selectedCode, clickedBtn) {
+  if (advanceTimer) return;
+  const q = questions[currentQ];
+  const correct = q.country.c;
+  const isCorrect = selectedCode === correct;
+
+  // Disable all buttons
+  const allBtns = document.querySelectorAll('.opt-btn');
+  allBtns.forEach(btn => btn.disabled = true);
+
+  if (isCorrect) {
+    score++;
+    results.push('correct');
+    clickedBtn.classList.add('correct-ans');
+    updateDot(currentQ, 'correct');
+
+    const msg = pick(CORRECT_MSGS).replace(/{country}/g, q.country.n);
+    const fb = document.getElementById('feedback');
+    fb.textContent = msg;
+    fb.className = 'feedback show-correct';
+  } else {
+    results.push('wrong');
+    clickedBtn.classList.add('wrong-ans');
+    updateDot(currentQ, 'wrong');
+
+    // Highlight correct
+    allBtns.forEach(btn => {
+      if (btn.dataset.code === correct) {
+        btn.classList.add('correct-ans');
+      } else if (btn !== clickedBtn) {
+        btn.classList.add('dimmed');
+      }
+    });
+
+    const msg = pick(WRONG_MSGS)
+      .replace(/{country}/g, q.country.n)
+      .replace(/{code}/g, q.country.c);
+    const fb = document.getElementById('feedback');
+    fb.textContent = msg;
+    fb.className = 'feedback show-wrong';
+  }
+
+  updateScorePill();
+
+  advanceTimer = setTimeout(() => {
+    advanceTimer = null;
+    currentQ++;
+    if (currentQ < 10) {
+      setActiveDot(currentQ);
+      showQuestion();
+    } else {
+      showEndScreen();
+    }
+  }, 2000);
+}
+
+function showEndScreen() {
+  document.getElementById('quizArea').classList.add('hidden');
+  const end = document.getElementById('endScreen');
+  end.style.display = 'flex';
+  end.classList.add('visible');
+
+  document.getElementById('endScore').innerHTML = score + ' <span>/ 10</span>';
+
+  const em = END_MSGS[score];
+  const msgEl = document.getElementById('endMsg');
+  msgEl.textContent = em.msg;
+  msgEl.style.color = em.color;
+
+  const dotsContainer = document.getElementById('endDots');
+  dotsContainer.innerHTML = '';
+  results.forEach((r, i) => {
+    const d = document.createElement('div');
+    d.className = 'end-dot ' + (r === 'correct' ? 'c' : 'w');
+    d.title = questions[i].country.n + ' (' + questions[i].country.c + ')';
+    d.textContent = r === 'correct' ? '✓' : '✗';
+    dotsContainer.appendChild(d);
+  });
+}
+
+// Start on load
+window.addEventListener('DOMContentLoaded', initGame);
+</script>
+</body>
+</html>

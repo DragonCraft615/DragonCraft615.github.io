@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S&amp;P 500 Stock Guesser 📈</title>
+  <style>
+    :root {
+      --bg:      #1a1a2e;
+      --surface: #16213e;
+      --card:    #0f3460;
+      --hover:   #1a4a80;
+      --accent:  #e94560;
+      --gold:    #f5a623;
+      --green:   #2ecc71;
+      --red:     #e74c3c;
+      --correct: #1e8449;
+      --wrong:   #922b21;
+      --text:    #f0f0f0;
+      --sub:     #b0b8cc;
+      --muted:   #6b7280;
+      --border:  #2a3550;
+      --teal:    #1abc9c;
+      --purple:  #8e44ad;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px 16px 40px;
+    }
+
+    /* ── Screens ────────────────────────────────────────────────────────── */
+    .screen { display: none; width: 100%; max-width: 660px; }
+    .screen.active { display: block; }
+
+    /* ── Splash ─────────────────────────────────────────────────────────── */
+    .splash-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 44px 40px 40px;
+      text-align: center;
+      margin-top: 20px;
+    }
+    .splash-emoji { font-size: 64px; line-height: 1; margin-bottom: 16px; }
+    .splash-card h1 {
+      font-size: 32px; font-weight: 800;
+      color: var(--gold); margin-bottom: 8px;
+    }
+    .splash-sub {
+      color: var(--sub); font-size: 16px; margin-bottom: 32px;
+    }
+    .rules-box {
+      background: var(--card); border-radius: 14px;
+      padding: 22px 24px; margin-bottom: 24px; text-align: left;
+    }
+    .rule {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 9px 0; font-size: 15px; color: var(--sub);
+      border-bottom: 1px solid var(--border);
+    }
+    .rule:last-child { border-bottom: none; padding-bottom: 0; }
+    .rule strong { color: var(--text); }
+    .rule-note {
+      color: var(--muted); font-size: 13px; margin-bottom: 28px;
+      letter-spacing: 0.5px;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 17px; font-weight: 700;
+      padding: 14px 40px; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      letter-spacing: 0.3px;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+
+    .back-btn {
+      color: var(--muted); text-decoration: none;
+      font-size: 13px; font-weight: 600;
+      transition: color 0.15s; white-space: nowrap;
+    }
+    .back-btn:hover { color: var(--sub); }
+    .back-arcade {
+      display: inline-block; margin-top: 14px;
+      color: var(--muted); text-decoration: none;
+      font-size: 13px; font-weight: 600; transition: color 0.15s;
+    }
+    .back-arcade:hover { color: var(--sub); }
+
+    /* ── Game card ──────────────────────────────────────────────────────── */
+    .game-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    /* Header */
+    .game-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 22px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-title { font-size: 15px; font-weight: 700; color: var(--accent); }
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .q-counter { font-size: 13px; color: var(--sub); font-weight: 600; }
+    .score-pill {
+      background: var(--card); border-radius: 20px;
+      padding: 4px 14px; font-size: 14px; font-weight: 700; color: var(--gold);
+    }
+
+    /* Progress dots */
+    .progress-dots {
+      display: flex; gap: 6px; justify-content: center;
+      padding: 12px 0 6px;
+    }
+    .dot {
+      width: 11px; height: 11px; border-radius: 50%;
+      background: var(--border); transition: background 0.3s;
+    }
+    .dot.ok  { background: var(--green); }
+    .dot.bad { background: var(--red); }
+    .dot.part { background: var(--gold); }
+    .dot.cur { background: var(--sub); box-shadow: 0 0 0 2px var(--sub); }
+
+    /* Clue card */
+    .clue-card {
+      margin: 10px 20px 0;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .clue-row {
+      display: flex; align-items: center;
+      padding: 14px 20px; gap: 14px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.4s;
+    }
+    .clue-row:last-child { border-bottom: none; }
+    .clue-row.unlocked { background: rgba(26, 188, 156, 0.06); }
+    .clue-row.active-clue { background: rgba(245, 166, 35, 0.07); }
+    .clue-icon { font-size: 22px; flex-shrink: 0; width: 30px; text-align: center; }
+    .clue-content { flex: 1; }
+    .clue-label {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 3px;
+    }
+    .clue-value {
+      font-size: 18px; font-weight: 700; color: var(--gold);
+      line-height: 1.3;
+    }
+    .clue-value.sector-val { color: var(--teal); font-size: 17px; }
+    .clue-value.fact-val {
+      color: var(--sub); font-size: 14px; font-weight: 500; line-height: 1.45;
+    }
+    .clue-value.locked-val {
+      color: var(--muted); font-size: 13px; font-style: italic; font-weight: 400;
+    }
+    .clue-badge {
+      flex-shrink: 0;
+      font-size: 11px; font-weight: 700; padding: 3px 10px;
+      border-radius: 20px; letter-spacing: 0.4px;
+    }
+    .badge-active  { background: rgba(245,166,35,0.15); color: var(--gold); }
+    .badge-locked  { background: rgba(107,114,128,0.15); color: var(--muted); }
+    .badge-unlocked { background: rgba(26,188,156,0.15); color: var(--teal); }
+    .badge-used    { background: rgba(231,76,60,0.15); color: var(--red); }
+
+    /* Points row */
+    .points-row {
+      display: flex; gap: 8px; justify-content: center;
+      padding: 12px 20px 4px;
+    }
+    .point-pip {
+      padding: 5px 16px; border-radius: 20px; font-size: 12px; font-weight: 700;
+      background: var(--card); color: var(--muted); border: 1px solid var(--border);
+      transition: all 0.3s;
+    }
+    .point-pip.current { background: var(--gold); color: #1a1a2e; border-color: var(--gold); }
+    .point-pip.used    { opacity: 0.35; text-decoration: line-through; }
+    .point-pip.earned  { background: var(--correct); color: #fff; border-color: var(--correct); }
+    .point-pip.lost    { background: var(--wrong); color: #fff; border-color: var(--wrong); }
+
+    /* Options grid */
+    .options-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; padding: 14px 20px;
+    }
+    .opt-btn {
+      background: var(--card); color: var(--text);
+      border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 16px 12px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; text-align: center; line-height: 1.3;
+      transition: background 0.15s, border-color 0.15s, color 0.15s,
+                  opacity 0.3s, transform 0.1s;
+      min-height: 58px; display: flex; align-items: center; justify-content: center;
+    }
+    .opt-btn:hover:not(:disabled) { background: var(--hover); border-color: var(--sub); }
+    .opt-btn:active:not(:disabled) { transform: scale(0.97); }
+    .opt-btn:disabled { cursor: default; }
+    .opt-btn.wrong-flash {
+      background: var(--wrong) !important; border-color: var(--red) !important;
+      color: #fff !important;
+    }
+    .opt-btn.eliminated {
+      opacity: 0.28; background: var(--surface);
+      border-color: var(--border); color: var(--muted);
+    }
+    .opt-btn.correct-reveal {
+      background: var(--correct) !important; border-color: var(--green) !important;
+      color: #fff !important; opacity: 1 !important;
+    }
+    .opt-btn.selected-correct {
+      background: var(--correct) !important; border-color: var(--green) !important;
+      color: #fff !important;
+    }
+
+    /* Feedback */
+    .feedback-area {
+      min-height: 52px; padding: 6px 22px 18px;
+      text-align: center; font-size: 15px; font-weight: 600;
+      transition: opacity 0.3s;
+    }
+    .feedback-area.correct { color: var(--green); }
+    .feedback-area.wrong   { color: var(--red); }
+    .feedback-area.reveal  { color: var(--sub); }
+    .feedback-area .pts-earned {
+      display: inline-block; margin-left: 6px;
+      background: var(--correct); color: #fff;
+      border-radius: 6px; padding: 1px 8px; font-size: 12px;
+    }
+
+    /* ── End screen ─────────────────────────────────────────────────────── */
+    .end-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 44px 36px 40px;
+      text-align: center;
+      margin-top: 8px;
+    }
+    .end-title { font-size: 22px; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
+    .end-score { font-size: 72px; font-weight: 900; line-height: 1; margin: 12px 0 4px; }
+    .end-max   { font-size: 15px; color: var(--muted); margin-bottom: 18px; }
+    .end-msg   { font-size: 15px; color: var(--sub); margin-bottom: 28px; line-height: 1.6; max-width: 440px; margin-left: auto; margin-right: auto; }
+    .end-dots  { display: flex; gap: 8px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; }
+    .end-dot   { width: 13px; height: 13px; border-radius: 50%; }
+    .end-dot.ok   { background: var(--green); }
+    .end-dot.part { background: var(--gold); }
+    .end-dot.bad  { background: var(--red); }
+
+    .results-table {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+      margin-bottom: 28px; text-align: left;
+    }
+    .results-table th {
+      color: var(--muted); font-weight: 600; text-transform: uppercase;
+      font-size: 11px; letter-spacing: 0.5px; padding: 6px 10px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .results-table td {
+      padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--sub);
+    }
+    .results-table tr:last-child td { border-bottom: none; }
+    .results-table .company-name { color: var(--text); font-weight: 600; }
+    .results-table .ticker { color: var(--muted); font-size: 12px; }
+    .pts-cell { font-weight: 700; }
+    .pts-3 { color: var(--green); }
+    .pts-2 { color: var(--teal); }
+    .pts-1 { color: var(--gold); }
+    .pts-0 { color: var(--red); }
+
+    .btn-again {
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 16px; font-weight: 700;
+      padding: 13px 36px; cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-again:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    /* ── Clue unlock animation ──────────────────────────────────────────── */
+    @keyframes clue-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .clue-row.just-unlocked { animation: clue-in 0.35s ease forwards; }
+
+    @keyframes flash-wrong {
+      0%   { background: var(--wrong); }
+      60%  { background: var(--wrong); }
+      100% { background: var(--card); }
+    }
+
+    /* ── Mobile ─────────────────────────────────────────────────────────── */
+    @media (max-width: 480px) {
+      body { padding: 12px 10px 32px; }
+      .splash-card { padding: 32px 20px 28px; }
+      .opt-btn { font-size: 13px; padding: 13px 8px; }
+      .end-score { font-size: 56px; }
+      .results-table { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ SPLASH SCREEN -->
+<div id="screen-splash" class="screen active">
+  <div class="splash-card">
+    <div class="splash-emoji">📈</div>
+    <h1>S&amp;P 500 Guesser</h1>
+    <p class="splash-sub">Think you know your mega-caps from your mid-caps?</p>
+
+    <div class="rules-box">
+      <div class="rule">
+        <span>💰</span>
+        <span><strong>Clue 1 — free:</strong> Market cap. Guess right = <strong style="color:var(--green)">3 points</strong></span>
+      </div>
+      <div class="rule">
+        <span>🏢</span>
+        <span><strong>Clue 2:</strong> Business sector. Guess right = <strong style="color:var(--teal)">2 points</strong></span>
+      </div>
+      <div class="rule">
+        <span>💡</span>
+        <span><strong>Clue 3:</strong> Key fact. Guess right = <strong style="color:var(--gold)">1 point</strong></span>
+      </div>
+      <div class="rule">
+        <span>❌</span>
+        <span>Miss all three and you score nothing. Brutal.</span>
+      </div>
+    </div>
+
+    <p class="rule-note">10 questions · Max 30 points · Market caps approx. as of 2025</p>
+    <button class="btn-primary" onclick="startGame()">Let's Go 🚀</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ GAME SCREEN -->
+<div id="screen-game" class="screen">
+  <div class="game-card">
+
+    <!-- Header -->
+    <div class="game-header">
+      <a href="index.html" class="back-btn">← Arcade</a>
+      <span class="header-title">📈 S&amp;P 500 Guesser</span>
+      <div class="header-right">
+        <span class="q-counter" id="q-counter">Q 1 / 10</span>
+        <span class="score-pill" id="score-pill">0 pts</span>
+      </div>
+    </div>
+
+    <!-- Progress dots -->
+    <div class="progress-dots" id="progress-dots"></div>
+
+    <!-- Clue card -->
+    <div class="clue-card">
+      <div class="clue-row active-clue" id="clue-row-0">
+        <div class="clue-icon">💰</div>
+        <div class="clue-content">
+          <div class="clue-label">Market Cap</div>
+          <div class="clue-value" id="clue-val-0">—</div>
+        </div>
+        <div class="clue-badge badge-active" id="clue-badge-0">Active</div>
+      </div>
+      <div class="clue-row" id="clue-row-1">
+        <div class="clue-icon">🏢</div>
+        <div class="clue-content">
+          <div class="clue-label">Sector</div>
+          <div class="clue-value locked-val" id="clue-val-1">🔒 Unlocks after one wrong guess</div>
+        </div>
+        <div class="clue-badge badge-locked" id="clue-badge-1">2 pts</div>
+      </div>
+      <div class="clue-row" id="clue-row-2">
+        <div class="clue-icon">💡</div>
+        <div class="clue-content">
+          <div class="clue-label">Key Fact</div>
+          <div class="clue-value locked-val" id="clue-val-2">🔒 Unlocks after two wrong guesses</div>
+        </div>
+        <div class="clue-badge badge-locked" id="clue-badge-2">1 pt</div>
+      </div>
+    </div>
+
+    <!-- Points indicator -->
+    <div class="points-row">
+      <div class="point-pip current" id="pip-0">● 3 pts</div>
+      <div class="point-pip" id="pip-1">● 2 pts</div>
+      <div class="point-pip" id="pip-2">● 1 pt</div>
+    </div>
+
+    <!-- Options -->
+    <div class="options-grid" id="options-grid"></div>
+
+    <!-- Feedback -->
+    <div class="feedback-area" id="feedback-area"></div>
+
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════ END SCREEN -->
+<div id="screen-end" class="screen">
+  <div class="end-card" id="end-card"></div>
+</div>
+
+<!-- ═════════════════════════════════════════════════════════════════ SCRIPT -->
+<script>
+
+// ── Company Data ──────────────────────────────────────────────────────────────
+// cap: "mega" >$1T | "large" $300B–$1T | "mid" $100B–$300B | "small" <$100B
+const COMPANIES = [
+  // ── Mega Cap (>$1T) ────────────────────────────────────────────────────────
+  {
+    name: "Apple",         ticker: "AAPL",
+    sector: "Technology",  cap: "mega",
+    marketCap: "~$3.5 trillion",
+    fact: "The first company in history to hit a $3 trillion market cap — and it started in a garage in 1976"
+  },
+  {
+    name: "Microsoft",     ticker: "MSFT",
+    sector: "Technology",  cap: "mega",
+    marketCap: "~$3.1 trillion",
+    fact: "Its cloud platform Azure powers 85% of Fortune 500 companies — growing at over 25% per year"
+  },
+  {
+    name: "NVIDIA",        ticker: "NVDA",
+    sector: "Technology",  cap: "mega",
+    marketCap: "~$2.9 trillion",
+    fact: "Its AI chips are so in demand that CEOs have compared getting an allocation to winning a lottery"
+  },
+  {
+    name: "Amazon",        ticker: "AMZN",
+    sector: "Consumer Discretionary", cap: "mega",
+    marketCap: "~$2.3 trillion",
+    fact: "It started in a garage selling only books — founder Jeff Bezos personally drove packages to the post office"
+  },
+  {
+    name: "Alphabet",      ticker: "GOOGL",
+    sector: "Communication Services", cap: "mega",
+    marketCap: "~$2.2 trillion",
+    fact: "Its search engine handles over 8.5 billion queries every day — that's roughly 99,000 searches per second"
+  },
+  {
+    name: "Meta",          ticker: "META",
+    sector: "Communication Services", cap: "mega",
+    marketCap: "~$1.7 trillion",
+    fact: "Its platforms — Facebook, Instagram and WhatsApp — are used by over 3.3 billion people every single day"
+  },
+  {
+    name: "Tesla",         ticker: "TSLA",
+    sector: "Consumer Discretionary", cap: "mega",
+    marketCap: "~$1.1 trillion",
+    fact: "It was the first automaker to successfully mass-produce a profitable electric vehicle, the Model S, in 2012"
+  },
+  {
+    name: "Berkshire Hathaway", ticker: "BRK",
+    sector: "Financials",  cap: "mega",
+    marketCap: "~$1.0 trillion",
+    fact: "Its Class A shares trade for over $700,000 each — CEO Warren Buffett has never split the stock"
+  },
+  {
+    name: "Broadcom",      ticker: "AVGO",
+    sector: "Technology",  cap: "mega",
+    marketCap: "~$1.0 trillion",
+    fact: "Its networking chips are found inside virtually every major AI server and data centre on the planet"
+  },
+
+  // ── Large Cap ($300B–$1T) ──────────────────────────────────────────────────
+  {
+    name: "Eli Lilly",     ticker: "LLY",
+    sector: "Healthcare",  cap: "large",
+    marketCap: "~$830 billion",
+    fact: "Its weight-loss drug Zepbound caused a global shortage of injection pens — it can't make them fast enough"
+  },
+  {
+    name: "JPMorgan Chase", ticker: "JPM",
+    sector: "Financials",  cap: "large",
+    marketCap: "~$730 billion",
+    fact: "The largest bank in the United States — it holds more than $3.9 trillion in total assets"
+  },
+  {
+    name: "Walmart",       ticker: "WMT",
+    sector: "Consumer Staples", cap: "large",
+    marketCap: "~$750 billion",
+    fact: "The world's largest private employer — over 2.1 million people, more than most countries have in their army"
+  },
+  {
+    name: "Visa",          ticker: "V",
+    sector: "Financials",  cap: "large",
+    marketCap: "~$620 billion",
+    fact: "Processes over 200 billion payment transactions per year — roughly 6,300 every single second"
+  },
+  {
+    name: "UnitedHealth Group", ticker: "UNH",
+    sector: "Healthcare",  cap: "large",
+    marketCap: "~$540 billion",
+    fact: "America's largest private health insurer — it covers more than 50 million people across the US"
+  },
+  {
+    name: "ExxonMobil",    ticker: "XOM",
+    sector: "Energy",      cap: "large",
+    marketCap: "~$510 billion",
+    fact: "One of the world's largest oil companies — it pumps roughly 3.7 million barrels of crude oil every day"
+  },
+  {
+    name: "Mastercard",    ticker: "MA",
+    sector: "Financials",  cap: "large",
+    marketCap: "~$460 billion",
+    fact: "The world's second largest payment network — its cards are accepted in more than 210 countries"
+  },
+  {
+    name: "Costco",        ticker: "COST",
+    sector: "Consumer Staples", cap: "large",
+    marketCap: "~$445 billion",
+    fact: "Its hot dog + soda combo has cost exactly $1.50 since 1985 — a CEO once tried to raise the price and was told off"
+  },
+  {
+    name: "Oracle",        ticker: "ORCL",
+    sector: "Technology",  cap: "large",
+    marketCap: "~$430 billion",
+    fact: "Powers the databases of 97% of Fortune 100 companies — founder Larry Ellison named it after a CIA project"
+  },
+  {
+    name: "Netflix",       ticker: "NFLX",
+    sector: "Communication Services", cap: "large",
+    marketCap: "~$395 billion",
+    fact: "Spends over $17 billion every year producing and acquiring content — more than most film studios combined"
+  },
+  {
+    name: "Home Depot",    ticker: "HD",
+    sector: "Consumer Discretionary", cap: "large",
+    marketCap: "~$385 billion",
+    fact: "The world's largest home improvement retailer — founded in 1978 with a vision of warehouse-sized stores"
+  },
+  {
+    name: "Johnson & Johnson", ticker: "JNJ",
+    sector: "Healthcare",  cap: "large",
+    marketCap: "~$380 billion",
+    fact: "Has sold over 100 billion Band-Aids since the product launched in 1921 — about 14 for every person on Earth"
+  },
+  {
+    name: "Procter & Gamble", ticker: "PG",
+    sector: "Consumer Staples", cap: "large",
+    marketCap: "~$375 billion",
+    fact: "Makes over 65 household brands — if you've brushed your teeth or washed clothes today, you've probably used it"
+  },
+  {
+    name: "Chevron",       ticker: "CVX",
+    sector: "Energy",      cap: "large",
+    marketCap: "~$280 billion",
+    fact: "One of the few energy majors with significant operations in oil, gas AND renewable energy all at once"
+  },
+  {
+    name: "Coca-Cola",     ticker: "KO",
+    sector: "Consumer Staples", cap: "large",
+    marketCap: "~$275 billion",
+    fact: "Sells around 2 billion servings of its drinks every single day across more than 200 countries"
+  },
+  {
+    name: "Salesforce",    ticker: "CRM",
+    sector: "Technology",  cap: "large",
+    marketCap: "~$300 billion",
+    fact: "Invented the modern cloud software subscription model — its stock ticker CRM hints at exactly what it sells"
+  },
+
+  // ── Mid Cap ($100B–$300B) ──────────────────────────────────────────────────
+  {
+    name: "Adobe",         ticker: "ADBE",
+    sector: "Technology",  cap: "mid",
+    marketCap: "~$210 billion",
+    fact: "Its PDF file format is opened more than 400 billion times per year — almost every computer has a reader"
+  },
+  {
+    name: "McDonald's",    ticker: "MCD",
+    sector: "Consumer Discretionary", cap: "mid",
+    marketCap: "~$210 billion",
+    fact: "Serves 69 million customers in more than 100 countries every day — that's nearly 1% of the entire human race"
+  },
+  {
+    name: "American Express", ticker: "AXP",
+    sector: "Financials",  cap: "mid",
+    marketCap: "~$220 billion",
+    fact: "Founded in 1850 as a horse-carried express mail delivery company — before anyone had heard of a credit card"
+  },
+  {
+    name: "Goldman Sachs", ticker: "GS",
+    sector: "Financials",  cap: "mid",
+    marketCap: "~$195 billion",
+    fact: "Has advised on over $1 trillion of merger deals in a single year — the most powerful investment bank on Wall Street"
+  },
+  {
+    name: "General Electric Aerospace", ticker: "GE",
+    sector: "Industrials", cap: "mid",
+    marketCap: "~$210 billion",
+    fact: "Its jet engines power approximately 60% of all commercial aircraft currently in the skies"
+  },
+  {
+    name: "Disney",        ticker: "DIS",
+    sector: "Communication Services", cap: "mid",
+    marketCap: "~$195 billion",
+    fact: "Owns Marvel, Lucasfilm (Star Wars), Pixar and 20th Century Studios — plus 12 theme parks worldwide"
+  },
+  {
+    name: "Caterpillar",   ticker: "CAT",
+    sector: "Industrials", cap: "mid",
+    marketCap: "~$175 billion",
+    fact: "Its unmistakable yellow machines are involved in building an estimated 30% of the world's infrastructure"
+  },
+  {
+    name: "Pfizer",        ticker: "PFE",
+    sector: "Healthcare",  cap: "mid",
+    marketCap: "~$150 billion",
+    fact: "Co-developed one of the world's first approved COVID-19 vaccines — it delivered over 3 billion doses globally"
+  },
+  {
+    name: "AT&T",          ticker: "T",
+    sector: "Communication Services", cap: "mid",
+    marketCap: "~$160 billion",
+    fact: "Owns the largest 4G/5G wireless network in the United States, covering 99% of the US population"
+  },
+  {
+    name: "Boeing",        ticker: "BA",
+    sector: "Industrials", cap: "mid",
+    marketCap: "~$130 billion",
+    fact: "One of only two companies in the world that manufacture large commercial jet aircraft — the other is Airbus"
+  },
+  {
+    name: "Nike",          ticker: "NKE",
+    sector: "Consumer Discretionary", cap: "mid",
+    marketCap: "~$105 billion",
+    fact: "The world's most valuable sports brand — its iconic Swoosh logo was designed in 1971 for just $35"
+  },
+  {
+    name: "Starbucks",     ticker: "SBUX",
+    sector: "Consumer Discretionary", cap: "mid",
+    marketCap: "~$100 billion",
+    fact: "Has over 35,000 stores across 80+ countries — and a menu with over 170,000 possible drink combinations"
+  },
+
+  // ── Smaller Cap (<$100B) ───────────────────────────────────────────────────
+  {
+    name: "Intel",         ticker: "INTC",
+    sector: "Technology",  cap: "small",
+    marketCap: "~$90 billion",
+    fact: "Pioneered the mass-market microprocessor in the early 1970s — it once made over 80% of the world's PC chips"
+  },
+  {
+    name: "PayPal",        ticker: "PYPL",
+    sector: "Financials",  cap: "small",
+    marketCap: "~$75 billion",
+    fact: "Founded by the 'PayPal Mafia' — its alumni went on to start Tesla, LinkedIn, YouTube and Yelp"
+  },
+  {
+    name: "3M",            ticker: "MMM",
+    sector: "Industrials", cap: "small",
+    marketCap: "~$68 billion",
+    fact: "Holds over 100,000 patents and invented Post-it Notes — which were discovered by accident in 1968"
+  },
+];
+
+// ── Sassy Messages ─────────────────────────────────────────────────────────────
+const MSGS = {
+  correct0: [ // Right on clue 1 (market cap) — 3 pts
+    "💰 Market cap alone! Are you running a hedge fund on the side?!",
+    "🧠 First clue and done — absolutely huge brain energy!",
+    "📊 Just the market cap and you nailed it! Warren Buffett is nervous.",
+    "🔥 One clue. One answer. Three points. Devastating.",
+    "💎 First clue, correct answer — you absolute legend!",
+    "🚀 Spotted it immediately! That's pure Wall Street instinct!",
+    "👑 Three pointer! The market cap was all you needed. Brilliant.",
+    "⚡ Lightning fast! That's 3 points and zero hesitation!",
+  ],
+  correct1: [ // Right on clue 2 (sector) — 2 pts
+    "🏢 The sector clue sealed it — solid 2 points!",
+    "📈 Market cap had you guessing, but the sector saved you. 2 points!",
+    "🎯 Two clues, correct answer — not bad at all!",
+    "💼 Sector gave it away, but you still got it! That's 2 points.",
+    "📊 Needed a hint, but came through when it counted — 2 points!",
+    "🤔 Took a moment, but the sector unlocked it for you. 2 points!",
+  ],
+  correct2: [ // Right on clue 3 (fact) — 1 pt
+    "💡 That fact was the lifeline you needed! 1 point — better than nothing!",
+    "😅 Down to the last clue, but you got there! 1 point claimed!",
+    "🎰 That key fact saved your bacon — squeezing in 1 point!",
+    "🏦 Last chance, last clue, right answer — 1 point, no shame!",
+    "💡 The fact gave it away, but hey — 1 point is 1 point!",
+    "😬 Scraped through on the final clue! 1 point — take it!",
+  ],
+  wrong: [ // Incorrect guess (not final) — different per clue level
+    [
+      "❌ Nope! Here's a sector hint...",
+      "😬 Not quite! Let's unlock the sector clue...",
+      "🙈 Wrong guess! The sector might help...",
+      "🤔 Not that one! Here's your next clue...",
+      "🚩 Afraid not! Sector incoming...",
+    ],
+    [
+      "❌ Still no! One last clue for you...",
+      "😅 Wrong again! The key fact awaits...",
+      "🙈 That's two wrong! Final clue time...",
+      "🤔 Not quite! Here's the last hint...",
+      "🚩 Two misses! One more chance...",
+    ],
+  ],
+  allWrong: [ // All 3 guesses wrong — 0 pts
+    "💀 Three strikes! It was {name} ({ticker}). Zero points.",
+    "😵 Completely stumped! That was {name} ({ticker}). Ouch.",
+    "🚩 All three guesses missed! {name} ({ticker}) got away. Zero points.",
+    "📉 Rough one — {name} ({ticker}) fooled you completely!",
+    "🤦 It was {name} ({ticker})! Not your finest quarter.",
+  ],
+  end: [
+    { min: 28, msg: "🤯 Perfect (or near-perfect)! Are you secretly a fund manager?! Utterly dominant performance.", color: "#f5a623" },
+    { min: 24, msg: "📈 Seriously impressive! Someone's been reading their Bloomberg terminal...", color: "#2ecc71" },
+    { min: 18, msg: "💼 Solid result! You clearly know your way around a stock portfolio.", color: "#2ecc71" },
+    { min: 12, msg: "📊 Decent showing! Know your index funds, don't you? Could be worse.", color: "#5dade2" },
+    { min:  6, msg: "🤔 S&P 500 — 500 chances and you still struggled. Maybe start with a podcast?", color: "#f5a623" },
+    { min:  1, msg: "📉 Er... Have you considered just putting it all in a savings account?", color: "#e74c3c" },
+    { min:  0, msg: "🚨 Zero?! Were you guessing with your eyes shut? CNBC exists for a reason!", color: "#e74c3c" },
+  ],
+};
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let state = {
+  questions: [],
+  currentQ:  0,
+  totalScore: 0,
+  clueLevel:  0,       // 0=market cap, 1=sector, 2=fact
+  wrongChoices: new Set(),
+  answered: false,
+  results: [],         // { company, pts } per question
+  advTimeout: null,
+};
+
+// ── Utilities ──────────────────────────────────────────────────────────────────
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pick(arr, n) { return shuffle(arr).slice(0, n); }
+function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+function getWrongOpts(correct) {
+  // Prefer same cap tier, then adjacent, then any
+  const same = COMPANIES.filter(c => c.name !== correct.name && c.cap === correct.cap);
+  const other = COMPANIES.filter(c => c.name !== correct.name && c.cap !== correct.cap);
+  const pool = [...shuffle(same), ...shuffle(other)];
+  return pool.slice(0, 3);
+}
+
+function buildGame() {
+  const chosen = pick(COMPANIES, 10);
+  return chosen.map(company => {
+    const wrongs  = getWrongOpts(company);
+    const options = shuffle([company, ...wrongs]);
+    return { company, options };
+  });
+}
+
+// ── Screen control ─────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── Start game ─────────────────────────────────────────────────────────────────
+function startGame() {
+  state.questions    = buildGame();
+  state.currentQ     = 0;
+  state.totalScore   = 0;
+  state.results      = [];
+  state.answered     = false;
+  state.clueLevel    = 0;
+  state.wrongChoices = new Set();
+  clearTimeout(state.advTimeout);
+  buildProgressDots();
+  showScreen('screen-game');
+  renderQuestion();
+}
+
+// ── Progress dots ──────────────────────────────────────────────────────────────
+function buildProgressDots() {
+  const container = document.getElementById('progress-dots');
+  container.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.id = `dot-${i}`;
+    container.appendChild(d);
+  }
+}
+
+function updateDot(idx, cls) {
+  const d = document.getElementById(`dot-${idx}`);
+  if (d) { d.className = 'dot ' + cls; }
+}
+
+// ── Render question ────────────────────────────────────────────────────────────
+function renderQuestion() {
+  const { currentQ, questions } = state;
+  const q = questions[currentQ];
+
+  state.clueLevel    = 0;
+  state.wrongChoices = new Set();
+  state.answered     = false;
+
+  // Header
+  document.getElementById('q-counter').textContent = `Q ${currentQ + 1} / 10`;
+  document.getElementById('score-pill').textContent = `${state.totalScore} pts`;
+
+  // Progress dot — mark current
+  for (let i = 0; i < 10; i++) updateDot(i, i < currentQ ? '' : '');
+  state.results.forEach((r, i) => updateDot(i, r.pts === 3 ? 'ok' : r.pts > 0 ? 'part' : 'bad'));
+  updateDot(currentQ, 'cur');
+
+  // Clue row 0: market cap (always active)
+  setClueRow(0, q.company.marketCap, 'active');
+
+  // Clue rows 1 & 2: locked
+  document.getElementById('clue-val-1').className = 'clue-value locked-val';
+  document.getElementById('clue-val-1').textContent = '🔒 Unlocks after one wrong guess';
+  setClueRow(1, null, 'locked');
+
+  document.getElementById('clue-val-2').className = 'clue-value locked-val';
+  document.getElementById('clue-val-2').textContent = '🔒 Unlocks after two wrong guesses';
+  setClueRow(2, null, 'locked');
+
+  // Points pips
+  ['pip-0','pip-1','pip-2'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    el.className = 'point-pip' + (i === 0 ? ' current' : '');
+    el.textContent = ['● 3 pts', '● 2 pts', '● 1 pt'][i];
+  });
+
+  // Options
+  renderOptions();
+
+  // Feedback
+  setFeedback('', '');
+}
+
+function setClueRow(n, value, state) {
+  const row   = document.getElementById(`clue-row-${n}`);
+  const badge = document.getElementById(`clue-badge-${n}`);
+  const valEl = document.getElementById(`clue-val-${n}`);
+  row.className = 'clue-row';
+  if (state === 'active') {
+    row.classList.add('active-clue');
+    badge.className = 'clue-badge badge-active';
+    badge.textContent = 'Active';
+    if (value != null) { valEl.textContent = value; valEl.className = 'clue-value'; }
+  }
+  if (state === 'locked')   { badge.className = 'clue-badge badge-locked'; badge.textContent = ['3 pts','2 pts','1 pt'][n]; }
+  if (state === 'unlocked') { row.classList.add('unlocked'); badge.className = 'clue-badge badge-unlocked'; badge.textContent = 'Unlocked'; }
+  if (state === 'used')     { badge.className = 'clue-badge badge-used'; badge.textContent = 'Used'; }
+}
+
+function renderOptions() {
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  const q = state.questions[state.currentQ];
+
+  q.options.forEach((company, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.id = `opt-${idx}`;
+    btn.textContent = company.name;
+    btn.disabled = state.wrongChoices.has(company.name) || state.answered;
+    if (state.wrongChoices.has(company.name)) btn.classList.add('eliminated');
+    btn.addEventListener('click', () => handleGuess(company.name, idx));
+    grid.appendChild(btn);
+  });
+}
+
+// ── Handle a guess ─────────────────────────────────────────────────────────────
+function handleGuess(chosenName, btnIdx) {
+  if (state.answered) return;
+
+  const q        = state.questions[state.currentQ];
+  const correct  = q.company.name === chosenName;
+  const clue     = state.clueLevel;
+  const ptsOnOffer = [3, 2, 1][clue];
+
+  // Disable all options temporarily
+  document.querySelectorAll('.opt-btn').forEach(b => { b.disabled = true; });
+
+  if (correct) {
+    // ── Correct ──────────────────────────────────────────────────────────────
+    state.answered = true;
+    const btn = document.getElementById(`opt-${btnIdx}`);
+    btn.classList.add('selected-correct');
+
+    state.totalScore += ptsOnOffer;
+    state.results.push({ company: q.company, pts: ptsOnOffer });
+
+    document.getElementById('score-pill').textContent = `${state.totalScore} pts`;
+
+    const msgs = [MSGS.correct0, MSGS.correct1, MSGS.correct2][clue];
+    setFeedback(rand(msgs) + `<span class="pts-earned">+${ptsOnOffer} pts</span>`, 'correct');
+
+    updateDot(state.currentQ, ptsOnOffer === 3 ? 'ok' : 'part');
+    updatePointPips(clue, 'earned');
+
+    state.advTimeout = setTimeout(advance, 2400);
+
+  } else {
+    // ── Wrong ────────────────────────────────────────────────────────────────
+    const btn = document.getElementById(`opt-${btnIdx}`);
+    btn.classList.add('wrong-flash');
+    state.wrongChoices.add(chosenName);
+
+    setTimeout(() => {
+      btn.classList.remove('wrong-flash');
+      btn.classList.add('eliminated');
+
+      const maxClue = 2;
+      if (clue < maxClue) {
+        // Still have clues left — reveal next clue
+        updatePointPips(clue, 'used');
+        state.clueLevel++;
+        revealClue(state.clueLevel);
+        setFeedback(rand(MSGS.wrong[clue]), 'wrong');
+        // Re-enable remaining options after brief delay
+        setTimeout(() => {
+          document.querySelectorAll('.opt-btn').forEach(b => {
+            if (!b.classList.contains('eliminated')) b.disabled = false;
+          });
+        }, 420);
+      } else {
+        // All 3 clues used, still wrong — reveal answer
+        state.answered = true;
+        state.results.push({ company: q.company, pts: 0 });
+        updatePointPips(clue, 'lost');
+        revealCorrectOption(q.company.name);
+
+        const msg = rand(MSGS.allWrong)
+          .replace('{name}',   q.company.name)
+          .replace('{ticker}', q.company.ticker);
+        setFeedback(msg, 'reveal');
+
+        updateDot(state.currentQ, 'bad');
+        state.advTimeout = setTimeout(advance, 3200);
+      }
+    }, 320);
+  }
+}
+
+// ── Reveal a clue ──────────────────────────────────────────────────────────────
+function revealClue(level) {
+  const q = state.questions[state.currentQ];
+  const row = document.getElementById(`clue-row-${level}`);
+
+  if (level === 1) {
+    // Sector
+    const val = document.getElementById('clue-val-1');
+    val.className = 'clue-value sector-val';
+    val.textContent = q.company.sector;
+    setClueRow(1, q.company.sector, 'unlocked');
+  } else if (level === 2) {
+    // Key fact
+    const val = document.getElementById('clue-val-2');
+    val.className = 'clue-value fact-val';
+    val.textContent = q.company.fact;
+    setClueRow(2, q.company.fact, 'unlocked');
+  }
+
+  row.classList.add('just-unlocked');
+  setTimeout(() => row.classList.remove('just-unlocked'), 500);
+
+  // Update previous clue badge to "Used"
+  setClueRow(level - 1, null, 'used');
+}
+
+function revealCorrectOption(correctName) {
+  document.querySelectorAll('.opt-btn').forEach(btn => {
+    if (btn.textContent === correctName) {
+      btn.classList.remove('eliminated');
+      btn.classList.add('correct-reveal');
+    }
+  });
+}
+
+// ── Points pips ────────────────────────────────────────────────────────────────
+function updatePointPips(usedLevel, finalState) {
+  // Mark used level
+  const usedPip = document.getElementById(`pip-${usedLevel}`);
+  if (finalState === 'earned') {
+    usedPip.className = 'point-pip earned';
+    usedPip.textContent = ['✓ 3 pts', '✓ 2 pts', '✓ 1 pt'][usedLevel];
+  } else if (finalState === 'lost') {
+    usedPip.className = 'point-pip lost';
+    usedPip.textContent = ['✗ 3 pts', '✗ 2 pts', '✗ 1 pt'][usedLevel];
+  } else if (finalState === 'used') {
+    usedPip.className = 'point-pip used';
+    usedPip.textContent = ['✗ 3 pts', '✗ 2 pts', '✗ 1 pt'][usedLevel];
+    // Activate next pip
+    const nextPip = document.getElementById(`pip-${usedLevel + 1}`);
+    if (nextPip) {
+      nextPip.className = 'point-pip current';
+    }
+  }
+}
+
+// ── Feedback ───────────────────────────────────────────────────────────────────
+function setFeedback(html, type) {
+  const el = document.getElementById('feedback-area');
+  el.innerHTML = html;
+  el.className = 'feedback-area' + (type ? ' ' + type : '');
+}
+
+// ── Advance to next question ───────────────────────────────────────────────────
+function advance() {
+  state.currentQ++;
+  if (state.currentQ >= 10) {
+    showEnd();
+  } else {
+    renderQuestion();
+  }
+}
+
+// ── End screen ─────────────────────────────────────────────────────────────────
+function showEnd() {
+  showScreen('screen-end');
+  const score = state.totalScore;
+  const endMsg = MSGS.end.find(e => score >= e.min) || MSGS.end[MSGS.end.length - 1];
+
+  // Dots
+  const dotsHtml = state.results.map(r => {
+    const cls = r.pts === 3 ? 'ok' : r.pts > 0 ? 'part' : 'bad';
+    return `<div class="end-dot ${cls}" title="${r.company.name}: ${r.pts} pts"></div>`;
+  }).join('');
+
+  // Results table
+  const rowsHtml = state.results.map((r, i) => {
+    const ptsCls = ['pts-0','pts-1','pts-2','pts-3'][r.pts];
+    const ptsLabel = r.pts === 0 ? '—' : `+${r.pts}`;
+    const emoji = ['❌', '💡', '🏢', '💰'][r.pts];
+    return `
+      <tr>
+        <td style="color:var(--muted);font-size:12px;">${i+1}</td>
+        <td>
+          <span class="company-name">${r.company.name}</span>
+          <br><span class="ticker">${r.company.ticker}</span>
+        </td>
+        <td style="color:var(--muted);font-size:12px;">${r.company.sector}</td>
+        <td class="pts-cell ${ptsCls}">${emoji} ${ptsLabel}</td>
+      </tr>`;
+  }).join('');
+
+  document.getElementById('end-card').innerHTML = `
+    <div class="end-title">📈 Game Over — Results</div>
+    <div class="end-score" style="color:${endMsg.color}">${score}</div>
+    <div class="end-max">out of 30 points</div>
+    <div class="end-msg">${endMsg.msg}</div>
+    <div class="end-dots">${dotsHtml}</div>
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>#</th><th>Company</th><th>Sector</th><th>Points</th>
+        </tr>
+      </thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <button class="btn-again" onclick="startGame()">▶ Play Again</button>
+    <br>
+    <a href="index.html" class="back-arcade">← Back to Quiz Arcade</a>
+  `;
+}
+
+</script>
+</body>
+</html>
