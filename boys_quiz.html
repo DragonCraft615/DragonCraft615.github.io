@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Boy's Quiz 👦</title>
+<style>
+:root {
+  --bg:      #1a1a2e;
+  --surface: #16213e;
+  --card:    #0f3460;
+  --hover:   #1a4a80;
+  --accent:  #3b82f6;
+  --gold:    #f5a623;
+  --green:   #2ecc71;
+  --red:     #e74c3c;
+  --text:    #f0f0f0;
+  --sub:     #b0b8cc;
+  --muted:   #6b7280;
+  --border:  #2a3550;
+  --teal:    #1abc9c;
+
+  /* Points palette */
+  --p10: #2ecc71;
+  --p5:  #1abc9c;
+  --p2:  #f5a623;
+  --p0:  #e74c3c;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 20px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wrap { width: 100%; max-width: 720px; }
+
+/* ── Header ──────────────────────────────────────────────────────────── */
+.game-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  margin-bottom: 20px;
+}
+.back-btn {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.back-btn:hover { color: var(--sub); }
+.header-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--accent);
+  flex: 1;
+  text-align: center;
+}
+
+/* ── Intro card ──────────────────────────────────────────────────────── */
+.intro-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 28px 24px;
+  margin-bottom: 24px;
+}
+.intro-card h1 {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--accent);
+  margin-bottom: 14px;
+}
+.intro-body {
+  font-size: 15px;
+  color: var(--sub);
+  line-height: 1.7;
+  margin-bottom: 14px;
+}
+.intro-scoring {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.score-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--card);
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.score-badge .dot {
+  width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0;
+}
+.intro-ps {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  line-height: 1.6;
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 6px;
+}
+
+/* ── Question form ───────────────────────────────────────────────────── */
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+
+.question-row {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px 20px;
+  align-items: start;
+}
+.question-row:last-child { border-bottom: none; }
+
+.q-left { min-width: 0; }
+
+.q-num {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+}
+.q-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+.q-caveat {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.q-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  min-width: 160px;
+}
+
+.q-input {
+  width: 160px;
+  background: var(--card);
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 10px 14px;
+  text-align: right;
+  outline: none;
+  transition: border-color 0.15s;
+  /* Hide browser number spinners */
+  -moz-appearance: textfield;
+}
+.q-input::-webkit-outer-spin-button,
+.q-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.q-input:focus { border-color: var(--accent); }
+
+.q-formatted {
+  font-size: 11px;
+  color: var(--teal);
+  font-weight: 600;
+  text-align: right;
+  min-height: 16px;
+}
+
+/* ── Submit ──────────────────────────────────────────────────────────── */
+.submit-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.3px;
+  margin-bottom: 28px;
+}
+.submit-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.submit-btn:active { transform: translateY(0); }
+
+/* ── Round history ───────────────────────────────────────────────────── */
+.history-section { margin-bottom: 28px; }
+.history-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 12px;
+}
+
+.round-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.round-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub);
+  white-space: nowrap;
+  min-width: 90px;
+}
+.round-total {
+  font-size: 22px;
+  font-weight: 900;
+  min-width: 70px;
+}
+.round-tally {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.tally-pill {
+  font-size: 12px;
+  font-weight: 700;
+  border: 1.5px solid;
+  border-radius: 20px;
+  padding: 3px 10px;
+  white-space: nowrap;
+}
+
+/* ── Reset link ──────────────────────────────────────────────────────── */
+.reset-area {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.reset-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+.reset-btn:hover { color: var(--sub); border-color: var(--sub); }
+
+/* ── End-game card ───────────────────────────────────────────────────── */
+.end-card {
+  display: none;
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 20px;
+  padding: 36px 28px 32px;
+  margin-bottom: 40px;
+  text-align: center;
+}
+.end-card.visible { display: block; }
+
+.end-emoji { font-size: 52px; line-height: 1; margin-bottom: 12px; }
+.end-headline {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.end-sub {
+  font-size: 15px;
+  color: var(--sub);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+.end-ps {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  margin-bottom: 28px;
+}
+
+/* Answer table */
+.answer-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+  margin-bottom: 24px;
+}
+.answer-table th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 6px 10px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.answer-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: top;
+}
+.answer-table tr:last-child td { border-bottom: none; }
+.answer-table .q-col { color: var(--sub); max-width: 220px; }
+.answer-table .q-col strong { display: block; color: var(--text); font-size: 13px; }
+.answer-table .q-col small { color: var(--muted); font-size: 11px; }
+.num-cell { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ans-cell { font-weight: 700; white-space: nowrap; }
+.pts-cell { font-weight: 800; white-space: nowrap; }
+.label-cell { font-size: 11px; font-weight: 600; }
+
+.row-p10 .pts-cell { color: var(--p10); }
+.row-p10 .label-cell { color: var(--p10); }
+.row-p5  .pts-cell { color: var(--p5); }
+.row-p5  .label-cell { color: var(--p5); }
+.row-p2  .pts-cell { color: var(--p2); }
+.row-p2  .label-cell { color: var(--p2); }
+.row-p0  .pts-cell { color: var(--p0); }
+.row-p0  .label-cell { color: var(--p0); }
+
+.end-total {
+  font-size: 36px;
+  font-weight: 900;
+  color: var(--p10);
+  margin-bottom: 6px;
+}
+.end-total-label {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.play-again-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px 32px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-right: 12px;
+}
+.play-again-btn:hover { opacity: 0.88; }
+.back-arcade {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+.back-arcade:hover { color: var(--sub); }
+
+/* ── Utility ─────────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+@media (max-width: 520px) {
+  .question-row {
+    grid-template-columns: 1fr;
+  }
+  .q-right {
+    align-items: flex-start;
+    min-width: unset;
+  }
+  .q-input { width: 100%; }
+  .q-formatted { text-align: left; }
+  .round-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ── Header ─────────────────────────────────────────────────────────── -->
+<div class="game-header">
+  <a href="index.html" class="back-btn">← Arcade</a>
+  <span class="header-title">👦 The Boy's Quiz</span>
+</div>
+
+<!-- ── Intro card ─────────────────────────────────────────────────────── -->
+<div class="intro-card">
+  <h1>The Boy's Quiz</h1>
+  <p class="intro-body">
+    This is a fun little brain teaser, or an infuriating nightmare. Your call.<br><br>
+    I asked my sons, aged 9 and 7, what they thought were the 10 hardest questions in the world.
+    Only stipulation — the answers must be a whole number. Those 10 questions give us a quiz.
+  </p>
+
+  <div class="intro-scoring">
+    <div class="score-badge">
+      <div class="dot" style="background:var(--p10);"></div>
+      <span style="color:var(--p10)">Within 1% — <strong>10 pts</strong> &nbsp;"Right!"</span>
+    </div>
+    <div class="score-badge">
+      <div class="dot" style="background:var(--p5);"></div>
+      <span style="color:var(--p5)">Within 10% — <strong>5 pts</strong> &nbsp;"Close enough"</span>
+    </div>
+    <div class="score-badge">
+      <div class="dot" style="background:var(--p2);"></div>
+      <span style="color:var(--p2)">Within 50% — <strong>2 pts</strong> &nbsp;"Not a terrible ballpark"</span>
+    </div>
+    <div class="score-badge">
+      <div class="dot" style="background:var(--p0);"></div>
+      <span style="color:var(--p0)">Further out — <strong>0 pts</strong></span>
+    </div>
+  </div>
+
+  <p class="intro-body" style="margin-top:4px;">
+    Answer all 10 and score out of 100. The twist: <strong>you don't get told the individual answers yet</strong> — just your total.
+    Play again and again. Once you crack <strong>90 or more</strong> you're put out of your misery and the real numbers revealed.
+    The real test: how many rounds does it take?
+  </p>
+  <p class="intro-ps">
+    P.S. Apparently if there is a tie you have to come to our house and do a two-lap race around the garden.
+    And if you draw that, it's rock paper scissors.<br>
+    In my 7-year-old's words: <em>"may the luckiest sausage win."</em>
+  </p>
+</div>
+
+<!-- ── Question form ──────────────────────────────────────────────────── -->
+<form id="quiz-form" class="form-card" onsubmit="handleSubmit(event)">
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 1</div>
+      <div class="q-text">How long does it take to make a pair of jeans?</div>
+      <div class="q-caveat">Specifically, the time on the factory assembly line — and even more specifically, a pair of Levi 510s. Answer in minutes, to the nearest whole minute.</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a0" min="0" step="1" value="0" oninput="fmtLive(this,0)">
+      <div class="q-formatted" id="f0"></div>
+    </div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 2</div>
+      <div class="q-text">How many Pokémon cards are there?</div>
+      <div class="q-caveat">Visually distinct, English language Pokémon cards from all runs.</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a1" min="0" step="1" value="0" oninput="fmtLive(this,1)">
+      <div class="q-formatted" id="f1"></div>
+    </div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 3</div>
+      <div class="q-text">How many books are in the British Library?</div>
+      <div class="q-caveat">Not "items" — which includes manuscripts, poems and other random stuff. Actual fully fledged books.</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a2" min="0" step="1" value="0" oninput="fmtLive(this,2)">
+      <div class="q-formatted" id="f2"></div>
+    </div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 4</div>
+      <div class="q-text">How many legs does an average centipede have?</div>
+      <div class="q-caveat">Apparently a common house centipede specifically.</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a3" min="0" step="1" value="0" oninput="fmtLive(this,3)">
+      <div class="q-formatted" id="f3"></div>
+    </div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 5</div>
+      <div class="q-text">How long is a tennis court in centimetres?</div>
+      <div class="q-caveat">Regulation size grass court, baseline to baseline.</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a4" min="0" step="1" value="0" oninput="fmtLive(this,4)">
+      <div class="q-formatted" id="f4"></div>
+    </div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 6</div>
+      <div class="q-text">How many seconds are in a day?</div>
+      <div class="q-caveat">Do you really need help defining this one?</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a5" min="0" step="1" value="0" oninput="fmtLive(this,5)">
+      <div class="q-formatted" id="f5"></div>
+    </div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 7</div>
+      <div class="q-text">How tall was the tallest person in the world, ever?</div>
+      <div class="q-caveat">In centimetres. As per the Guinness Book of World Records.</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a6" min="0" step="1" value="0" oninput="fmtLive(this,6)">
+      <div class="q-formatted" id="f6"></div>
+    </div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 8</div>
+      <div class="q-text">How many branches does an average tree have?</div>
+      <div class="q-caveat">Strictly: the average best guess for how many end-points there are on a fully grown English Oak.</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a7" min="0" step="1" value="0" oninput="fmtLive(this,7)">
+      <div class="q-formatted" id="f7"></div>
+    </div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 9</div>
+      <div class="q-text">How many months did it take to paint the world's biggest painting?</div>
+      <div class="q-caveat">As per Guinness World Records.</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a8" min="0" step="1" value="0" oninput="fmtLive(this,8)">
+      <div class="q-formatted" id="f8"></div>
+    </div>
+  </div>
+
+  <div class="question-row">
+    <div class="q-left">
+      <div class="q-num">Question 10</div>
+      <div class="q-text">How many snowflakes are in a snowman?</div>
+      <div class="q-caveat">Big clue: this is just an order of magnitude number — a 1 followed by zeros. Is it 100? 1,000,000? 10,000,000,000,000? Your best guess.</div>
+    </div>
+    <div class="q-right">
+      <input class="q-input" type="number" id="a9" min="0" step="1" value="0" oninput="fmtLive(this,9)">
+      <div class="q-formatted" id="f9"></div>
+    </div>
+  </div>
+
+</form>
+
+<button class="submit-btn" onclick="handleSubmit(event)">Submit Answers →</button>
+
+<!-- ── Round history ───────────────────────────────────────────────────── -->
+<div class="history-section" id="history-section" style="display:none;">
+  <div class="history-header">Round history</div>
+  <div id="history-rows"></div>
+</div>
+
+<!-- ── Reset ──────────────────────────────────────────────────────────── -->
+<div class="reset-area" id="reset-area" style="display:none;">
+  <button class="reset-btn" onclick="resetGame()">↺ Start fresh (clear all progress)</button>
+</div>
+
+<!-- ── End-game reveal ────────────────────────────────────────────────── -->
+<div class="end-card" id="end-card">
+  <div class="end-emoji">🎉</div>
+  <div class="end-headline" id="end-headline">You cracked it!</div>
+  <div class="end-sub" id="end-sub"></div>
+  <div class="end-ps">
+    "May the luckiest sausage win." — aged 7<br>
+    <em>Tiebreaker: two-lap race around the garden. Still tied? Rock paper scissors.</em>
+  </div>
+
+  <div class="end-total" id="end-total"></div>
+  <div class="end-total-label">Final round score</div>
+
+  <table class="answer-table" id="answer-table">
+    <thead>
+      <tr>
+        <th>Question</th>
+        <th>Your answer</th>
+        <th>Actual answer</th>
+        <th>Points</th>
+        <th>Verdict</th>
+      </tr>
+    </thead>
+    <tbody id="answer-tbody"></tbody>
+  </table>
+
+  <button class="play-again-btn" onclick="resetGame()">↺ Play Again</button>
+  <a href="index.html" class="back-arcade">← Back to Quiz Arcade</a>
+</div>
+
+</div><!-- .wrap -->
+
+<script>
+// ── Answers (AI-averaged) ─────────────────────────────────────────────────────
+const ANSWERS = [34, 19667, 13950000, 42, 2377, 86400, 272, 325000, 5, 10000000000];
+
+const Q_LABELS = [
+  "Levi 510s assembly time (mins)",
+  "Pokémon cards (distinct, English)",
+  "Books in British Library",
+  "Centipede legs (house centipede)",
+  "Tennis court length (cm)",
+  "Seconds in a day",
+  "Tallest person ever (cm)",
+  "English Oak end-points",
+  "Months for biggest painting",
+  "Snowflakes in a snowman",
+];
+
+// ── Scoring ───────────────────────────────────────────────────────────────────
+function scoreAnswer(guess, answer) {
+  if (answer === 0) return guess === 0 ? 10 : 0;
+  const ratio = Math.abs(guess - answer) / answer;
+  if (ratio <= 0.01) return 10;
+  if (ratio <= 0.10) return 5;
+  if (ratio <= 0.50) return 2;
+  return 0;
+}
+
+const LABELS = { 10: "Right!", 5: "Close enough", 2: "Not a terrible ballpark", 0: "Nope" };
+const PT_COLORS = { 10: "var(--p10)", 5: "var(--p5)", 2: "var(--p2)", 0: "var(--p0)" };
+const ROW_CLASS  = { 10: "row-p10", 5: "row-p5", 2: "row-p2", 0: "row-p0" };
+const DOT_LABELS = { 10: "10", 5: "5", 2: "2", 0: "0" };
+
+// ── Number formatting ─────────────────────────────────────────────────────────
+function fmt(n) {
+  if (n === null || n === undefined || n === "" || isNaN(n)) return "";
+  return Number(n).toLocaleString("en-GB");
+}
+
+function fmtLive(input, idx) {
+  const v = parseInt(input.value, 10);
+  const el = document.getElementById("f" + idx);
+  if (!isNaN(v) && v >= 0) {
+    el.textContent = fmt(v);
+  } else {
+    el.textContent = "";
+  }
+}
+
+// ── localStorage helpers ──────────────────────────────────────────────────────
+const LS_ANSWERS = "bq_answers";
+const LS_HISTORY = "bq_history";
+const LS_DONE    = "bq_done";
+
+function loadAnswers() {
+  try { return JSON.parse(localStorage.getItem(LS_ANSWERS)) || Array(10).fill(0); }
+  catch { return Array(10).fill(0); }
+}
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(LS_HISTORY)) || []; }
+  catch { return []; }
+}
+function saveAnswers(arr) { localStorage.setItem(LS_ANSWERS, JSON.stringify(arr)); }
+function saveHistory(arr) { localStorage.setItem(LS_HISTORY, JSON.stringify(arr)); }
+function markDone()       { localStorage.setItem(LS_DONE, "1"); }
+function isDone()         { return localStorage.getItem(LS_DONE) === "1"; }
+
+// ── Render a round row in the history section ─────────────────────────────────
+function renderRoundRow(roundObj) {
+  const { round, total, breakdown } = roundObj;
+  const container = document.getElementById("history-rows");
+  const row = document.createElement("div");
+  row.className = "round-row";
+
+  const totalColor = total >= 90 ? "var(--p10)"
+                   : total >= 60 ? "var(--p5)"
+                   : total >= 30 ? "var(--p2)"
+                   : "var(--p0)";
+
+  // Count per scoring tier
+  const counts = {10: 0, 5: 0, 2: 0, 0: 0};
+  breakdown.forEach(p => counts[p]++);
+
+  // Tally pills — only show tiers that actually appeared
+  const tallyHtml = [10, 5, 2, 0]
+    .filter(t => counts[t] > 0)
+    .map(t => `<span class="tally-pill" style="color:${PT_COLORS[t]};border-color:${PT_COLORS[t]}">${counts[t]} × ${t}pt</span>`)
+    .join("");
+
+  row.innerHTML = `
+    <div class="round-label">Round ${round}</div>
+    <div class="round-total" style="color:${totalColor}">${total} <span style="font-size:14px;font-weight:600;color:var(--muted)">/ 100</span></div>
+    <div class="round-tally">${tallyHtml}</div>
+  `;
+  container.appendChild(row);
+}
+
+// ── Build the end-game answer table ──────────────────────────────────────────
+function buildAnswerTable(guesses, breakdown) {
+  const tbody = document.getElementById("answer-tbody");
+  tbody.innerHTML = "";
+  guesses.forEach((guess, i) => {
+    const pts = breakdown[i];
+    const tr = document.createElement("tr");
+    tr.className = ROW_CLASS[pts];
+    tr.innerHTML = `
+      <td class="q-col"><strong>Q${i+1}</strong><small>${Q_LABELS[i]}</small></td>
+      <td class="num-cell">${fmt(guess)}</td>
+      <td class="ans-cell" style="color:${PT_COLORS[pts]}">${fmt(ANSWERS[i])}</td>
+      <td class="pts-cell">${pts}</td>
+      <td class="label-cell">${LABELS[pts]}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Handle form submit ────────────────────────────────────────────────────────
+function handleSubmit(e) {
+  if (e) e.preventDefault();
+
+  // Parse guesses
+  const guesses = ANSWERS.map((_, i) => {
+    const raw = document.getElementById("a" + i).value;
+    const v = parseInt(raw, 10);
+    return isNaN(v) || v < 0 ? 0 : v;
+  });
+
+  // Score
+  const breakdown = guesses.map((g, i) => scoreAnswer(g, ANSWERS[i]));
+  const total = breakdown.reduce((s, p) => s + p, 0);
+
+  // Persist
+  const history = loadHistory();
+  const round = history.length + 1;
+  const roundObj = { round, total, breakdown };
+  history.push(roundObj);
+  saveAnswers(guesses);
+  saveHistory(history);
+
+  // Show history section
+  document.getElementById("history-section").style.display = "";
+  document.getElementById("reset-area").style.display = "";
+  renderRoundRow(roundObj);
+
+  // Scroll to new row
+  setTimeout(() => {
+    document.getElementById("history-rows").lastElementChild
+      ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, 80);
+
+  // Win condition
+  if (total >= 90) {
+    markDone();
+    showEndGame(round, guesses, breakdown, total);
+  }
+}
+
+// ── Show end-game section ─────────────────────────────────────────────────────
+function showEndGame(rounds, guesses, breakdown, total) {
+  const roundWord = rounds === 1 ? "round" : "rounds";
+  document.getElementById("end-headline").textContent =
+    `You cracked 90 in ${rounds} ${roundWord}! 🎉`;
+  document.getElementById("end-sub").innerHTML =
+    `You scored <strong>${total}/100</strong> to get there. Here's how — and here are the real answers:`;
+  document.getElementById("end-total").textContent = total + " / 100";
+
+  buildAnswerTable(guesses, breakdown);
+
+  const card = document.getElementById("end-card");
+  card.classList.add("visible");
+  setTimeout(() => card.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+function resetGame() {
+  localStorage.removeItem(LS_ANSWERS);
+  localStorage.removeItem(LS_HISTORY);
+  localStorage.removeItem(LS_DONE);
+  location.reload();
+}
+
+// ── Initialise on load ────────────────────────────────────────────────────────
+document.addEventListener("DOMContentLoaded", () => {
+  const history = loadHistory();
+  const answers = loadAnswers();
+
+  // Prefill inputs
+  answers.forEach((v, i) => {
+    const el = document.getElementById("a" + i);
+    el.value = v;
+    fmtLive(el, i);
+  });
+
+  // Replay history rows
+  if (history.length > 0) {
+    document.getElementById("history-section").style.display = "";
+    document.getElementById("reset-area").style.display = "";
+    history.forEach(r => renderRoundRow(r));
+  }
+
+  // If already completed, show end game immediately
+  if (isDone() && history.length > 0) {
+    const last = history[history.length - 1];
+    const finalAnswers = answers; // last submitted = winning answers
+    showEndGame(last.round, finalAnswers, last.breakdown, last.total);
+  }
+});
+</script>
+</body>
+</html>
