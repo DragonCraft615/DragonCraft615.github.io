@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dragonia — Wild Facts Quiz</title>
+<style>
+  :root {
+    --bg:#0a0a14;
+    --surface:#0f0f1e;
+    --card:#131325;
+    --hover:#1a1a35;
+    --accent:#e94560;
+    --gold:#f5a623;
+    --green:#2ecc71;
+    --red:#e74c3c;
+    --correct:#1e8449;
+    --wrong:#922b21;
+    --text:#f0ede6;
+    --sub:#a89880;
+    --muted:#5c5248;
+    --border:#1e1a2e;
+    --teal:#1abc9c;
+    --scale-line: rgba(245,166,35,.04);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{background-color:var(--bg);background-image:radial-gradient(ellipse 65% 32% at 50% -4%,rgba(245,107,26,.18) 0%,transparent 70%),radial-gradient(ellipse 48% 26% at 92% 105%,rgba(192,57,43,.14) 0%,transparent 65%),repeating-linear-gradient(60deg,var(--scale-line) 0,var(--scale-line) 1px,transparent 1px,transparent 28px),repeating-linear-gradient(-60deg,var(--scale-line) 0,var(--scale-line) 1px,transparent 1px,transparent 28px);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px;}
+  a{color:var(--sub);text-decoration:none;}
+  a:hover{color:var(--text);}
+  .wrap{width:100%;max-width:660px;}
+
+  /* Header */
+  .site-header{display:flex;align-items:center;justify-content:space-between;padding:12px 0 24px;}
+  .back-link{font-size:14px;color:var(--sub);display:flex;align-items:center;gap:6px;transition:color .2s;}
+  .back-link:hover{color:var(--text);}
+  .header-title{font-size:22px;font-weight:700;text-align:center;flex:1;}
+  .score-pill{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:6px 16px;font-size:14px;font-weight:600;color:var(--gold);white-space:nowrap;}
+
+  /* Progress dots */
+  .progress-dots{display:flex;gap:8px;justify-content:center;margin-bottom:20px;}
+  .dot{width:28px;height:8px;border-radius:4px;background:var(--border);transition:background .3s;}
+  .dot.done{background:var(--teal);}
+  .dot.current{background:var(--gold);}
+
+  /* Category badge */
+  .cat-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.5px;margin-bottom:14px;}
+
+  /* Question card */
+  .question-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px 24px 20px;margin-bottom:16px;}
+  .question-text{font-size:20px;font-weight:700;line-height:1.4;color:var(--text);}
+
+  /* Options grid */
+  .options-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+  .opt-btn{background:var(--card);border:2px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;font-weight:600;padding:14px 12px;cursor:pointer;transition:background .15s,border-color .15s,opacity .25s;text-align:center;line-height:1.3;}
+  .opt-btn:hover:not(:disabled){background:var(--hover);border-color:#3a5570;}
+  .opt-btn.correct{background:var(--correct);border-color:var(--green);}
+  .opt-btn.wrong{background:var(--wrong);border-color:var(--red);}
+  .opt-btn.dim{opacity:.35;}
+  .opt-btn:disabled{cursor:default;}
+
+  /* Feedback */
+  .feedback{border-radius:12px;padding:14px 18px;font-size:15px;font-weight:600;text-align:center;min-height:52px;transition:opacity .3s;margin-bottom:0;}
+  .feedback.hidden{opacity:0;pointer-events:none;}
+  .feedback.correct-fb{background:rgba(30,132,73,.25);border:1px solid var(--correct);color:var(--green);}
+  .feedback.wrong-fb{background:rgba(146,43,33,.25);border:1px solid var(--wrong);color:#f1948a;}
+  .wow-fact{color:var(--teal);font-size:13px;font-weight:500;text-align:center;margin-top:10px;line-height:1.5;min-height:20px;transition:opacity .3s;}
+  .wow-fact.hidden{opacity:0;}
+
+  /* End card */
+  .end-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:36px 28px;text-align:center;display:none;}
+  .end-card.show{display:block;}
+  .end-title{font-size:24px;font-weight:700;margin-bottom:8px;}
+  .end-score{font-size:72px;font-weight:900;line-height:1;margin:12px 0;}
+  .end-label{font-size:16px;color:var(--sub);margin-bottom:18px;}
+  .end-msg{font-size:17px;font-weight:600;line-height:1.5;margin-bottom:24px;}
+  .result-dots{display:flex;gap:8px;justify-content:center;margin-bottom:28px;flex-wrap:wrap;}
+  .r-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;}
+  .r-dot.c{background:var(--correct);}
+  .r-dot.w{background:var(--wrong);}
+  .end-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  .btn-play{background:var(--accent);color:#fff;border:none;border-radius:12px;padding:14px 28px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+  .btn-play:hover{opacity:.85;}
+  .btn-back{background:var(--card);color:var(--sub);border:1px solid var(--border);border-radius:12px;padding:14px 28px;font-size:16px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background .2s;}
+  .btn-back:hover{background:var(--hover);color:var(--text);}
+
+  /* Game area */
+  #game-area{display:block;}
+
+  @media(max-width:480px){
+    .options-grid{grid-template-columns:1fr;}
+    .question-text{font-size:17px;}
+    .end-score{font-size:56px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site-header">
+    <a class="back-link" href="index.html">← Dragonia</a>
+    <span class="header-title">🧠 Wild Facts Quiz</span>
+    <span class="score-pill" id="score-pill">Score: 0</span>
+  </header>
+
+  <div id="game-area">
+    <div class="progress-dots" id="progress-dots"></div>
+    <div style="text-align:center;">
+      <span class="cat-badge" id="cat-badge"></span>
+    </div>
+    <div class="question-card">
+      <div class="question-text" id="question-text"></div>
+    </div>
+    <div class="options-grid" id="options-grid"></div>
+    <div class="feedback hidden" id="feedback"></div>
+    <div class="wow-fact hidden" id="wow-fact"></div>
+  </div>
+
+  <div class="end-card" id="end-card">
+    <div class="end-title">Quiz Complete!</div>
+    <div class="end-score" id="end-score"></div>
+    <div class="end-label">out of 10</div>
+    <div class="end-msg" id="end-msg"></div>
+    <div class="result-dots" id="result-dots"></div>
+    <div class="end-btns">
+      <button class="btn-play" onclick="startGame()">🔄 Play Again</button>
+      <a class="btn-back" href="index.html">← Dragonia</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const QUESTIONS = [
+  {q:"Which is the fastest land animal?",a:"Cheetah",w:["Lion","Horse","Greyhound"],fact:"🐆 Cheetahs reach 70 mph in just 3 seconds — faster than most sports cars!",cat:"🐾 Animals"},
+  {q:"Which is the largest animal that has ever lived on Earth?",a:"Blue Whale",w:["African Elephant","Polar Bear","Giant Squid"],fact:"🐋 A blue whale's heart is as big as a small car and beats just 2 times per minute!",cat:"🐾 Animals"},
+  {q:"How many hearts does an octopus have?",a:"3",w:["1","2","4"],fact:"🐙 An octopus has 3 hearts AND blue blood — it's basically an alien from the deep!",cat:"🐾 Animals"},
+  {q:"Which is the only mammal that can truly fly?",a:"Bat",w:["Flying Squirrel","Sugar Glider","Colugo"],fact:"🦇 Flying squirrels can only glide — bats are the ONLY true flying mammals!",cat:"🐾 Animals"},
+  {q:"How many legs does a spider have?",a:"8",w:["6","10","12"],fact:"🕷️ Easy trick: insects = 6 legs, spiders = 8. That's how you tell them apart!",cat:"🐾 Animals"},
+  {q:"Which animal is famous for having an incredible memory?",a:"Elephant",w:["Dolphin","Crow","Chimpanzee"],fact:"🐘 Elephants can remember the faces of hundreds of friends — even after 20 years apart!",cat:"🐾 Animals"},
+  {q:"Which bird is the fastest swimmer?",a:"Penguin",w:["Duck","Pelican","Cormorant"],fact:"🐧 Gentoo penguins swim at 22 mph — faster than most humans can run on land!",cat:"🐾 Animals"},
+  {q:"What do giant pandas mostly eat?",a:"Bamboo",w:["Fish","Berries","Insects"],fact:"🐼 Giant pandas eat up to 40 pounds of bamboo daily — like eating 200 sandwiches!",cat:"🐾 Animals"},
+  {q:"Which animal can change its skin colour?",a:"Chameleon",w:["Gecko","Iguana","Komodo Dragon"],fact:"🦎 Chameleons don't just camouflage — they change colour to show their mood too!",cat:"🐾 Animals"},
+  {q:"Which animal can regrow a completely lost limb?",a:"Starfish",w:["Crab","Lobster","Clam"],fact:"⭐ Some starfish can regrow their WHOLE body from just one arm. Unstoppable!",cat:"🐾 Animals"},
+  {q:"How many eyes does a honey bee have?",a:"5",w:["2","3","6"],fact:"🐝 Bees have 2 large compound eyes AND 3 tiny simple eyes on top of their head!",cat:"🐾 Animals"},
+  {q:"Which is the slowest mammal?",a:"Three-toed Sloth",w:["Koala","Hedgehog","Giant Tortoise"],fact:"🦥 Sloths move so slowly that algae grows on their fur — they're their own tiny ecosystem!",cat:"🐾 Animals"},
+  {q:"Which animal produces silk to build webs and traps?",a:"Spider",w:["Moth","Beetle","Ant"],fact:"🕸️ Spider silk is stronger than steel of the same thickness — scientists want to copy it for body armour!",cat:"🐾 Animals"},
+  {q:"Which is the tallest living animal?",a:"Giraffe",w:["Elephant","Camel","Ostrich"],fact:"🦒 A giraffe's neck alone can be 6 feet long — and it has the same 7 neck bones as humans!",cat:"🐾 Animals"},
+  {q:"Which is the largest planet in our solar system?",a:"Jupiter",w:["Saturn","Uranus","Neptune"],fact:"🪐 Jupiter is SO huge that all the other planets could fit inside it with room to spare!",cat:"🚀 Space"},
+  {q:"How many planets are in our solar system?",a:"8",w:["7","9","10"],fact:"🚀 Poor Pluto! It was demoted from planet to 'dwarf planet' in 2006 — scientists still argue!",cat:"🚀 Space"},
+  {q:"Which planet is closest to the Sun?",a:"Mercury",w:["Venus","Earth","Mars"],fact:"☀️ A year on Mercury lasts just 88 Earth days — your birthday comes round nearly 4 times a year!",cat:"🚀 Space"},
+  {q:"Which is the hottest planet in our solar system?",a:"Venus",w:["Mercury","Mars","Jupiter"],fact:"🔥 Venus beats Mercury despite being further from the Sun — its clouds trap heat like an oven at 465°C!",cat:"🚀 Space"},
+  {q:"How long does light from the Sun take to reach Earth?",a:"About 8 minutes",w:["About 1 second","About 1 hour","About 1 day"],fact:"💡 Light travels 186,000 miles per second — and it STILL takes 8 whole minutes to reach us!",cat:"🚀 Space"},
+  {q:"Which planet spins completely tilted on its side?",a:"Uranus",w:["Saturn","Neptune","Mars"],fact:"🌀 Scientists think a massive rock crashed into Uranus billions of years ago and knocked it sideways!",cat:"🚀 Space"},
+  {q:"What is a shooting star really made of?",a:"A rock or speck of dust burning up",w:["A dying star","A comet's tail","A satellite"],fact:"⭐ Shooting stars aren't stars at all — tiny space rocks burn up in our atmosphere at 40,000 mph!",cat:"🚀 Space"},
+  {q:"Which planet has the most moons?",a:"Saturn",w:["Jupiter","Uranus","Neptune"],fact:"🪐 Saturn has 146 known moons — including Titan, which has its own thick atmosphere!",cat:"🚀 Space"},
+  {q:"How many bones are in the adult human body?",a:"206",w:["106","256","300"],fact:"🦴 Babies are born with about 270 bones — they gradually fuse together as you grow up!",cat:"🧬 Human Body"},
+  {q:"Which is the largest organ in the human body?",a:"Skin",w:["Liver","Brain","Lungs"],fact:"🫁 Your skin stretches about 2 square metres and weighs 3–4 kg. It's your armour against the world!",cat:"🧬 Human Body"},
+  {q:"How many chambers does the human heart have?",a:"4",w:["2","3","6"],fact:"❤️ Your heart beats about 100,000 times every single day — over 2.5 billion beats in a lifetime!",cat:"🧬 Human Body"},
+  {q:"How long is the human small intestine?",a:"About 6–7 metres",w:["About 1 metre","About 3 metres","About 15 metres"],fact:"🌀 Your small intestine is coiled up tightly — if unrolled it'd be taller than a double-decker bus!",cat:"🧬 Human Body"},
+  {q:"Which part of the body keeps growing throughout your whole life?",a:"Ears and nose",w:["Fingers","Eyes","Teeth"],fact:"👃 Ears and noses never stop growing — that's why older people tend to have larger ones!",cat:"🧬 Human Body"},
+  {q:"How many taste buds does a human tongue have?",a:"About 10,000",w:["About 100","About 1,000","About 100,000"],fact:"👅 Each taste bud lives only about 10 days before it's replaced — your mouth constantly refreshes!",cat:"🧬 Human Body"},
+  {q:"What is the tallest mountain on Earth?",a:"Mount Everest",w:["K2","Mont Blanc","Kilimanjaro"],fact:"⛰️ Mount Everest is 8,849 metres tall — and it's still growing about 4mm taller every year!",cat:"🌍 Earth"},
+  {q:"Which is the largest ocean on Earth?",a:"Pacific Ocean",w:["Atlantic Ocean","Indian Ocean","Arctic Ocean"],fact:"🌊 The Pacific Ocean is so vast that all the continents combined could fit inside it with room to spare!",cat:"🌍 Earth"},
+  {q:"How many continents are there on Earth?",a:"7",w:["5","6","8"],fact:"🌍 Africa, Antarctica, Asia, Australia, Europe, North America, South America — name them all!",cat:"🌍 Earth"},
+  {q:"Which is the largest country in the world by area?",a:"Russia",w:["China","USA","Canada"],fact:"🌏 Russia spans 11 time zones — when it's midnight in one part, it's midday in another!",cat:"🌍 Earth"},
+  {q:"Which is the smallest country in the world?",a:"Vatican City",w:["Monaco","San Marino","Nauru"],fact:"🏛️ Vatican City is smaller than most theme parks — yet it has its own bank, post office and army!",cat:"🌍 Earth"},
+  {q:"What percentage of Earth's surface is covered by water?",a:"About 71%",w:["About 50%","About 60%","About 85%"],fact:"🌊 97% of all that water is salty ocean — only 3% is the fresh water we can drink!",cat:"🌍 Earth"},
+  {q:"Which country has the most people in the world?",a:"India",w:["China","USA","Indonesia"],fact:"🌏 India overtook China as the world's most populous country in 2023 with over 1.4 billion people!",cat:"🌍 Earth"},
+  {q:"How many colours are in a rainbow?",a:"7",w:["5","6","8"],fact:"🌈 Red, Orange, Yellow, Green, Blue, Indigo, Violet — remember them with ROY G BIV!",cat:"🔬 Science"},
+  {q:"What is the fastest thing in the universe?",a:"Light",w:["Sound","Electricity","Gravity"],fact:"💡 Light travels 186,000 miles per SECOND — it could circle the Earth 7 times in just one second!",cat:"🔬 Science"},
+  {q:"What gas makes fizzy drinks fizzy?",a:"Carbon dioxide",w:["Oxygen","Nitrogen","Hydrogen"],fact:"🫧 CO₂ is pumped into drinks under pressure — when you open the bottle, it all rushes out. Pop!",cat:"🔬 Science"},
+  {q:"What is the most common gas in Earth's atmosphere?",a:"Nitrogen",w:["Oxygen","Carbon dioxide","Argon"],fact:"💨 Earth's air is 78% nitrogen and 21% oxygen — most people guess oxygen, but nitrogen wins!",cat:"🔬 Science"},
+  {q:"What is the hardest natural substance on Earth?",a:"Diamond",w:["Granite","Quartz","Steel"],fact:"💎 Diamonds are pure carbon — the same atoms as pencil lead! Same stuff, totally different structure.",cat:"🔬 Science"},
+  {q:"How many sides does a hexagon have?",a:"6",w:["5","7","8"],fact:"🐝 Honeycombs are made of hexagons — it's the most efficient shape for packing space with no gaps!",cat:"🔬 Science"},
+  {q:"What do plants use to make their own food?",a:"Sunlight",w:["Soil","Rain","Wind"],fact:"🌱 Photosynthesis converts sunlight into sugar — and releases the oxygen we breathe as a bonus!",cat:"🔬 Science"},
+  {q:"How many players are in a football (soccer) team on the pitch?",a:"11",w:["9","10","12"],fact:"⚽ That's 10 outfield players plus 1 goalkeeper — with up to 5 substitutes allowed in most competitions!",cat:"⚽ Sports"},
+  {q:"Which sport uses a shuttlecock?",a:"Badminton",w:["Tennis","Squash","Pickleball"],fact:"🏸 A shuttlecock can travel over 200 mph when hit by pros — the fastest projectile in all of sport!",cat:"⚽ Sports"},
+  {q:"How many rings are on the Olympic flag?",a:"5",w:["4","6","7"],fact:"🏅 The 5 rings represent 5 continents — and every national flag contains at least one ring colour!",cat:"⚽ Sports"},
+  {q:"In football, what is it called when a player scores 3 goals in one match?",a:"Hat-trick",w:["Triple","Three-peat","Grand slam"],fact:"🎩 The term comes from cricket — a bowler who took 3 wickets in a row was given an actual hat!",cat:"⚽ Sports"},
+  {q:"How high is a basketball hoop from the floor?",a:"10 feet",w:["8 feet","12 feet","9 feet"],fact:"🏀 The 10-foot height was set in 1891 when the inventor nailed a peach basket to a 10-foot track!",cat:"⚽ Sports"},
+  {q:"Which country invented pizza?",a:"Italy",w:["USA","Greece","France"],fact:"🍕 Pizza was invented in Naples in the 1800s — now over 5 billion pizzas are sold worldwide every year!",cat:"🎨 Did You Know?"},
+  {q:"Which is the tallest building in the world?",a:"Burj Khalifa",w:["Empire State Building","Eiffel Tower","Shanghai Tower"],fact:"🏙️ The Burj Khalifa in Dubai stands 828 metres tall — you can see it from 95 km away!",cat:"🎨 Did You Know?"},
+  {q:"What is the most spoken language in the world?",a:"Mandarin Chinese",w:["English","Spanish","Hindi"],fact:"🗣️ Over 1 billion people speak Mandarin! English is second and Spanish third.",cat:"🎨 Did You Know?"},
+  {q:"How many strings does a standard guitar have?",a:"6",w:["4","5","8"],fact:"🎸 A bass has 4, a standard guitar 6, but some pro players use 7 or even 8-string guitars!",cat:"🎨 Did You Know?"},
+  {q:"How many keys does a standard piano have?",a:"88",w:["52","72","100"],fact:"🎹 A piano has 52 white keys and 36 black keys — totalling 88. Some concert grands have even more!",cat:"🎨 Did You Know?"},
+
+  /* ── Animals: 20 more ── */
+  {q:"What is a group of lions called?",a:"A Pride",w:["A Pack","A Herd","A Clan"],fact:"🦁 A pride usually has about 15 lions — mostly females who do the hunting, while males guard the territory!",cat:"🐾 Animals"},
+  {q:"Which bird can fly backwards?",a:"Hummingbird",w:["Parrot","Swallow","Sparrow"],fact:"🐦 Hummingbirds beat their wings up to 80 times per SECOND — so fast they make a humming sound!",cat:"🐾 Animals"},
+  {q:"What is a baby kangaroo called?",a:"Joey",w:["Cub","Kit","Foal"],fact:"🦘 A newborn joey is the size of a grape and crawls into its mother's pouch before it even has eyes!",cat:"🐾 Animals"},
+  {q:"Which is the world's largest fish?",a:"Whale Shark",w:["Great White Shark","Manta Ray","Bluefin Tuna"],fact:"🦈 Whale sharks can grow 12 metres long — and despite their size they only eat tiny plankton!",cat:"🐾 Animals"},
+  {q:"What colour is a polar bear's skin under its white fur?",a:"Black",w:["White","Pink","Grey"],fact:"🐻‍❄️ Polar bear fur is actually transparent hollow tubes, not white! The black skin underneath absorbs heat from sunlight.",cat:"🐾 Animals"},
+  {q:"Which is the fastest bird in the world?",a:"Peregrine Falcon",w:["Golden Eagle","Spine-tailed Swift","Osprey"],fact:"🦅 A diving peregrine falcon reaches over 240 mph — faster than a Formula 1 car!",cat:"🐾 Animals"},
+  {q:"Which bird cannot fly?",a:"Ostrich",w:["Flamingo","Pelican","Toucan"],fact:"🦚 Ostriches can't fly but they're incredibly fast runners — reaching 45 mph to escape predators!",cat:"🐾 Animals"},
+  {q:"How many legs does a lobster have?",a:"10",w:["6","8","12"],fact:"🦞 Lobsters are decapods (deca = ten, pod = foot) — and remarkably, they taste with their legs!",cat:"🐾 Animals"},
+  {q:"Which mammal lays eggs?",a:"Platypus",w:["Bat","Shrew","Hedgehog"],fact:"🦆 The platypus is one of only 5 egg-laying mammals — it also has venomous spurs on its hind legs!",cat:"🐾 Animals"},
+  {q:"Which animal is believed to have the longest lifespan?",a:"Greenland Shark",w:["Giant Tortoise","Bowhead Whale","Giant Clam"],fact:"🦈 Greenland sharks can live over 400 years — one was estimated to be 512 years old, born before Shakespeare!",cat:"🐾 Animals"},
+  {q:"Which animal can rotate its head nearly all the way around?",a:"Owl",w:["Parrot","Cat","Meerkat"],fact:"🦉 Owls can rotate their heads 270 degrees — so they can look almost all the way behind them without moving their body!",cat:"🐾 Animals"},
+  {q:"What do you call a female deer?",a:"Doe",w:["Cow","Ewe","Vixen"],fact:"🦌 Female deer are does, males are bucks, and babies are fawns. A group of deer is called a herd!",cat:"🐾 Animals"},
+  {q:"Which animal has the most powerful bite force?",a:"Nile Crocodile",w:["Great White Shark","Hyena","Jaguar"],fact:"🐊 A Nile crocodile's bite is 5,000 psi — about 10 times stronger than a great white shark!",cat:"🐾 Animals"},
+  {q:"How long can a camel survive without water?",a:"Up to 2 weeks",w:["3 days","1 month","3 months"],fact:"🐪 Camels store FAT in their humps (not water!) — but they can still go without drinking for up to 2 weeks!",cat:"🐾 Animals"},
+  {q:"Which is the largest primate in the world?",a:"Gorilla",w:["Orangutan","Chimpanzee","Baboon"],fact:"🦍 Male gorillas can weigh 200 kg and stand 1.8m tall — they're incredibly gentle giants despite their size!",cat:"🐾 Animals"},
+  {q:"How many stomachs does a cow have?",a:"4",w:["1","2","3"],fact:"🐄 Cows have 4 stomach chambers to digest tough grass — they also chew the cud, bringing food back up to chew again!",cat:"🐾 Animals"},
+  {q:"Which sea creature has no brain or heart?",a:"Jellyfish",w:["Sea Cucumber","Starfish","Sea Anemone"],fact:"🪼 Jellyfish have existed for 500 million years — even before dinosaurs — with no brain, heart, or bones!",cat:"🐾 Animals"},
+  {q:"What is the name for a group of penguins in the water?",a:"A Raft",w:["A Flock","A Pod","A Colony"],fact:"🐧 On land, penguins live in a colony — but swimming together they're called a raft. Fancy names for fancy birds!",cat:"🐾 Animals"},
+  {q:"Which insect can lift up to 50 times its own body weight?",a:"Ant",w:["Beetle","Grasshopper","Bee"],fact:"🐜 Ants are extraordinary weightlifters — some species can carry up to 50x their body weight. That's like you lifting a car!",cat:"🐾 Animals"},
+  {q:"What is the name of the spots on a cheetah's coat?",a:"Solid spots",w:["Rosettes","Stripes","Patches"],fact:"🐆 Unlike leopards (which have rosette rings), cheetahs have solid black spots — and their famous black tear-line markings!",cat:"🐾 Animals"},
+
+  /* ── Space: 15 more ── */
+  {q:"What is the name of Earth's natural satellite?",a:"The Moon",w:["Titan","Europa","Phobos"],fact:"🌙 The Moon is slowly drifting away from Earth at 3.8 cm per year — the same speed your fingernails grow!",cat:"🚀 Space"},
+  {q:"What is the name of the galaxy we live in?",a:"The Milky Way",w:["Andromeda","Triangulum","Sombrero"],fact:"🌌 The Milky Way has 200–400 billion stars — our Sun is just one ordinary star in the outer suburbs!",cat:"🚀 Space"},
+  {q:"Which planet is known as the Red Planet?",a:"Mars",w:["Venus","Jupiter","Mercury"],fact:"🔴 Mars looks red because its soil is full of iron oxide — which is basically rust! The whole planet is rusty.",cat:"🚀 Space"},
+  {q:"How many astronauts have walked on the Moon?",a:"12",w:["2","6","24"],fact:"👨‍🚀 Between 1969 and 1972, NASA's Apollo missions landed 6 times — 2 astronauts walked each time, giving 12 in total!",cat:"🚀 Space"},
+  {q:"What do you call a massive explosion at the end of a giant star's life?",a:"Supernova",w:["Black Hole","Nebula","Pulsar"],fact:"💥 A supernova can briefly outshine an entire galaxy of 100 billion stars — visible millions of light-years away!",cat:"🚀 Space"},
+  {q:"What is the nearest star to Earth besides the Sun?",a:"Proxima Centauri",w:["Sirius","Betelgeuse","Vega"],fact:"⭐ Proxima Centauri is 4.24 light-years away — even at our fastest spacecraft speed, it would take 75,000 years to reach!",cat:"🚀 Space"},
+  {q:"What is the name of the first artificial satellite launched into space?",a:"Sputnik",w:["Explorer","Vanguard","Luna"],fact:"🛰️ The Soviet Union launched Sputnik 1 in 1957 — it was the size of a beach ball and beeped as it orbited Earth!",cat:"🚀 Space"},
+  {q:"What type of space object has a tail of gas and dust?",a:"Comet",w:["Asteroid","Meteor","Pulsar"],fact:"☄️ A comet's tail always points AWAY from the Sun — pushed by solar wind regardless of which direction it's travelling!",cat:"🚀 Space"},
+  {q:"What is the giant red storm on Jupiter called?",a:"The Great Red Spot",w:["The Great Storm","Jupiter's Eye","The Red Giant"],fact:"🌀 Jupiter's Great Red Spot is a storm that's been raging for over 350 years — it's twice the size of Earth!",cat:"🚀 Space"},
+  {q:"Which spacecraft was the first to leave our solar system?",a:"Voyager 1",w:["Pioneer 10","New Horizons","Cassini"],fact:"🚀 Voyager 1 launched in 1977 and crossed into interstellar space in 2012 — and it's still sending signals today!",cat:"🚀 Space"},
+  {q:"What percentage of our solar system's mass does the Sun make up?",a:"About 99%",w:["About 50%","About 80%","About 90%"],fact:"☀️ The Sun contains 99.86% of all mass in the solar system — every planet, moon, and asteroid is just 0.14%!",cat:"🚀 Space"},
+  {q:"How long does it take Earth to orbit the Sun once?",a:"365.25 days",w:["360 days","366 days","364 days"],fact:"📅 That extra 0.25 day adds up — every 4 years we add a leap day (February 29th) to keep the calendar correct!",cat:"🚀 Space"},
+  {q:"What is the smallest planet in our solar system?",a:"Mercury",w:["Mars","Venus","Pluto"],fact:"🌑 Mercury is only slightly larger than our Moon — and it has the most extreme temperature swings in the solar system!",cat:"🚀 Space"},
+  {q:"What force keeps planets in orbit around the Sun?",a:"Gravity",w:["Magnetism","Inertia","Solar Wind"],fact:"🍎 Isaac Newton figured out gravity in the 1680s — legend says a falling apple gave him the idea!",cat:"🚀 Space"},
+  {q:"Which planet has the most famous ring system?",a:"Saturn",w:["Uranus","Jupiter","Neptune"],fact:"🪐 Saturn's rings are mainly made of ice and rock — incredibly wide (280,000 km) but only about 1 km thick!",cat:"🚀 Space"},
+
+  /* ── Human Body: 12 more ── */
+  {q:"Which organ controls everything you think and feel?",a:"Brain",w:["Heart","Spinal Cord","Liver"],fact:"🧠 Your brain has about 86 billion neurons and sends messages at up to 430 km/h — faster than a racing car!",cat:"🧬 Human Body"},
+  {q:"What type of blood cell fights disease and infection?",a:"White blood cell",w:["Red blood cell","Platelet","Plasma"],fact:"🩸 You have fewer white blood cells than red ones — but they're your immune army, patrolling your body every day!",cat:"🧬 Human Body"},
+  {q:"How long are the blood vessels in your body if laid end to end?",a:"About 100,000 km",w:["About 1,000 km","About 10,000 km","About 1 million km"],fact:"💉 100,000 km of blood vessels — that's enough to wrap around the Earth two and a half times!",cat:"🧬 Human Body"},
+  {q:"What organ produces bile to help digest food?",a:"Liver",w:["Pancreas","Stomach","Gallbladder"],fact:"🫀 The liver performs over 500 different jobs — it's the body's biggest internal organ and can even regrow itself!",cat:"🧬 Human Body"},
+  {q:"How many times do you blink on average per day?",a:"About 15,000 times",w:["About 1,000 times","About 5,000 times","About 50,000 times"],fact:"👁️ You blink about 15,000 times a day — adding up to 5 years of your entire life spent with eyes closed!",cat:"🧬 Human Body"},
+  {q:"Which part of the eye gives it its colour?",a:"Iris",w:["Pupil","Cornea","Retina"],fact:"👁️ Eye colour is determined by melanin — more melanin makes eyes brown or black; less makes them blue or green!",cat:"🧬 Human Body"},
+  {q:"What percentage of the human body is water?",a:"About 60%",w:["About 30%","About 80%","About 90%"],fact:"💧 Babies are about 75% water at birth! Your body needs around 2 litres replenished every day to stay healthy.",cat:"🧬 Human Body"},
+  {q:"How many muscles does it roughly take to smile?",a:"About 12",w:["About 50","About 100","About 5"],fact:"😄 It takes roughly 12 muscles to smile but up to 11 to frown — so smiling really is easier!",cat:"🧬 Human Body"},
+  {q:"Which is the strongest muscle in the body for its size?",a:"Jaw muscle",w:["Bicep","Calf","Thigh"],fact:"💪 The jaw muscle (masseter) can generate enormous bite force — pound for pound it's the strongest muscle you have!",cat:"🧬 Human Body"},
+  {q:"What is the name for the tube that carries food to your stomach?",a:"Oesophagus",w:["Trachea","Intestine","Bile Duct"],fact:"🫁 Food doesn't fall to your stomach by gravity — muscles squeeze it down in wave-like contractions called peristalsis!",cat:"🧬 Human Body"},
+  {q:"Approximately how many times does your heart beat in a lifetime?",a:"About 2.5 billion",w:["About 1 million","About 100 million","About 10 billion"],fact:"❤️ At 70 beats per minute over 80 years, your heart beats about 2.5 BILLION times — without ever taking a break!",cat:"🧬 Human Body"},
+  {q:"How fast does a sneeze travel when it leaves your nose?",a:"About 160 km/h",w:["About 10 km/h","About 50 km/h","About 500 km/h"],fact:"🤧 Sneezes shoot out at up to 160 km/h — and one sneeze can spread over 100,000 germs up to 8 metres away!",cat:"🧬 Human Body"},
+
+  /* ── Earth: 15 more ── */
+  {q:"What is the longest river in the world?",a:"Nile",w:["Amazon","Yangtze","Mississippi"],fact:"🌊 The Nile flows 6,650 km through northeastern Africa — though some scientists now argue the Amazon could be longer!",cat:"🌍 Earth"},
+  {q:"Which is the driest place on Earth?",a:"Atacama Desert",w:["Sahara Desert","Death Valley","Arabian Desert"],fact:"☀️ Parts of the Atacama Desert in Chile haven't had rainfall in over 400 years — some areas are drier than Mars!",cat:"🌍 Earth"},
+  {q:"What is the name for molten rock underground?",a:"Magma",w:["Lava","Basalt","Granite"],fact:"🌋 It's only called lava AFTER it comes out of a volcano — underground it's magma. Same stuff, different location!",cat:"🌍 Earth"},
+  {q:"How old is the Earth?",a:"About 4.5 billion years",w:["About 1 billion years","About 10 billion years","About 100 million years"],fact:"🌍 Earth formed from a swirling cloud of gas and dust — and the first life appeared about 500 million years later!",cat:"🌍 Earth"},
+  {q:"What gas do plants absorb from the atmosphere?",a:"Carbon dioxide",w:["Oxygen","Nitrogen","Hydrogen"],fact:"🌱 Plants absorb CO₂ and release oxygen through photosynthesis — the exact opposite of what animals do!",cat:"🌍 Earth"},
+  {q:"What is the deepest point in the world's oceans?",a:"Mariana Trench",w:["Puerto Rico Trench","Java Trench","Tonga Trench"],fact:"🌊 The Mariana Trench is 11 km deep — if Everest were placed inside, its peak would still be 2 km underwater!",cat:"🌍 Earth"},
+  {q:"Which country has the most natural lakes in the world?",a:"Canada",w:["Russia","USA","Finland"],fact:"🇨🇦 Canada has over 2 million lakes — that's more than all other countries combined! About 60% of the world's lakes.",cat:"🌍 Earth"},
+  {q:"What causes the Northern Lights (Aurora Borealis)?",a:"Charged solar particles hitting the atmosphere",w:["Reflected moonlight","Ice crystals in the air","Lightning in high clouds"],fact:"✨ Solar particles collide with gases in our atmosphere and release energy as colourful light — a natural light show!",cat:"🌍 Earth"},
+  {q:"Which continent has the South Pole?",a:"Antarctica",w:["South America","Australia","Africa"],fact:"🧊 Antarctica is the coldest, windiest, and driest continent — yet it holds 70% of Earth's fresh water as ice!",cat:"🌍 Earth"},
+  {q:"What is the largest desert in the world?",a:"Antarctica",w:["Sahara","Arabian Desert","Gobi Desert"],fact:"🌵 A desert is defined by low rainfall, not heat! Antarctica gets almost no rain, making it technically the world's biggest desert.",cat:"🌍 Earth"},
+  {q:"How many time zones does Russia span?",a:"11",w:["7","9","13"],fact:"🌏 Russia spans 11 time zones — at its extremes the time difference between east and west Russia is 11 hours!",cat:"🌍 Earth"},
+  {q:"What percentage of Earth's land is covered by rainforest?",a:"About 6%",w:["About 20%","About 35%","About 1%"],fact:"🌿 Despite covering only 6% of land, rainforests contain 50% of all plant and animal species on Earth!",cat:"🌍 Earth"},
+  {q:"How long does it take for the Sun's light to reach Earth?",a:"About 8 minutes",w:["About 1 second","About 1 hour","About 1 day"],fact:"💡 Light travels 300,000 km per second — and it STILL takes 8 whole minutes to cross the 150 million km to Earth!",cat:"🌍 Earth"},
+  {q:"What are the plate-like sections of Earth's crust called?",a:"Tectonic plates",w:["Fault lines","Magma chambers","Geological zones"],fact:"🌍 Earth's crust is split into about 15 major tectonic plates — they drift a few centimetres every year, causing earthquakes!",cat:"🌍 Earth"},
+  {q:"What is the name of the world's highest navigable lake?",a:"Lake Titicaca",w:["Lake Baikal","Lake Tanganyika","Crater Lake"],fact:"🏔️ Lake Titicaca sits 3,810 m above sea level on the border of Peru and Bolivia — local people travel it by reed boat!",cat:"🌍 Earth"},
+
+  /* ── Science: 15 more ── */
+  {q:"What is the chemical formula for water?",a:"H₂O",w:["HO₂","H₂O₂","OH"],fact:"💧 Each water molecule has 2 hydrogen atoms bonded to 1 oxygen atom — it's the most vital compound on Earth!",cat:"🔬 Science"},
+  {q:"How many elements are in the periodic table?",a:"118",w:["92","100","150"],fact:"⚛️ Element 118 (Oganesson) was created in a lab in 2002 — only a few atoms of it have ever been made!",cat:"🔬 Science"},
+  {q:"What is the smallest unit of an element?",a:"Atom",w:["Molecule","Cell","Electron"],fact:"⚛️ Atoms are unimaginably tiny — a human hair is about 1 million atoms wide! And most of an atom is empty space.",cat:"🔬 Science"},
+  {q:"At what temperature does water freeze?",a:"0°C",w:["-10°C","5°C","-5°C"],fact:"🧊 Pure water freezes at exactly 0°C — but add salt (like the ocean) and it stays liquid well below freezing!",cat:"🔬 Science"},
+  {q:"What type of energy does the Sun produce?",a:"Nuclear fusion energy",w:["Chemical energy","Electrical energy","Magnetic energy"],fact:"☀️ The Sun fuses 600 million tonnes of hydrogen into helium every second, releasing enormous amounts of energy!",cat:"🔬 Science"},
+  {q:"What is the name of the force that makes sliding objects slow down?",a:"Friction",w:["Gravity","Tension","Air resistance"],fact:"🛝 Without friction you couldn't walk, hold anything, or drive a car — we take it completely for granted!",cat:"🔬 Science"},
+  {q:"Which scientist developed the theory of relativity?",a:"Albert Einstein",w:["Isaac Newton","Nikola Tesla","Galileo Galilei"],fact:"💡 Einstein came up with E=mc² in 1905 — proving that tiny amounts of matter contain enormous amounts of energy!",cat:"🔬 Science"},
+  {q:"At what temperature does water boil at sea level?",a:"100°C",w:["80°C","90°C","120°C"],fact:"🫧 Water boils at 100°C at sea level — but at the top of Everest it boils at just 70°C due to lower air pressure!",cat:"🔬 Science"},
+  {q:"How many primary colours of light are there?",a:"3",w:["4","6","7"],fact:"🔦 Red, Green, and Blue — mix all 3 beams of light and you get white! Screens use millions of tiny RGB dots.",cat:"🔬 Science"},
+  {q:"What is the study of stars and space called?",a:"Astronomy",w:["Astrology","Cosmology","Geology"],fact:"🔭 Astronomy is one of the oldest sciences — ancient Egyptians used stars to plan their calendar 5,000 years ago!",cat:"🔬 Science"},
+  {q:"Which gas do we breathe out more of than we breathe in?",a:"Carbon dioxide",w:["Nitrogen","Oxygen","Argon"],fact:"💨 We breathe in 21% oxygen and breathe out 16% oxygen — plus 4% CO₂ that our body made from burning energy!",cat:"🔬 Science"},
+  {q:"What allows electricity to flow through a material easily?",a:"It being a conductor",w:["It being an insulator","It being transparent","It being magnetic"],fact:"⚡ Copper is the most common conductor in wires — cheap, flexible, and electricity flows through it brilliantly!",cat:"🔬 Science"},
+  {q:"Which planet is named after the Roman god of the sea?",a:"Neptune",w:["Pluto","Saturn","Uranus"],fact:"🌊 Neptune was discovered in 1846 through maths alone — astronomers predicted its position before anyone ever saw it!",cat:"🔬 Science"},
+  {q:"What is 10 to the power of 100 called?",a:"A googol",w:["A trillion","A quadrillion","A zillion"],fact:"🔢 The word 'googol' was invented by a 9-year-old in 1920 — and the company Google named itself after it!",cat:"🔬 Science"},
+  {q:"What is the name for a scientist who studies earthquakes?",a:"Seismologist",w:["Geologist","Vulcanologist","Oceanographer"],fact:"🌋 Seismologists use seismographs to detect earthquakes — some instruments are so sensitive they detect trains miles away!",cat:"🔬 Science"},
+
+  /* ── Sports: 12 more ── */
+  {q:"How many points is a touchdown worth in American football?",a:"6",w:["3","7","5"],fact:"🏈 After a touchdown (6 pts), teams can kick for 1 extra point or pass/run for 2 — so a score is usually 6 or 7!",cat:"⚽ Sports"},
+  {q:"Which country has won the most FIFA World Cups?",a:"Brazil",w:["Germany","Italy","France"],fact:"🏆 Brazil has won 5 World Cups (1958, 62, 70, 94, 2002) — the only country to play in every single tournament!",cat:"⚽ Sports"},
+  {q:"In tennis, what is it called when the score is 40–40?",a:"Deuce",w:["Tie","Draw","Break point"],fact:"🎾 At deuce, a player must win 2 clear points in a row to win the game — it can go on forever in theory!",cat:"⚽ Sports"},
+  {q:"What is the maximum score in a single game of bowling?",a:"300",w:["100","200","500"],fact:"🎳 A perfect score of 300 means 12 strikes in a row — incredibly difficult! Less than 1% of bowlers ever achieve it.",cat:"⚽ Sports"},
+  {q:"How many players are in a basketball team on the court at once?",a:"5",w:["6","7","4"],fact:"🏀 Five per team means 10 players total on court — and modern NBA teams rotate around 8 or 9 active players per game!",cat:"⚽ Sports"},
+  {q:"What is a score of one under par in golf called?",a:"Birdie",w:["Eagle","Bogey","Albatross"],fact:"🐦 Golf scores use bird names: Birdie (-1), Eagle (-2), Albatross (-3). A hole-in-one on a par 4 is an albatross!",cat:"⚽ Sports"},
+  {q:"Which country hosted the first modern Olympic Games?",a:"Greece",w:["France","UK","USA"],fact:"🏅 Athens hosted the 1896 Olympics — reviving the ancient games that had been held in Greece over 1,500 years earlier!",cat:"⚽ Sports"},
+  {q:"How many metres long is an Olympic swimming pool?",a:"50",w:["25","100","75"],fact:"🏊 Olympic pools are exactly 50m long, 25m wide, and at least 2m deep — holding 2.5 million litres of water!",cat:"⚽ Sports"},
+  {q:"In cricket, how many balls are in one over?",a:"6",w:["5","8","10"],fact:"🏏 6 balls per over was standardised in the 1900s — early cricket used 4 and 5 ball overs!",cat:"⚽ Sports"},
+  {q:"Which sport uses a puck instead of a ball?",a:"Ice Hockey",w:["Field Hockey","Lacrosse","Polo"],fact:"🏒 A hockey puck is made of vulcanised rubber and can travel over 160 km/h when hit by a pro player!",cat:"⚽ Sports"},
+  {q:"How many holes are in a standard round of golf?",a:"18",w:["9","12","21"],fact:"⛳ 18 holes became the worldwide standard after St Andrews Golf Club in Scotland adopted it in 1858!",cat:"⚽ Sports"},
+  {q:"In which sport might you score a 'try'?",a:"Rugby",w:["Cricket","Baseball","Volleyball"],fact:"🏉 Scoring a try in rugby (worth 5 points) comes from the original game where you 'tried' to kick the ball over the posts!",cat:"⚽ Sports"},
+
+  /* ── Did You Know?: 11 more ── */
+  {q:"Which tiny creature can survive in the vacuum of outer space?",a:"Tardigrade",w:["Cockroach","Jumping Spider","Water Flea"],fact:"🦠 Tardigrades (water bears) are 1mm long and nearly indestructible — surviving boiling, freezing, radiation AND space!",cat:"🎨 Did You Know?"},
+  {q:"How long did the Hundred Years' War actually last?",a:"116 years",w:["100 years","87 years","131 years"],fact:"⚔️ The Hundred Years' War between England and France lasted from 1337 to 1453 — a full 116 years! Named retrospectively.",cat:"🎨 Did You Know?"},
+  {q:"Which fruit shares about 60% of its DNA with humans?",a:"Banana",w:["Tomato","Apple","Watermelon"],fact:"🍌 Bananas share around 60% of their DNA with humans — a reminder that all life on Earth shares common ancestors!",cat:"🎨 Did You Know?"},
+  {q:"Which is the loudest animal in the world?",a:"Sperm Whale",w:["Blue Whale","Howler Monkey","Greater Bulldog Bat"],fact:"🐋 Sperm whales click at up to 230 decibels — so loud it could physically stun prey. That's louder than a jet engine!",cat:"🎨 Did You Know?"},
+  {q:"How many teeth does an adult human normally have?",a:"32",w:["28","30","36"],fact:"🦷 32 teeth including wisdom teeth — but many people's wisdom teeth never come through, leaving them with just 28!",cat:"🎨 Did You Know?"},
+  {q:"Which country invented fireworks?",a:"China",w:["Japan","India","Egypt"],fact:"🎆 The Chinese invented fireworks over 1,000 years ago to scare away evil spirits — originally just bamboo exploding in fire!",cat:"🎨 Did You Know?"},
+  {q:"How long can a healthy human survive without sleep?",a:"About 11 days",w:["About 2 days","About 3 weeks","About 1 month"],fact:"😴 The record for staying awake is about 11 days — after just 24 hours without sleep, you perform as if mildly drunk!",cat:"🎨 Did You Know?"},
+  {q:"Which month is named after the Roman god of war?",a:"March",w:["January","August","July"],fact:"⚔️ March = Mars (war). January = Janus (doorways). July = Julius Caesar. August = Augustus Caesar. History in every calendar!",cat:"🎨 Did You Know?"},
+  {q:"What is the most-visited tourist attraction in the world?",a:"The Great Wall of China",w:["Eiffel Tower","Machu Picchu","The Colosseum"],fact:"🏯 The Great Wall stretches over 21,000 km and took over 1,000 years to build — sections were added by different dynasties!",cat:"🎨 Did You Know?"},
+  {q:"Which letter does not appear in any US state name?",a:"Q",w:["X","Z","J"],fact:"🗺️ The letter Q is the only one not in any US state name! X appears in Texas and New Mexico, Z in Arizona!",cat:"🎨 Did You Know?"},
+  {q:"What is the only food that never spoils?",a:"Honey",w:["Salt","Sugar","Dried rice"],fact:"🍯 Archaeologists have found 3,000-year-old honey in Egyptian tombs — still perfectly edible! Its low moisture stops bacteria growing.",cat:"🎨 Did You Know?"}
+];
+
+const CAT_COLORS = {
+  "🐾 Animals":"#1abc9c",
+  "🚀 Space":"#8e44ad",
+  "🧬 Human Body":"#e94560",
+  "🌍 Earth":"#27ae60",
+  "🔬 Science":"#2980b9",
+  "⚽ Sports":"#f39c12",
+  "🎨 Did You Know?":"#e67e22"
+};
+
+const CORRECT_MSGS = [
+  "🎉 CORRECT! You clearly have a brilliant brain!",
+  "🌟 Right! Are you secretly a genius?!",
+  "🔥 Nailed it! Look at that big brain go!",
+  "⭐ YES! Absolutely spot on!",
+  "🧠 Correct! Your brain just levelled up!",
+  "🎯 Bulls-eye! That was quick!",
+  "🚀 BOOM! Right answer — zero hesitation!",
+  "👑 Correct! You're basically a walking encyclopaedia!",
+  "😎 Too easy for you! Nicely done!",
+  "🤩 YES! You are absolutely ON FIRE today!",
+  "💡 Ding ding! That brain is glowing!",
+  "🏆 Right! Have you been secretly studying?!",
+  "✨ Correct! Spectacular stuff!",
+  "🎊 Bingo! Knew you'd get that one!",
+  "🦸 RIGHT! Superhero brain activated!"
+];
+
+const WRONG_MSGS = [
+  "😅 Oops! The answer was: {a}!",
+  "🙈 Not quite! It's {a} — sneaky, right?!",
+  "🤔 Almost! The answer is {a}!",
+  "😬 Oof! It was {a}! Now you'll know forever!",
+  "🦊 Tricked ya! The answer is {a}!",
+  "😲 Oh no! It was {a}! Wild, isn't it?!",
+  "🎭 Nope! {a} — who knew?!",
+  "🫣 Eek! The correct answer is {a}!",
+  "📚 It's {a}! Quick, write it down ten times!",
+  "🚩 {a}! That one catches everyone out!",
+  "🌀 {a}! Even the experts get that one wrong sometimes!",
+  "🤯 Whoa, it's {a}! Mind = completely blown!",
+  "🙃 {a}! The world is absolutely full of surprises!"
+];
+
+const END_MSGS = [
+  {text:"Zero?! 🚩 IMPOSSIBLE! The facts must have been cheating! Demand an immediate rematch!",color:"#e74c3c"},
+  {text:"One right! 🌟 Look, some of these facts are WILD! Even grown-ups get confused.",color:"#b0b8cc"},
+  {text:"Two right! 😏 Those facts were extra sneaky today. Give them another go!",color:"#b0b8cc"},
+  {text:"Three! 🎉 THREE facts tried to fool you and FAILED! That's a solid start.",color:"#f5a623"},
+  {text:"Four right! 💪 Those facts fought back hard... But revenge is just one Play Again button away!",color:"#f5a623"},
+  {text:"Exactly half! 🤝 Perfectly balanced, as all things should be! A rematch is CLEARLY required.",color:"#f5a623"},
+  {text:"Six out of ten! 😄 More than half — you're winning! The other four were just extra sneaky today.",color:"#5dade2"},
+  {text:"Seven right! 🧠 Honestly very impressive! You've got a proper big brain on you!",color:"#5dade2"},
+  {text:"Eight! 🔥 You know an INCREDIBLE amount! Those other two were clearly wearing disguises.",color:"#2ecc71"},
+  {text:"Nine out of ten! 🌟 One sneaky fact got away! That rogue question is out there, laughing...",color:"#2ecc71"},
+  {text:"PERFECT 10! 🤯 Are you secretly a professor?! Every single answer correct. Truly unbelievable.",color:"#f5a623"}
+];
+
+let gameQuestions = [];
+let currentQ = 0;
+let score = 0;
+let answered = false;
+let resultLog = [];
+let advanceTimer = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pick(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function startGame() {
+  gameQuestions = shuffle(QUESTIONS).slice(0, 10);
+  currentQ = 0;
+  score = 0;
+  answered = false;
+  resultLog = [];
+  if (advanceTimer) clearTimeout(advanceTimer);
+
+  document.getElementById('end-card').classList.remove('show');
+  document.getElementById('game-area').style.display = 'block';
+  document.getElementById('score-pill').textContent = 'Score: 0';
+
+  renderQuestion();
+}
+
+function renderDots() {
+  const container = document.getElementById('progress-dots');
+  container.innerHTML = '';
+  for (let i = 0; i < 10; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < currentQ ? ' done' : i === currentQ ? ' current' : '');
+    container.appendChild(d);
+  }
+}
+
+function renderQuestion() {
+  answered = false;
+  renderDots();
+
+  const q = gameQuestions[currentQ];
+  const catBadge = document.getElementById('cat-badge');
+  catBadge.textContent = q.cat;
+  catBadge.style.background = (CAT_COLORS[q.cat] || '#555') + '33';
+  catBadge.style.color = CAT_COLORS[q.cat] || '#aaa';
+  catBadge.style.border = '1px solid ' + (CAT_COLORS[q.cat] || '#555') + '66';
+
+  document.getElementById('question-text').textContent = q.q;
+
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback hidden';
+  fb.textContent = '';
+
+  const wf = document.getElementById('wow-fact');
+  wf.className = 'wow-fact hidden';
+  wf.textContent = '';
+
+  const options = shuffle([q.a, ...q.w]);
+  const grid = document.getElementById('options-grid');
+  grid.innerHTML = '';
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'opt-btn';
+    btn.textContent = opt;
+    btn.addEventListener('click', () => handleAnswer(opt, q));
+    grid.appendChild(btn);
+  });
+}
+
+function handleAnswer(chosen, q) {
+  if (answered) return;
+  answered = true;
+
+  const isCorrect = chosen === q.a;
+  if (isCorrect) score++;
+
+  document.getElementById('score-pill').textContent = 'Score: ' + score;
+  resultLog.push(isCorrect);
+
+  const buttons = document.querySelectorAll('.opt-btn');
+  buttons.forEach(btn => {
+    btn.disabled = true;
+    const text = btn.textContent;
+    if (text === q.a) {
+      btn.classList.add('correct');
+    } else if (text === chosen && !isCorrect) {
+      btn.classList.add('wrong');
+    } else {
+      btn.classList.add('dim');
+    }
+  });
+
+  const fb = document.getElementById('feedback');
+  const wf = document.getElementById('wow-fact');
+
+  if (isCorrect) {
+    fb.textContent = pick(CORRECT_MSGS);
+    fb.className = 'feedback correct-fb';
+  } else {
+    const msg = pick(WRONG_MSGS).replace('{a}', q.a);
+    fb.textContent = msg;
+    fb.className = 'feedback wrong-fb';
+  }
+
+  wf.textContent = '💡 WOW Fact: ' + q.fact;
+  wf.className = 'wow-fact';
+
+  advanceTimer = setTimeout(() => {
+    currentQ++;
+    if (currentQ >= 10) {
+      showEnd();
+    } else {
+      renderQuestion();
+    }
+  }, 2600);
+}
+
+function showEnd() {
+  document.getElementById('game-area').style.display = 'none';
+  const ec = document.getElementById('end-card');
+  ec.classList.add('show');
+
+  document.getElementById('end-score').textContent = score;
+  document.getElementById('end-score').style.color = END_MSGS[score].color;
+
+  const msg = document.getElementById('end-msg');
+  msg.textContent = END_MSGS[score].text;
+  msg.style.color = END_MSGS[score].color;
+
+  const rd = document.getElementById('result-dots');
+  rd.innerHTML = '';
+  resultLog.forEach((r, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'r-dot ' + (r ? 'c' : 'w');
+    dot.textContent = r ? '✓' : '✗';
+    rd.appendChild(dot);
+  });
+}
+
+startGame();
+</script>
+</body>
+</html>
