@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dragonia — Test Suite</title>
+<style>
+:root {
+  --bg:      #0a0a14;
+  --surface: #0f0f1e;
+  --card:    #131325;
+  --border:  #1e1a2e;
+  --text:    #f0ede6;
+  --sub:     #a89880;
+  --muted:   #5c5248;
+  --green:   #4ade80;
+  --red:     #f87171;
+  --gold:    #f5a623;
+  --accent:  #3b82f6;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, monospace, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 24px 16px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wrap { width: 100%; max-width: 860px; }
+
+h1 {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+.subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+.subtitle a { color: var(--sub); text-decoration: none; }
+.subtitle a:hover { color: var(--text); }
+
+/* Summary banner */
+.summary {
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  border: 2px solid;
+}
+.summary.pass { border-color: var(--green); color: var(--green); background: rgba(74,222,128,.07); }
+.summary.fail { border-color: var(--red);   color: var(--red);   background: rgba(248,113,113,.07); }
+.summary.pending { border-color: var(--muted); color: var(--muted); background: var(--surface); }
+
+/* Suite blocks */
+.suite {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.suite-pass { border-left: 4px solid var(--green); }
+.suite-fail { border-left: 4px solid var(--red); }
+
+.suite-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  padding: 12px 16px;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  letter-spacing: 0.02em;
+}
+
+.test-row {
+  font-size: 12px;
+  padding: 7px 16px 7px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  line-height: 1.5;
+}
+.test-row:last-child { border-bottom: none; }
+.test-pass { color: var(--green); }
+.test-fail { color: var(--red); font-weight: 700; }
+
+.test-error {
+  font-size: 11px;
+  color: var(--gold);
+  padding: 0 16px 8px 28px;
+  font-family: 'Courier New', monospace;
+  opacity: 0.9;
+}
+
+/* Test file legend */
+.legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: var(--sub);
+}
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>🐉 Dragonia — Test Suite</h1>
+  <p class="subtitle">
+    Open this file in a browser to run all tests. No server required. &nbsp;·&nbsp;
+    <a href="../index.html">← Back to Dragonia</a>
+  </p>
+
+  <div id="summary" class="summary pending">Loading tests…</div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#3b82f6"></div>
+      boys-quiz.test.js — scoring &amp; formatting
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#ff6b1a"></div>
+      dragon-blocks.test.js — collision &amp; rotation
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#4ade80"></div>
+      alien-invasion.test.js — combat mechanics
+    </div>
+  </div>
+
+  <div id="results"></div>
+
+</div>
+
+<!-- Runner must load first, then test files in order -->
+<script src="runner.js"></script>
+<script src="boys-quiz.test.js"></script>
+<script src="dragon-blocks.test.js"></script>
+<script src="alien-invasion.test.js"></script>
+</body>
+</html>
