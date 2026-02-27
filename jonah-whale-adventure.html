@@ -1,0 +1,448 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Jonah's Big Adventure</title>
+  <style>
+    :root {
+      --sky: #d9efff;
+      --sea: #0ea5c6;
+      --deep: #0a3f60;
+      --sand: #fbd67b;
+      --sun: #ffbc42;
+      --ink: #173a4f;
+      --card: rgba(255, 255, 255, 0.88);
+      --good: #1f9d8b;
+      --warn: #de6a4a;
+      --outline: rgba(16, 83, 117, 0.2);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 15% 6%, #fff6d1 0%, #fff6d100 28%),
+        radial-gradient(circle at 92% 0%, #9fe0ff 0%, #9fe0ff00 34%),
+        linear-gradient(160deg, #dff3ff 0%, #a8ddf4 40%, #8ecde7 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: auto auto 0 -8%;
+      width: 120%;
+      height: 180px;
+      background: radial-gradient(ellipse at center, #4eb4d4 0%, #4eb4d400 70%);
+      opacity: 0.32;
+      pointer-events: none;
+      transform: translateY(40px);
+    }
+
+    body::after {
+      inset: auto -6% 0 auto;
+      width: 70%;
+      opacity: 0.2;
+    }
+
+    .game {
+      width: min(920px, 100%);
+      background: linear-gradient(180deg, #ffffffde 0%, #f6fcffea 100%);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--outline);
+      border-radius: 24px;
+      box-shadow: 0 18px 40px rgba(12, 76, 115, 0.23);
+      overflow: hidden;
+      animation: riseIn 420ms ease-out;
+    }
+
+    header {
+      padding: 16px 20px;
+      background: linear-gradient(90deg, #ffe18f 0%, #ffd166 40%, #ffc04f 100%);
+      border-bottom: 1px solid rgba(11, 73, 107, 0.25);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 2vw + 1rem, 2rem);
+      letter-spacing: 0.4px;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      font-size: 0.98rem;
+      opacity: 0.9;
+    }
+
+    .status {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 12px 16px;
+      background: linear-gradient(180deg, #ebf8ff 0%, #e0f3fd 100%);
+      border-bottom: 1px solid #b9def0;
+    }
+
+    .pill {
+      background: #fff;
+      border: 1px solid #c8ebf8;
+      border-radius: 999px;
+      padding: 8px 10px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 10px rgba(14, 85, 120, 0.09);
+    }
+
+    .progress-wrap {
+      padding: 0 16px 12px;
+      background: linear-gradient(180deg, #ebf8ff 0%, #e0f3fd 100%);
+      border-bottom: 1px solid #b9def0;
+    }
+
+    .progress-track {
+      height: 10px;
+      border-radius: 999px;
+      background: #b9e2f1;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #1fc1aa 0%, #10a0d0 100%);
+      transition: width 240ms ease;
+    }
+
+    main {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .scene {
+      background: var(--card);
+      border: 1px solid #b9e3f3;
+      border-radius: 16px;
+      padding: 16px;
+      line-height: 1.45;
+      font-size: 1.05rem;
+      box-shadow: 0 8px 20px rgba(15, 91, 132, 0.1);
+    }
+
+    .scene h2 {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+      color: var(--deep);
+    }
+
+    .verse {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-left: 5px solid var(--good);
+      background: #eefcf9;
+      border-radius: 8px;
+      font-size: 0.95rem;
+    }
+
+    .choices {
+      display: grid;
+      gap: 10px;
+    }
+
+    button {
+      border: 1px solid #0f7ea6;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(180deg, #2ec0e9, var(--sea));
+      color: #fff;
+      box-shadow: 0 6px 14px rgba(7, 89, 124, 0.24);
+      transition: transform 0.08s ease, filter 0.18s ease, box-shadow 0.2s ease;
+      text-align: left;
+    }
+
+    button:hover {
+      filter: brightness(1.06);
+      box-shadow: 0 8px 18px rgba(7, 89, 124, 0.3);
+    }
+
+    button:active { transform: translateY(2px); }
+
+    .feedback {
+      min-height: 2.2em;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-weight: 700;
+      background: #eef5ff;
+      border: 2px solid #bfd8ff;
+    }
+
+    .good { color: #0a7568; }
+    .oops { color: #a94830; }
+
+    .footer {
+      padding: 12px 16px 16px;
+      font-size: 0.9rem;
+      color: #2f5b72;
+    }
+
+    .restart {
+      background: linear-gradient(180deg, #48c78e, #2a9d8f);
+      border-color: #1d776c;
+      text-align: center;
+    }
+
+    @media (max-width: 700px) {
+      .status { grid-template-columns: 1fr; }
+      main { padding: 12px; }
+      .scene { font-size: 1rem; }
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(10px) scale(0.985); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  </style>
+  <link rel="stylesheet" href="dragonia-bible.css" />
+</head>
+<body>
+  <div class="game" role="application" aria-label="Interactive Jonah Bible adventure game">
+    <header>
+      <h1>Jonah's Big Adventure</h1>
+      <p class="subtitle">A Bible story game (Jonah 1-4) with courage, kindness, and a splash of fishy fun.</p>
+    </header>
+    <div class="escape-links">
+      <a href="bible-games.html">← Bible Games</a>
+      <a href="index.html">← Dragonia Home</a>
+    </div>
+
+    <section class="status" aria-live="polite">
+      <div class="pill">Chapter: <span id="chapter">1</span> / 8</div>
+      <div class="pill">Courage Stars: <span id="stars">0</span></div>
+      <div class="pill">Listening Level: <span id="listen">0</span></div>
+    </section>
+
+    <div class="progress-wrap" aria-hidden="true">
+      <div class="progress-track"><div class="progress-bar" id="progress"></div></div>
+    </div>
+
+    <main>
+      <section class="scene" id="scene"></section>
+      <section class="choices" id="choices"></section>
+      <section class="feedback" id="feedback">Choose what Jonah should do...</section>
+      <button class="restart" id="restart" style="display:none;">Play Again</button>
+    </main>
+
+    <div class="footer">
+      Tip: You can pick silly choices, but the game will guide you back to the true Bible story path.
+    </div>
+  </div>
+
+  <script>
+    const sceneEl = document.getElementById('scene');
+    const choicesEl = document.getElementById('choices');
+    const feedbackEl = document.getElementById('feedback');
+    const chapterEl = document.getElementById('chapter');
+    const starsEl = document.getElementById('stars');
+    const listenEl = document.getElementById('listen');
+    const restartEl = document.getElementById('restart');
+    const progressEl = document.getElementById('progress');
+
+    const game = {
+      step: 0,
+      stars: 0,
+      listening: 0,
+      displayedChoices: []
+    };
+
+    const steps = [
+      {
+        title: '1) God Gives Jonah a Mission',
+        text: `God said to Jonah, "Go to Nineveh and speak against its evil." But Jonah was not excited. He thought, "Nope. Not doing that."`,
+        verse: 'Jonah 1:2-3 (paraphrase): God called Jonah, but Jonah ran away.',
+        choices: [
+          { label: 'Run to Tarshish and buy a ticket fast!', correct: true, message: 'That is what Jonah did... and it was not his best idea.', stars: 1 },
+          { label: 'Obey at once and pack for Nineveh', correct: false, message: 'Great choice in real life, but Jonah actually ran first.', stars: 0 },
+          { label: 'Hide under a blanket and pretend to be a cactus', correct: false, message: 'Top-tier silliness. Jonah ran to a ship instead.', stars: 0 }
+        ]
+      },
+      {
+        title: '2) The Storm on the Sea',
+        text: `Jonah sailed away, but the Lord sent a mighty storm. The sailors were terrified and asked, "Who is causing this?" Jonah knew he had run from God.`,
+        verse: 'Jonah 1:4, 1:10-12 (paraphrase).',
+        choices: [
+          { label: 'Jonah tells the truth: "It is because of me."', correct: true, message: 'Yes. Honest words, even when hard.', listen: 1, stars: 1 },
+          { label: 'Jonah blames the weather app', correct: false, message: 'No weather app in the ancient world. Jonah owned up.', stars: 0 },
+          { label: 'Everyone sings louder and hopes for sunshine', correct: false, message: 'Good energy, wrong fix. Jonah confessed.', stars: 0 }
+        ]
+      },
+      {
+        title: '3) Into the Sea',
+        text: `The sea got rougher. Jonah told the sailors to throw him overboard so the storm would stop. They did not want to, but finally they did, and the sea became calm.`,
+        verse: 'Jonah 1:15 (paraphrase).',
+        choices: [
+          { label: 'The sailors toss Jonah overboard', correct: true, message: 'Correct. The sea calmed immediately.', stars: 1 },
+          { label: 'Jonah tries to pop a balloon with his bottom', correct: false, message: 'Very silly strategy. Still not in Jonah.', stars: 0 },
+          { label: 'They challenge the storm to a dance battle', correct: false, message: 'Bold. Fun. Not biblical. Overboard he went.', stars: 0 }
+        ]
+      },
+      {
+        title: '4) The Great Fish',
+        text: `God provided a great fish to swallow Jonah. Inside the fish, Jonah prayed for three days and three nights.`,
+        verse: 'Jonah 1:17 and 2:1 (paraphrase).',
+        choices: [
+          { label: 'Jonah prays and turns his heart back to God', correct: true, message: 'Yes. Prayer is a real rescue line.', listen: 1, stars: 2 },
+          { label: 'Jonah opens a seafood cafe in there', correct: false, message: 'Nope. He prayed, big time.', stars: 0 },
+          { label: 'Jonah posts a selfie: #FishLife', correct: false, message: 'No signal in fish bellies. He prayed instead.', stars: 0 }
+        ]
+      },
+      {
+        title: '5) Second Chance',
+        text: `God made the fish spit Jonah onto dry land. Then God told Jonah again to go to Nineveh. This time Jonah obeyed.`,
+        verse: 'Jonah 2:10; 3:1-3 (paraphrase).',
+        choices: [
+          { label: 'Jonah obeys and goes to Nineveh', correct: true, message: 'Exactly. God gives second chances.', listen: 1, stars: 2 },
+          { label: 'Jonah runs the other way again', correct: false, message: 'That was round one. Round two = obedience.', stars: 0 },
+          { label: 'Jonah starts a fish detective agency', correct: false, message: 'Fun idea. But he went to Nineveh.', stars: 0 }
+        ]
+      },
+      {
+        title: '6) Nineveh Listens',
+        text: `Jonah warned the people: "Nineveh will be overturned." The people believed God, turned from evil, and asked for mercy.`,
+        verse: 'Jonah 3:4-5, 3:10 (paraphrase).',
+        choices: [
+          { label: 'The people repent and God shows mercy', correct: true, message: 'Yes. God loves to forgive.', stars: 2, listen: 1 },
+          { label: 'They throw a shell fish party', correct: false, message: 'Catchy pun. But they actually repented.', stars: 0 },
+          { label: 'They challenge Jonah to arm wrestling', correct: false, message: 'No wrestling chapter here. They turned to God.', stars: 0 }
+        ]
+      },
+      {
+        title: '7) Jonah Gets Grumpy',
+        text: `Jonah was angry that God forgave Nineveh. God grew a plant to give Jonah shade, then the plant died. Jonah was upset.`,
+        verse: 'Jonah 4:1, 4:6-8 (paraphrase).',
+        choices: [
+          { label: 'God teaches Jonah about compassion', correct: true, message: 'Right. God cares for all people, not just Jonah.', stars: 2, listen: 1 },
+          { label: 'Jonah gets a crossbow and shoots a giant tree', correct: false, message: 'Very dramatic. But God used a plant to teach Jonah.', stars: 0 },
+          { label: 'The plant writes Jonah a goodbye note', correct: false, message: 'That would be dramatic, but no.', stars: 0 }
+        ]
+      },
+      {
+        title: '8) Big Lesson Finale',
+        text: `God asked Jonah, "Should I not care about Nineveh?" The book ends with God showing His heart: He is holy, just, and full of mercy.`,
+        verse: 'Jonah 4:11 (paraphrase).',
+        choices: [
+          { label: 'Lesson complete: God wants us to obey and love people', correct: true, message: 'Gold-star answer.', stars: 3, listen: 1 },
+          { label: 'Lesson complete: Never trust fish', correct: false, message: 'Funny, but not the point.', stars: 0 },
+          { label: 'Lesson complete: Running away is always fastest', correct: false, message: 'Running from God never works out well.', stars: 0 }
+        ]
+      }
+    ];
+
+    function shuffle(arr) {
+      const out = [...arr];
+      for (let i = out.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    }
+
+    function renderStep() {
+      const current = steps[game.step];
+      chapterEl.textContent = game.step + 1;
+      starsEl.textContent = game.stars;
+      listenEl.textContent = game.listening;
+      progressEl.style.width = `${((game.step) / steps.length) * 100}%`;
+
+      sceneEl.innerHTML = `
+        <h2>${current.title}</h2>
+        <p>${current.text}</p>
+        <div class="verse"><strong>Bible anchor:</strong> ${current.verse}</div>
+      `;
+
+      game.displayedChoices = shuffle(current.choices);
+
+      choicesEl.innerHTML = '';
+      game.displayedChoices.forEach((choice, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = choice.label;
+        btn.addEventListener('click', () => choose(i));
+        choicesEl.appendChild(btn);
+      });
+
+      feedbackEl.className = 'feedback';
+      feedbackEl.textContent = 'Choose what Jonah should do...';
+    }
+
+    function choose(index) {
+      const picked = game.displayedChoices[index];
+
+      if (picked.correct) {
+        game.stars += picked.stars || 0;
+        game.listening += picked.listen || 0;
+        feedbackEl.className = 'feedback good';
+        feedbackEl.textContent = `Nice! ${picked.message}`;
+
+        setTimeout(() => {
+          game.step += 1;
+          if (game.step < steps.length) {
+            renderStep();
+          } else {
+            finishGame();
+          }
+        }, 900);
+      } else {
+        feedbackEl.className = 'feedback oops';
+        feedbackEl.textContent = `${picked.message} Try again to follow the Bible story path.`;
+      }
+
+      starsEl.textContent = game.stars;
+      listenEl.textContent = game.listening;
+    }
+
+    function finishGame() {
+      progressEl.style.width = '100%';
+      sceneEl.innerHTML = `
+        <h2>Adventure Complete</h2>
+        <p>You finished Jonah's adventure. You followed the true Bible storyline and learned that:</p>
+        <p><strong>1)</strong> We cannot run from God.<br>
+        <strong>2)</strong> God hears prayer.<br>
+        <strong>3)</strong> God gives second chances.<br>
+        <strong>4)</strong> God cares for all people.</p>
+        <p>Final score: <strong>${game.stars}</strong> Courage Stars, <strong>${game.listening}</strong> Listening Level.</p>
+        <div class="verse"><strong>Church lesson:</strong> God is gracious and compassionate, slow to anger and abounding in love (Jonah 4:2).</div>
+      `;
+      chapterEl.textContent = steps.length;
+      choicesEl.innerHTML = '';
+      feedbackEl.className = 'feedback good';
+      feedbackEl.textContent = 'Brilliant work, explorer. Faithful and fearless.';
+      restartEl.style.display = 'block';
+    }
+
+    restartEl.addEventListener('click', () => {
+      game.step = 0;
+      game.stars = 0;
+      game.listening = 0;
+      restartEl.style.display = 'none';
+      renderStep();
+    });
+
+    renderStep();
+  </script>
+</body>
+</html>

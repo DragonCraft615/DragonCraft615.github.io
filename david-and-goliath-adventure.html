@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>David and Goliath Adventure</title>
+  <style>
+    :root {
+      --sky: #d9efff;
+      --sea: #0ea5c6;
+      --deep: #0a3f60;
+      --sun: #ffbc42;
+      --ink: #173a4f;
+      --card: rgba(255, 255, 255, 0.88);
+      --good: #1f9d8b;
+      --outline: rgba(16, 83, 117, 0.2);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background: radial-gradient(circle at 15% 6%, #fff6d1 0%, #fff6d100 28%), radial-gradient(circle at 92% 0%, #9fe0ff 0%, #9fe0ff00 34%), linear-gradient(160deg, #dff3ff 0%, #a8ddf4 40%, #8ecde7 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      overflow-x: hidden;
+    }
+    .game {
+      width: min(920px, 100%);
+      background: linear-gradient(180deg, #ffffffde 0%, #f6fcffea 100%);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--outline);
+      border-radius: 24px;
+      box-shadow: 0 18px 40px rgba(12, 76, 115, 0.23);
+      overflow: hidden;
+    }
+    header {
+      padding: 16px 20px;
+      background: linear-gradient(90deg, #ffe18f 0%, #ffd166 40%, #ffc04f 100%);
+      border-bottom: 1px solid rgba(11, 73, 107, 0.25);
+    }
+    h1 { margin: 0; font-size: clamp(1.4rem, 2vw + 1rem, 2rem); }
+    .subtitle { margin: 6px 0 0; font-size: 0.98rem; opacity: 0.9; }
+    .status {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 12px 16px;
+      background: linear-gradient(180deg, #ebf8ff 0%, #e0f3fd 100%);
+      border-bottom: 1px solid #b9def0;
+    }
+    .pill {
+      background: #fff;
+      border: 1px solid #c8ebf8;
+      border-radius: 999px;
+      padding: 8px 10px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .progress-wrap { padding: 0 16px 12px; background: linear-gradient(180deg, #ebf8ff 0%, #e0f3fd 100%); border-bottom: 1px solid #b9def0; }
+    .progress-track { height: 10px; border-radius: 999px; background: #b9e2f1; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #1fc1aa 0%, #10a0d0 100%); transition: width 240ms ease; }
+    main { padding: 18px; display: grid; gap: 14px; }
+    .scene { background: var(--card); border: 1px solid #b9e3f3; border-radius: 16px; padding: 16px; line-height: 1.45; font-size: 1.05rem; }
+    .scene h2 { margin: 0 0 8px; font-size: 1.25rem; color: var(--deep); }
+    .verse { margin-top: 12px; padding: 10px 12px; border-left: 5px solid var(--good); background: #eefcf9; border-radius: 8px; font-size: 0.95rem; }
+    .choices { display: grid; gap: 10px; }
+    button {
+      border: 1px solid #0f7ea6;
+      border-radius: 14px;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(180deg, #2ec0e9, var(--sea));
+      color: #fff;
+      box-shadow: 0 6px 14px rgba(7, 89, 124, 0.24);
+      text-align: left;
+    }
+    button:hover { filter: brightness(1.06); }
+    .feedback { min-height: 2.2em; padding: 10px 12px; border-radius: 10px; font-weight: 700; background: #eef5ff; border: 2px solid #bfd8ff; }
+    .good { color: #0a7568; }
+    .oops { color: #a94830; }
+    .footer { padding: 12px 16px 16px; font-size: 0.9rem; color: #2f5b72; }
+    .restart { background: linear-gradient(180deg, #48c78e, #2a9d8f); border-color: #1d776c; text-align: center; }
+    @media (max-width: 700px) { .status { grid-template-columns: 1fr; } main { padding: 12px; } }
+  </style>
+  <link rel="stylesheet" href="dragonia-bible.css" />
+</head>
+<body>
+  <div class="game" role="application" aria-label="Interactive David and Goliath Bible adventure game">
+    <header>
+      <h1>David and Goliath</h1>
+      <p class="subtitle">A brave Bible adventure game (1 Samuel 17).</p>
+    </header>
+    <div class="escape-links">
+      <a href="bible-games.html">← Bible Games</a>
+      <a href="index.html">← Dragonia Home</a>
+    </div>
+    <section class="status" aria-live="polite">
+      <div class="pill">Chapter: <span id="chapter">1</span> / 8</div>
+      <div class="pill">Courage Stars: <span id="stars">0</span></div>
+      <div class="pill">Faith Focus: <span id="listen">0</span></div>
+    </section>
+    <div class="progress-wrap" aria-hidden="true"><div class="progress-track"><div class="progress-bar" id="progress"></div></div></div>
+    <main>
+      <section class="scene" id="scene"></section>
+      <section class="choices" id="choices"></section>
+      <section class="feedback" id="feedback">Choose what happens next...</section>
+      <button class="restart" id="restart" style="display:none;">Play Again</button>
+    </main>
+    <div class="footer">Tip: Silly options are for fun. Keep choosing the true Bible path.</div>
+  </div>
+  <script>
+    const sceneEl = document.getElementById('scene');
+    const choicesEl = document.getElementById('choices');
+    const feedbackEl = document.getElementById('feedback');
+    const chapterEl = document.getElementById('chapter');
+    const starsEl = document.getElementById('stars');
+    const listenEl = document.getElementById('listen');
+    const restartEl = document.getElementById('restart');
+    const progressEl = document.getElementById('progress');
+
+    const game = { step: 0, stars: 0, listening: 0, displayedChoices: [] };
+
+    const steps = [
+      {
+        title: '1) Giant Trouble',
+        text: 'The Philistine giant Goliath challenged Israel for 40 days. Everyone was afraid.',
+        verse: '1 Samuel 17:16 (paraphrase).',
+        choices: [
+          { label: 'Goliath shouts and Israel trembles', correct: true, message: 'Yes. The giant made people afraid.', stars: 1 },
+          { label: 'Goliath opens a tiny pet shop', correct: false, message: 'No pet shop here. He was taunting Israel.', stars: 0 },
+          { label: 'The army throws a shell fish party', correct: false, message: 'Fun pun, wrong battle plan.', stars: 0 }
+        ]
+      },
+      {
+        title: '2) David Arrives',
+        text: 'Young David brought food to his brothers and heard Goliath mocking God\'s people.',
+        verse: '1 Samuel 17:17-23 (paraphrase).',
+        choices: [
+          { label: 'David hears the challenge and asks questions', correct: true, message: 'Right. David paid attention.', stars: 1, listen: 1 },
+          { label: 'David starts juggling lunch bread', correct: false, message: 'Talented maybe, but not in this chapter.', stars: 0 },
+          { label: 'David rides in on a unicycle', correct: false, message: 'No unicycle in 1 Samuel.', stars: 0 }
+        ]
+      },
+      {
+        title: '3) Faith, Not Fear',
+        text: 'David said the giant had defied the living God. David trusted God to help.',
+        verse: '1 Samuel 17:26, 36-37 (paraphrase).',
+        choices: [
+          { label: 'David trusts the Lord to rescue', correct: true, message: 'Exactly. Faith over fear.', stars: 2, listen: 1 },
+          { label: 'David tries to pop a balloon with his bottom', correct: false, message: 'Silly move. David chose faith.', stars: 0 },
+          { label: 'David hides behind the lunch basket', correct: false, message: 'Nope. He stepped forward.', stars: 0 }
+        ]
+      },
+      {
+        title: '4) Saul\'s Armour',
+        text: 'King Saul offered his armour, but it did not fit David well.',
+        verse: '1 Samuel 17:38-39 (paraphrase).',
+        choices: [
+          { label: 'David removes the armour and goes as himself', correct: true, message: 'Yes. He used what God had prepared him with.', stars: 1 },
+          { label: 'David asks for roller skates instead', correct: false, message: 'Creative, but no.', stars: 0 },
+          { label: 'David gets a crossbow and shoots a giant tree', correct: false, message: 'Not this story. He chose sling and stones.', stars: 0 }
+        ]
+      },
+      {
+        title: '5) Five Smooth Stones',
+        text: 'David took his staff, sling, and five smooth stones from the stream.',
+        verse: '1 Samuel 17:40 (paraphrase).',
+        choices: [
+          { label: 'He takes five stones and his sling', correct: true, message: 'Correct. Simple tools, strong faith.', stars: 1 },
+          { label: 'He borrows a catapult from the palace', correct: false, message: 'No catapult in the text.', stars: 0 },
+          { label: 'He picks five marshmallows', correct: false, message: 'Tasty, but not useful in battle.', stars: 0 }
+        ]
+      },
+      {
+        title: '6) The Battle Is the Lord\'s',
+        text: 'David told Goliath, "The battle is the Lord\'s."',
+        verse: '1 Samuel 17:45-47 (paraphrase).',
+        choices: [
+          { label: 'David declares trust in God\'s name', correct: true, message: 'Right. God gets the glory.', stars: 2, listen: 1 },
+          { label: 'David challenges Goliath to a dance battle', correct: false, message: 'Not this time. He spoke faith.', stars: 0 },
+          { label: 'David sends a strongly worded letter', correct: false, message: 'No letter. He stepped out in faith.', stars: 0 }
+        ]
+      },
+      {
+        title: '7) One Stone',
+        text: 'David ran toward Goliath, slung a stone, and it struck Goliath\'s forehead.',
+        verse: '1 Samuel 17:48-49 (paraphrase).',
+        choices: [
+          { label: 'The stone hits, and Goliath falls', correct: true, message: 'Yes. God gave victory.', stars: 2 },
+          { label: 'The stone turns into a cupcake', correct: false, message: 'No cupcakes on this battlefield.', stars: 0 },
+          { label: 'Everyone pauses for tea', correct: false, message: 'No tea break. The giant fell.', stars: 0 }
+        ]
+      },
+      {
+        title: '8) Victory and Lesson',
+        text: 'Israel saw God\'s rescue through David. God can use anyone who trusts Him.',
+        verse: '1 Samuel 17:50, 52 (paraphrase).',
+        choices: [
+          { label: 'Lesson: Trust God, not size or strength', correct: true, message: 'Great answer.', stars: 3, listen: 1 },
+          { label: 'Lesson: Giants are unbeatable', correct: false, message: 'Actually, God is greater.', stars: 0 },
+          { label: 'Lesson: Bring more snacks, always', correct: false, message: 'Snacks are good, but faith is the lesson.', stars: 0 }
+        ]
+      }
+    ];
+
+    function shuffle(arr) { const out = [...arr]; for (let i = out.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; } return out; }
+
+    function renderStep() {
+      const current = steps[game.step];
+      chapterEl.textContent = game.step + 1;
+      starsEl.textContent = game.stars;
+      listenEl.textContent = game.listening;
+      progressEl.style.width = `${(game.step / steps.length) * 100}%`;
+      sceneEl.innerHTML = `<h2>${current.title}</h2><p>${current.text}</p><div class="verse"><strong>Bible anchor:</strong> ${current.verse}</div>`;
+      game.displayedChoices = shuffle(current.choices);
+      choicesEl.innerHTML = '';
+      game.displayedChoices.forEach((choice, i) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = choice.label;
+        btn.addEventListener('click', () => choose(i));
+        choicesEl.appendChild(btn);
+      });
+      feedbackEl.className = 'feedback';
+      feedbackEl.textContent = 'Choose what happens next...';
+    }
+
+    function choose(index) {
+      const picked = game.displayedChoices[index];
+      if (picked.correct) {
+        game.stars += picked.stars || 0;
+        game.listening += picked.listen || 0;
+        feedbackEl.className = 'feedback good';
+        feedbackEl.textContent = `Nice! ${picked.message}`;
+        setTimeout(() => { game.step += 1; if (game.step < steps.length) { renderStep(); } else { finishGame(); } }, 900);
+      } else {
+        feedbackEl.className = 'feedback oops';
+        feedbackEl.textContent = `${picked.message} Try again to follow the Bible story path.`;
+      }
+      starsEl.textContent = game.stars;
+      listenEl.textContent = game.listening;
+    }
+
+    function finishGame() {
+      progressEl.style.width = '100%';
+      sceneEl.innerHTML = `<h2>Adventure Complete</h2><p>You finished David and Goliath and stayed on the true Bible path.</p><p><strong>1)</strong> God is greater than giants.<br><strong>2)</strong> Faith beats fear.<br><strong>3)</strong> God uses willing hearts.</p><p>Final score: <strong>${game.stars}</strong> Courage Stars, <strong>${game.listening}</strong> Faith Focus.</p><div class="verse"><strong>Church lesson:</strong> The battle is the Lord's (1 Samuel 17:47).</div>`;
+      chapterEl.textContent = steps.length;
+      choicesEl.innerHTML = '';
+      feedbackEl.className = 'feedback good';
+      feedbackEl.textContent = 'Brilliant courage.';
+      restartEl.style.display = 'block';
+    }
+
+    restartEl.addEventListener('click', () => { game.step = 0; game.stars = 0; game.listening = 0; restartEl.style.display = 'none'; renderStep(); });
+    renderStep();
+  </script>
+</body>
+</html>
