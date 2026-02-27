@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Dragonia game realms: Quiz games, Adventure games, and Bible games.">
+<title>Dragonia — Choose Your Realm</title>
+<style>
+  :root {
+    --bg:#0a0a14; --surface:#0f0f1e; --card:#131325; --border:#1e1a2e;
+    --text:#f0ede6; --sub:#a89880; --muted:#5c5248; --gold:#f5a623;
+    --scale-line:rgba(245,166,35,.04);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background-color:var(--bg);
+    background-image:radial-gradient(ellipse 65% 32% at 50% -4%,rgba(245,107,26,.18) 0%,transparent 70%),radial-gradient(ellipse 48% 26% at 92% 105%,rgba(192,57,43,.14) 0%,transparent 65%),repeating-linear-gradient(60deg,var(--scale-line) 0,var(--scale-line) 1px,transparent 1px,transparent 28px),repeating-linear-gradient(-60deg,var(--scale-line) 0,var(--scale-line) 1px,transparent 1px,transparent 28px);
+    color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:40px 16px 60px;
+  }
+  .wrap{width:100%;max-width:800px}
+  .hero{text-align:center;margin-bottom:52px}
+  .hero-emblem{font-size:clamp(52px,10vw,80px);line-height:1;margin-bottom:14px;display:block}
+  .hero-title{font-size:clamp(44px,9vw,72px);font-weight:900;background:linear-gradient(135deg,#f5d769 0%,#f5a623 28%,#ff6b1a 62%,#c0392b 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.05;margin-bottom:16px;letter-spacing:-2px}
+  .hero-sub{font-size:clamp(14px,3vw,18px);color:var(--sub);max-width:560px;margin:0 auto;line-height:1.65}
+  .realm-header{display:flex;align-items:center;gap:14px;margin-bottom:22px;padding:0 4px}
+  .realm-line{flex:1;height:1px;background:linear-gradient(90deg,transparent 0%,rgba(245,166,35,.35) 40%,rgba(245,166,35,.35) 60%,transparent 100%)}
+  .realm-label{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);opacity:.72;white-space:nowrap}
+  .games-grid{display:grid;grid-template-columns:1fr;gap:20px;margin-bottom:48px}
+  .game-card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:20px;overflow:hidden;text-decoration:none;color:var(--text);transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+  .game-card:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(0,0,0,.5),0 0 0 1px rgba(245,166,35,.07)}
+  .card-accent-bar{height:6px;width:100%;flex-shrink:0}
+  .card-body{display:flex;flex-direction:column;flex:1;padding:22px 22px 20px}
+  .card-emoji{font-size:48px;line-height:1;margin-bottom:14px}
+  .card-title{font-size:24px;font-weight:700;color:var(--text);margin-bottom:8px;line-height:1.2}
+  .card-desc{font-size:14px;color:var(--sub);line-height:1.6;flex:1;margin-bottom:16px}
+  .card-meta{display:inline-block;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:18px;align-self:flex-start}
+  .card-play-btn{display:block;width:100%;padding:13px;border-radius:12px;border:none;font-size:15px;font-weight:700;color:#fff;text-align:center;text-decoration:none}
+  footer{text-align:center;color:var(--muted);font-size:13px;margin-top:auto;padding-top:24px;border-top:1px solid rgba(245,166,35,.12);width:100%;max-width:800px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-emblem" aria-hidden="true">🐉</div>
+    <h1 class="hero-title">Dragonia</h1>
+    <p class="hero-sub">Choose your realm first, then choose your quest.</p>
+  </header>
+
+  <div class="realm-header" aria-label="Realm selection">
+    <span class="realm-line" aria-hidden="true"></span>
+    <span class="realm-label">⚔️&nbsp; Select a Realm</span>
+    <span class="realm-line" aria-hidden="true"></span>
+  </div>
+
+  <main class="games-grid">
+    <a class="game-card" href="quiz-games.html">
+      <div class="card-accent-bar" style="background:#e94560;"></div>
+      <div class="card-body">
+        <div class="card-emoji">🧠</div>
+        <div class="card-title">Quiz Games</div>
+        <div class="card-desc">Flags, capitals, wild facts, numbers, and market challenge games.</div>
+        <div class="card-meta">5 quiz games</div>
+        <span class="card-play-btn" style="background:#e94560;">Enter Quiz Realm →</span>
+      </div>
+    </a>
+
+    <a class="game-card" href="adventure-games.html">
+      <div class="card-accent-bar" style="background:#4ade80;"></div>
+      <div class="card-body">
+        <div class="card-emoji">🗺️</div>
+        <div class="card-title">Adventure Games</div>
+        <div class="card-desc">Explore mazes, stack dragon blocks, and survive Alien Invasion.</div>
+        <div class="card-meta">3 adventure games</div>
+        <span class="card-play-btn" style="background:#4ade80;color:#0a0a0a;">Enter Adventure Realm →</span>
+      </div>
+    </a>
+
+    <a class="game-card" href="bible-games.html">
+      <div class="card-accent-bar" style="background:#2980b9;"></div>
+      <div class="card-body">
+        <div class="card-emoji">📜</div>
+        <div class="card-title">Bible Games</div>
+        <div class="card-desc">Story-faithful Bible adventures for Jonah, David, Daniel, Jesus' birth, and more.</div>
+        <div class="card-meta">5 Bible adventures</div>
+        <span class="card-play-btn" style="background:#2980b9;">Enter Bible Realm →</span>
+      </div>
+    </a>
+  </main>
+
+  <footer>Dragonia</footer>
+</div>
+</body>
+</html>

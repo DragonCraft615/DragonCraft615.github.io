@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Good Samaritan Adventure</title>
+  <link rel="stylesheet" href="dragonia-bible.css" />
+</head>
+<body>
+  <div class="game" role="application" aria-label="Interactive Good Samaritan Bible adventure game">
+    <header>
+      <h1>The Good Samaritan</h1>
+      <p class="subtitle">A mercy-and-neighbor Bible adventure game (Luke 10:25-37).</p>
+      <div class="story-badge" aria-hidden="true">🛣️ ❤️ 🫏</div>
+    </header>
+    <div class="escape-links">
+      <a href="bible-games.html">← Bible Games</a>
+      <a href="index.html">← Dragonia Home</a>
+    </div>
+    <section class="status" aria-live="polite">
+      <div class="pill">Chapter: <span id="chapter">1</span> / 8</div>
+      <div class="pill">Mercy Stars: <span id="stars">0</span></div>
+      <div class="pill">Neighbor Love: <span id="listen">0</span></div>
+    </section>
+    <div class="progress-wrap" aria-hidden="true"><div class="progress-track"><div class="progress-bar" id="progress"></div></div></div>
+    <main>
+      <section class="scene" id="scene"></section>
+      <section class="choices" id="choices"></section>
+      <section class="feedback" id="feedback">Choose what happens next...</section>
+      <button class="restart" id="restart" style="display:none;">Play Again</button>
+    </main>
+    <div class="footer">Tip: Keep following Jesus' teaching: love God, and love your neighbor.</div>
+  </div>
+
+  <script>
+    const sceneEl=document.getElementById('scene'),choicesEl=document.getElementById('choices'),feedbackEl=document.getElementById('feedback'),chapterEl=document.getElementById('chapter'),starsEl=document.getElementById('stars'),listenEl=document.getElementById('listen'),restartEl=document.getElementById('restart'),progressEl=document.getElementById('progress');
+    const game={step:0,stars:0,listening:0,displayedChoices:[]};
+    const steps=[
+      {title:'1) A Big Question',text:'A law expert asked Jesus, "What must I do to inherit eternal life?"',verse:'Luke 10:25 (paraphrase).',choices:[
+        {label:'Jesus points him to God\'s law',correct:true,message:'Yes. Jesus asks what is written.',stars:1,listen:1},
+        {label:'Jesus says rules do not matter at all',correct:false,message:'Jesus upheld loving God and neighbor.',stars:0},
+        {label:'Jesus changes the topic to farming',correct:false,message:'He stayed with the question of life and love.',stars:0}
+      ]},
+      {title:'2) Two Great Commands',text:'The answer: love the Lord fully, and love your neighbor as yourself.',verse:'Luke 10:27-28 (paraphrase).',choices:[
+        {label:'Love God and love your neighbor',correct:true,message:'Correct. This is central.',stars:2,listen:1},
+        {label:'Love only people who are easy to like',correct:false,message:'Jesus teaches broader love.',stars:0},
+        {label:'Love God but ignore people in need',correct:false,message:'Love for God and neighbor stay together.',stars:0}
+      ]},
+      {title:'3) "Who Is My Neighbor?"',text:'Wanting to justify himself, the man asked Jesus, "Who is my neighbor?"',verse:'Luke 10:29 (paraphrase).',choices:[
+        {label:'Jesus answers with a story',correct:true,message:'Yes. He tells a parable.',stars:1},
+        {label:'Jesus gives a long list of approved groups',correct:false,message:'He used a story to shape the heart.',stars:0},
+        {label:'Jesus refuses to answer',correct:false,message:'He answered directly through the parable.',stars:0}
+      ]},
+      {title:'4) A Man Is Attacked',text:'A traveler was beaten by robbers and left half dead on the road.',verse:'Luke 10:30 (paraphrase).',choices:[
+        {label:'The traveler is wounded and helpless',correct:true,message:'Right. He needed mercy urgently.',stars:1},
+        {label:'The traveler wins a roadside argument and leaves',correct:false,message:'He was badly injured and stranded.',stars:0},
+        {label:'The robbers return to apologize immediately',correct:false,message:'No apology appears in the story.',stars:0}
+      ]},
+      {title:'5) Two People Pass By',text:'A priest saw him and passed by. A Levite did the same.',verse:'Luke 10:31-32 (paraphrase).',choices:[
+        {label:'Religious leaders pass by without helping',correct:true,message:'Yes. They did not stop.',stars:1,listen:1},
+        {label:'Both stop to bandage him carefully',correct:false,message:'In this parable, they passed by.',stars:0},
+        {label:'They call an innkeeper and wait nearby',correct:false,message:'That help came from someone else.',stars:0}
+      ]},
+      {title:'6) Samaritan Shows Compassion',text:'A Samaritan saw the man, had compassion, and treated his wounds.',verse:'Luke 10:33-34 (paraphrase).',choices:[
+        {label:'The Samaritan stops, bandages, and cares',correct:true,message:'Exactly. Mercy in action.',stars:2,listen:1},
+        {label:'The Samaritan lectures him and walks on',correct:false,message:'He gave practical care, not a speech.',stars:0},
+        {label:'The Samaritan waits for someone more important',correct:false,message:'He acted immediately.',stars:0}
+      ]},
+      {title:'7) Ongoing Care',text:'He took the man to an inn and paid for continued care.',verse:'Luke 10:34-35 (paraphrase).',choices:[
+        {label:'He pays the innkeeper and promises to return',correct:true,message:'Yes. Compassion continued beyond one moment.',stars:2},
+        {label:'He drops the man nearby and leaves nothing',correct:false,message:'He provided money and follow-up care.',stars:0},
+        {label:'He asks the wounded man to repay first',correct:false,message:'He gave generously without condition.',stars:0}
+      ]},
+      {title:"8) Jesus' Final Command",text:'Jesus asked who proved to be a neighbor. The answer: the one who showed mercy. Jesus said, "Go and do likewise."',verse:'Luke 10:36-37 (paraphrase).',choices:[
+        {label:'A neighbor is the one who shows mercy',correct:true,message:'Great answer. Go and do likewise.',stars:3,listen:1},
+        {label:'A neighbor is only from your own group',correct:false,message:'Jesus breaks that boundary.',stars:0},
+        {label:'Mercy is optional when life is busy',correct:false,message:'Jesus calls for active compassion.',stars:0}
+      ]}
+    ];
+    function shuffle(arr){const out=[...arr];for(let i=out.length-1;i>0;i-=1){const j=Math.floor(Math.random()*(i+1));[out[i],out[j]]=[out[j],out[i]];}return out;}
+    function renderStep(){const c=steps[game.step];chapterEl.textContent=game.step+1;starsEl.textContent=game.stars;listenEl.textContent=game.listening;progressEl.style.width=`${(game.step/steps.length)*100}%`;sceneEl.innerHTML=`<h2>${c.title}</h2><p>${c.text}</p><div class=\"verse\"><strong>Bible anchor:</strong> ${c.verse}</div>`;game.displayedChoices=shuffle(c.choices);choicesEl.innerHTML='';game.displayedChoices.forEach((choice,i)=>{const b=document.createElement('button');b.type='button';b.textContent=choice.label;b.addEventListener('click',()=>choose(i));choicesEl.appendChild(b);});feedbackEl.className='feedback';feedbackEl.textContent='Choose what happens next...';}
+    function choose(index){const p=game.displayedChoices[index];if(p.correct){game.stars+=p.stars||0;game.listening+=p.listen||0;feedbackEl.className='feedback good';feedbackEl.textContent=`Nice! ${p.message}`;setTimeout(()=>{game.step+=1;if(game.step<steps.length){renderStep();}else{finishGame();}},900);}else{feedbackEl.className='feedback oops';feedbackEl.textContent=`${p.message} Try again to stay on the Bible story path.`;}starsEl.textContent=game.stars;listenEl.textContent=game.listening;}
+    function finishGame(){progressEl.style.width='100%';sceneEl.innerHTML=`<h2>Adventure Complete</h2><p>You finished the Good Samaritan story on the true Bible path.</p><p><strong>1)</strong> Compassion crosses boundaries.<br><strong>2)</strong> Mercy is active.<br><strong>3)</strong> Jesus calls us to "do likewise."</p><p>Final score: <strong>${game.stars}</strong> Mercy Stars, <strong>${game.listening}</strong> Neighbor Love.</p><div class=\"verse\"><strong>Church lesson:</strong> Go and do likewise (Luke 10:37).</div>`;chapterEl.textContent=steps.length;choicesEl.innerHTML='';feedbackEl.className='feedback good';feedbackEl.textContent='Mercy complete. Neighbor love unlocked.';restartEl.style.display='block';}
+    restartEl.addEventListener('click',()=>{game.step=0;game.stars=0;game.listening=0;restartEl.style.display='none';renderStep();});renderStep();
+  </script>
+</body>
+</html>

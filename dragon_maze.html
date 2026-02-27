@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dragon's Lair — Dragonia</title>
+<style>
+  :root {
+    --bg:         #0a0a14;
+    --surface:    #0f0f1e;
+    --card:       #131325;
+    --border:     #1e1a2e;
+    --text:       #f0ede6;
+    --sub:        #a89880;
+    --muted:      #5c5248;
+    --gold:       #f5a623;
+    --accent:     #22d3ee;
+    --scale-line: rgba(245,166,35,.04);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(ellipse 65% 32% at 50% -4%,  rgba(34,211,238,.08) 0%, transparent 70%),
+      radial-gradient(ellipse 48% 26% at 92% 105%, rgba(192,57,43,.14)  0%, transparent 65%),
+      repeating-linear-gradient( 60deg, var(--scale-line) 0, var(--scale-line) 1px, transparent 1px, transparent 28px),
+      repeating-linear-gradient(-60deg, var(--scale-line) 0, var(--scale-line) 1px, transparent 1px, transparent 28px);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 60px;
+  }
+
+  /* ── Top bar ─────────────────────────────────────────────────────────── */
+  .top-bar {
+    width: 100%;
+    max-width: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 12px;
+  }
+
+  .back-btn {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-decoration: none;
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    white-space: nowrap;
+    transition: color .15s, border-color .15s;
+  }
+  .back-btn:hover { color: var(--sub); border-color: var(--accent); }
+
+  .title-block { text-align: center; flex: 1; padding: 0 10px; }
+  .game-title  { font-size: 17px; font-weight: 800; }
+  .game-sub    { font-size: 11px; color: var(--sub); margin-top: 2px; }
+
+  .level-pill {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(34,211,238,.10);
+    border: 1px solid rgba(34,211,238,.28);
+    border-radius: 20px;
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+
+  /* ── Canvas stage ────────────────────────────────────────────────────── */
+  .stage {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    padding: 0 16px;
+  }
+
+  .canvas-wrap {
+    position: relative;
+    display: inline-block;
+    line-height: 0;
+  }
+
+  #mazeCanvas {
+    display: block;
+    border-radius: 14px;
+    border: 1px solid rgba(34,211,238,.16);
+    box-shadow: 0 0 32px rgba(34,211,238,.06), 0 8px 32px rgba(0,0,0,.7);
+    touch-action: none;
+  }
+
+  /* ── Overlays ────────────────────────────────────────────────────────── */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 14px;
+    background: rgba(8,8,18,.93);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    text-align: center;
+    padding: 28px 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s ease;
+  }
+  .overlay.show { opacity: 1; pointer-events: all; }
+
+  .ov-emoji { font-size: 60px; line-height: 1; }
+  .ov-title { font-size: 24px; font-weight: 900; color: var(--text); }
+  .ov-sub   { font-size: 14px; color: var(--sub); line-height: 1.65; max-width: 280px; }
+
+  .big-btn {
+    margin-top: 4px;
+    padding: 13px 30px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    color: #0a0a14;
+    background: var(--accent);
+    cursor: pointer;
+    transition: filter .15s, transform .1s;
+  }
+  .big-btn:hover  { filter: brightness(1.1); }
+  .big-btn:active { transform: scale(0.96); }
+
+  /* ── D-pad ───────────────────────────────────────────────────────────── */
+  .dpad {
+    display: grid;
+    grid-template-areas:
+      ". up ."
+      "left mid right"
+      ". down .";
+    grid-template-columns: repeat(3, 54px);
+    grid-template-rows: repeat(3, 54px);
+    gap: 6px;
+    margin: 18px auto 0;
+  }
+
+  .dp-up    { grid-area: up;    }
+  .dp-left  { grid-area: left;  }
+  .dp-right { grid-area: right; }
+  .dp-down  { grid-area: down;  }
+  .dp-mid   {
+    grid-area: mid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    opacity: .35;
+  }
+
+  .dp-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 22px;
+    color: var(--sub);
+    cursor: pointer;
+    transition: background .1s, color .1s, border-color .1s, transform .1s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .dp-btn:hover  { background: var(--card); color: var(--accent); border-color: rgba(34,211,238,.3); }
+  .dp-btn:active { transform: scale(0.90); background: rgba(34,211,238,.12); border-color: var(--accent); }
+
+  /* ── Hint ────────────────────────────────────────────────────────────── */
+  .hint {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .hint kbd {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 11px;
+    color: var(--sub);
+    font-family: inherit;
+  }
+
+  @media (max-width: 480px) {
+    .game-title { font-size: 15px; }
+    .back-btn, .level-pill { font-size: 11px; padding: 5px 10px; }
+    .dpad { grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Top bar ──────────────────────────────────────────────────────────── -->
+<nav class="top-bar">
+  <a class="back-btn" href="adventure-games.html">← Dragonia</a>
+  <div class="title-block">
+    <div class="game-title">Dragon's Lair 🐉</div>
+    <div class="game-sub">Find the dragon at the heart of the maze</div>
+  </div>
+  <div class="level-pill" id="levelPill">Level 1</div>
+</nav>
+
+<!-- ── Game stage ───────────────────────────────────────────────────────── -->
+<div class="stage">
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="mazeCanvas"></canvas>
+
+    <!-- Start screen -->
+    <div class="overlay show" id="startOverlay">
+      <div class="ov-emoji">🗺️</div>
+      <div class="ov-title">Dragon's Lair</div>
+      <div class="ov-sub">A dragon hides at the heart of each maze. Navigate the twisting paths to find it — across five daring levels!</div>
+      <button class="big-btn" id="startBtn">Begin Quest →</button>
+    </div>
+
+    <!-- Level complete -->
+    <div class="overlay" id="winOverlay">
+      <div class="ov-emoji" id="winEmoji">🐉</div>
+      <div class="ov-title" id="winTitle">Dragon found!</div>
+      <div class="ov-sub"   id="winSub">The dragon is pleased!</div>
+      <button class="big-btn" id="nextBtn">Next Level →</button>
+    </div>
+
+    <!-- All done -->
+    <div class="overlay" id="doneOverlay">
+      <div class="ov-emoji">🏆</div>
+      <div class="ov-title">Quest Complete!</div>
+      <div class="ov-sub">You found all five dragons! You are a true Dragon Master of Dragonia.</div>
+      <button class="big-btn" id="replayBtn">Play Again 🐉</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── D-pad ─────────────────────────────────────────────────────────────── -->
+<div class="dpad">
+  <button class="dp-btn dp-up"    id="dpUp">↑</button>
+  <button class="dp-btn dp-left"  id="dpLeft">←</button>
+  <div class="dp-mid">🐉</div>
+  <button class="dp-btn dp-right" id="dpRight">→</button>
+  <button class="dp-btn dp-down"  id="dpDown">↓</button>
+</div>
+
+<p class="hint">
+  <kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> keys &nbsp;·&nbsp; swipe on touchscreen
+</p>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════════════
+   DRAGON'S LAIR — Maze Game
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const LEVELS = [
+  { size:  7, name: "The Hatchling's Den"       },
+  { size: 11, name: "The Winding Caverns"        },
+  { size: 15, name: "The Ancient Tunnels"        },
+  { size: 19, name: "The Deepstone Labyrinth"    },
+  { size: 23, name: "The Dragon Emperor's Vault" },
+];
+
+const WIN_TEXTS = [
+  { emoji: "🥚", title: "Baby dragon found!",          sub: "The tiny dragon nuzzles your hand!" },
+  { emoji: "🦎", title: "Dragon found!",               sub: "The cave dragon blinks its golden eyes!" },
+  { emoji: "🐲", title: "Ancient dragon discovered!",  sub: "The ancient dragon blows a smoke ring for you!" },
+  { emoji: "🔥", title: "Dragon unearthed!",           sub: "The mountain dragon roars with delight!" },
+  { emoji: "👑", title: "Dragon Emperor found!",       sub: "The Dragon Emperor grants you a wish!" },
+];
+
+/* ─── State ──────────────────────────────────────────────────────────────── */
+const canvas = document.getElementById('mazeCanvas');
+const ctx    = canvas.getContext('2d');
+const wrap   = document.getElementById('canvasWrap');
+
+let currentLevel = 0;
+let gridSize  = 0;
+let grid      = [];   // flat array of { x, y, walls:[N,E,S,W] }
+let cellSize  = 0;
+let player    = { x: 0, y: 0 };
+let goal      = { x: 0, y: 0 };
+let visited   = new Set();
+let gameActive = false;
+let tick      = 0;
+let rafId     = null;
+
+/* ─── Maze generation (recursive DFS backtracking) ───────────────────────── */
+// walls[0]=N, walls[1]=E, walls[2]=S, walls[3]=W  (true = wall present)
+
+const DIRS = [
+  { dx:  0, dy: -1, wall: 0, opp: 2 },
+  { dx:  1, dy:  0, wall: 1, opp: 3 },
+  { dx:  0, dy:  1, wall: 2, opp: 0 },
+  { dx: -1, dy:  0, wall: 3, opp: 1 },
+];
+
+function cellAt(x, y) {
+  if (x < 0 || y < 0 || x >= gridSize || y >= gridSize) return null;
+  return grid[y * gridSize + x];
+}
+
+function generateMaze(size) {
+  gridSize = size;
+  grid = Array.from({ length: size * size }, (_, i) => ({
+    x: i % size,
+    y: Math.floor(i / size),
+    walls: [true, true, true, true],
+    seen: false,
+  }));
+
+  const stack = [grid[0]];
+  grid[0].seen = true;
+
+  while (stack.length) {
+    const cur = stack[stack.length - 1];
+    // Shuffle directions for random maze
+    const dirs = [...DIRS].sort(() => Math.random() - 0.5);
+    let moved = false;
+    for (const d of dirs) {
+      const nb = cellAt(cur.x + d.dx, cur.y + d.dy);
+      if (nb && !nb.seen) {
+        cur.walls[d.wall] = false;
+        nb.walls[d.opp]   = false;
+        nb.seen = true;
+        stack.push(nb);
+        moved = true;
+        break;
+      }
+    }
+    if (!moved) stack.pop();
+  }
+}
+
+/* ─── Sizing ─────────────────────────────────────────────────────────────── */
+function computeSize() {
+  const avail = Math.min(window.innerWidth - 32, 560);
+  cellSize = Math.max(14, Math.floor(avail / gridSize));
+  const px = cellSize * gridSize;
+  canvas.width  = px;
+  canvas.height = px;
+  wrap.style.width  = px + 'px';
+  wrap.style.height = px + 'px';
+}
+
+/* ─── Drawing ────────────────────────────────────────────────────────────── */
+function draw() {
+  if (!grid.length) return;
+  const cs = cellSize;
+  const W  = canvas.width;
+  const H  = canvas.height;
+
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(0, 0, W, H);
+
+  // ── Cell fills ────────────────────────────────────────────────────────────
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      const cx = x * cs, cy = y * cs;
+
+      // Visited trail
+      if (visited.has(`${x},${y}`)) {
+        ctx.fillStyle = 'rgba(34,211,238,0.07)';
+        ctx.fillRect(cx, cy, cs, cs);
+      }
+
+      // Start cell (gold tint)
+      if (x === 0 && y === 0) {
+        ctx.fillStyle = 'rgba(245,166,35,0.16)';
+        ctx.fillRect(cx, cy, cs, cs);
+      }
+
+      // Goal cell (pulsing cyan glow)
+      if (x === goal.x && y === goal.y) {
+        const glow = 0.14 + 0.07 * Math.sin(tick * 0.05);
+        ctx.fillStyle = `rgba(34,211,238,${glow.toFixed(3)})`;
+        ctx.fillRect(cx, cy, cs, cs);
+      }
+    }
+  }
+
+  // ── Walls ─────────────────────────────────────────────────────────────────
+  ctx.shadowColor = 'rgba(34,211,238,0.45)';
+  ctx.shadowBlur  = Math.max(2, cs * 0.2);
+  ctx.strokeStyle = '#22d3ee';
+  ctx.lineWidth   = Math.max(1.5, cs * 0.08);
+  ctx.lineCap     = 'square';
+
+  ctx.beginPath();
+  for (let y = 0; y < gridSize; y++) {
+    for (let x = 0; x < gridSize; x++) {
+      const c  = grid[y * gridSize + x];
+      const cx = x * cs, cy = y * cs;
+      if (c.walls[0]) { ctx.moveTo(cx,      cy);      ctx.lineTo(cx + cs, cy);      } // N
+      if (c.walls[1]) { ctx.moveTo(cx + cs, cy);      ctx.lineTo(cx + cs, cy + cs); } // E
+      if (c.walls[2]) { ctx.moveTo(cx,      cy + cs); ctx.lineTo(cx + cs, cy + cs); } // S
+      if (c.walls[3]) { ctx.moveTo(cx,      cy);      ctx.lineTo(cx,      cy + cs); } // W
+    }
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // ── Dragon at goal ────────────────────────────────────────────────────────
+  const fs           = Math.max(10, cs * 0.65);
+  const dragonScale  = 1 + 0.05 * Math.sin(tick * 0.05);
+
+  ctx.save();
+  ctx.translate(goal.x * cs + cs / 2, goal.y * cs + cs / 2);
+  ctx.scale(dragonScale, dragonScale);
+  ctx.shadowColor  = 'rgba(255,107,26,0.65)';
+  ctx.shadowBlur   = cs * 0.55;
+  ctx.font         = `${fs}px sans-serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🐉', 0, 0);
+  ctx.restore();
+  ctx.shadowBlur = 0;
+
+  // ── Player ────────────────────────────────────────────────────────────────
+  ctx.font         = `${fs}px sans-serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🧒', player.x * cs + cs / 2, player.y * cs + cs / 2);
+}
+
+function loop() {
+  tick++;
+  draw();
+  rafId = requestAnimationFrame(loop);
+}
+
+/* ─── Game logic ─────────────────────────────────────────────────────────── */
+function startLevel(lvl) {
+  if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
+
+  currentLevel = lvl;
+  const cfg = LEVELS[lvl];
+  document.getElementById('levelPill').textContent =
+    `Level ${lvl + 1} of ${LEVELS.length}`;
+
+  generateMaze(cfg.size);
+  computeSize();
+
+  player   = { x: 0, y: 0 };
+  goal     = { x: Math.floor(gridSize / 2), y: Math.floor(gridSize / 2) };
+  visited  = new Set(['0,0']);
+  tick     = 0;
+  gameActive = true;
+
+  rafId = requestAnimationFrame(loop);
+}
+
+function tryMove(dx, dy) {
+  if (!gameActive) return;
+  const c = grid[player.y * gridSize + player.x];
+  // Wall index: N=0, E=1, S=2, W=3
+  const wi = dx === 1 ? 1 : dx === -1 ? 3 : dy === 1 ? 2 : 0;
+  if (c.walls[wi]) return; // blocked
+
+  player.x += dx;
+  player.y += dy;
+  visited.add(`${player.x},${player.y}`);
+
+  if (player.x === goal.x && player.y === goal.y) {
+    gameActive = false;
+    setTimeout(showWin, 300);
+  }
+}
+
+function showWin() {
+  if (currentLevel >= LEVELS.length - 1) {
+    document.getElementById('doneOverlay').classList.add('show');
+  } else {
+    const w = WIN_TEXTS[currentLevel];
+    document.getElementById('winEmoji').textContent  = w.emoji;
+    document.getElementById('winTitle').textContent  = w.title;
+    document.getElementById('winSub').textContent    = w.sub;
+    document.getElementById('winOverlay').classList.add('show');
+  }
+}
+
+/* ─── Controls ───────────────────────────────────────────────────────────── */
+// Keyboard
+document.addEventListener('keydown', e => {
+  const map = {
+    ArrowUp:[0,-1], ArrowDown:[0,1], ArrowLeft:[-1,0], ArrowRight:[1,0],
+    w:[0,-1], s:[0,1], a:[-1,0], d:[1,0],
+    W:[0,-1], S:[0,1], A:[-1,0], D:[1,0],
+  };
+  if (map[e.key]) { e.preventDefault(); tryMove(...map[e.key]); }
+});
+
+// D-pad
+document.getElementById('dpUp').addEventListener('click',    () => tryMove( 0,-1));
+document.getElementById('dpDown').addEventListener('click',  () => tryMove( 0, 1));
+document.getElementById('dpLeft').addEventListener('click',  () => tryMove(-1, 0));
+document.getElementById('dpRight').addEventListener('click', () => tryMove( 1, 0));
+
+// Touch swipe on canvas
+let swipeX = 0, swipeY = 0;
+canvas.addEventListener('touchstart', e => {
+  swipeX = e.touches[0].clientX;
+  swipeY = e.touches[0].clientY;
+  e.preventDefault();
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - swipeX;
+  const dy = e.changedTouches[0].clientY - swipeY;
+  if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+  if (Math.abs(dx) >= Math.abs(dy)) tryMove(dx > 0 ? 1 : -1, 0);
+  else                               tryMove(0, dy > 0 ? 1 : -1);
+  e.preventDefault();
+}, { passive: false });
+
+// Overlay buttons
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('startOverlay').classList.remove('show');
+  startLevel(0);
+});
+document.getElementById('nextBtn').addEventListener('click', () => {
+  document.getElementById('winOverlay').classList.remove('show');
+  startLevel(currentLevel + 1);
+});
+document.getElementById('replayBtn').addEventListener('click', () => {
+  document.getElementById('doneOverlay').classList.remove('show');
+  document.getElementById('startOverlay').classList.add('show');
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  if (!grid.length) return;
+  computeSize();
+  if (!gameActive) draw();
+});
+
+/* ─── Init: size the wrapper so the start overlay displays correctly ──────── */
+(function init() {
+  const avail = Math.min(window.innerWidth - 32, 480);
+  canvas.width  = avail;
+  canvas.height = avail;
+  wrap.style.width  = avail + 'px';
+  wrap.style.height = avail + 'px';
+  ctx.fillStyle = '#0a0a14';
+  ctx.fillRect(0, 0, avail, avail);
+}());
+</script>
+</body>
+</html>

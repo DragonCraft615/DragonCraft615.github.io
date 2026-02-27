@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dragonia — Quiz Games</title>
+<style>
+  :root { --bg:#0a0a14; --surface:#0f0f1e; --card:#131325; --border:#1e1a2e; --text:#f0ede6; --sub:#a89880; --muted:#5c5248; --gold:#f5a623; --scale-line:rgba(245,166,35,.04); }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{background-color:var(--bg);background-image:radial-gradient(ellipse 65% 32% at 50% -4%,rgba(245,107,26,.18) 0%,transparent 70%),repeating-linear-gradient(60deg,var(--scale-line) 0,var(--scale-line) 1px,transparent 1px,transparent 28px),repeating-linear-gradient(-60deg,var(--scale-line) 0,var(--scale-line) 1px,transparent 1px,transparent 28px);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;display:flex;justify-content:center;padding:36px 16px}
+  .wrap{width:100%;max-width:860px}
+  .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}
+  .home{color:var(--gold);text-decoration:none;font-weight:700;border:1px solid rgba(245,166,35,.3);padding:8px 12px;border-radius:10px;background:rgba(245,166,35,.08)}
+  h1{font-size:clamp(32px,7vw,52px);font-weight:900;background:linear-gradient(135deg,#f5d769 0%,#f5a623 28%,#ff6b1a 62%,#c0392b 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .sub{color:var(--sub);margin:8px 0 22px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .card{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden;text-decoration:none;color:var(--text)}
+  .bar{height:6px}
+  .body{padding:18px;display:flex;flex-direction:column;gap:10px;min-height:190px}
+  .meta{display:inline-block;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 10px;font-size:12px;color:var(--muted)}
+  .btn{margin-top:auto;background:#e94560;color:#fff;font-weight:700;padding:10px 12px;border-radius:10px;text-align:center}
+  @media (max-width: 700px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="home" href="index.html">← Dragonia Home</a>
+      <span>🧠 Quiz Realm</span>
+    </div>
+    <h1>Quiz Games</h1>
+    <p class="sub">Pick a quiz challenge. Use the escape button in each game to come back here.</p>
+
+    <main class="grid">
+      <a class="card" href="flag_quiz.html"><div class="bar" style="background:#e94560;"></div><div class="body"><h2>Guess the Flag</h2><p>Identify world flags from all continents.</p><span class="meta">195 countries</span><span class="btn">Play →</span></div></a>
+      <a class="card" href="capital_quiz.html"><div class="bar" style="background:#1abc9c;"></div><div class="body"><h2>Capital City Challenge</h2><p>Match countries to their capitals.</p><span class="meta">10 questions</span><span class="btn" style="background:#1abc9c;">Play →</span></div></a>
+      <a class="card" href="wild_facts.html"><div class="bar" style="background:#f5a623;"></div><div class="body"><h2>Wild Facts Quiz</h2><p>Animals, space, science and surprises.</p><span class="meta">50+ facts</span><span class="btn" style="background:#f5a623;">Play →</span></div></a>
+      <a class="card" href="boys_quiz.html"><div class="bar" style="background:#3b82f6;"></div><div class="body"><h2>The Boy's Quiz</h2><p>Guess-the-number style score challenge.</p><span class="meta">Max 100 points</span><span class="btn" style="background:#3b82f6;">Play →</span></div></a>
+      <a class="card" href="sp500_guesser.html"><div class="bar" style="background:#8e44ad;"></div><div class="body"><h2>S&amp;P 500 Guesser</h2><p>Use clues to identify listed companies.</p><span class="meta">40 companies</span><span class="btn" style="background:#8e44ad;">Play →</span></div></a>
+    </main>
+  </div>
+</body>
+</html>

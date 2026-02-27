@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Noah's Ark Adventure</title>
+  <link rel="stylesheet" href="dragonia-bible.css" />
+</head>
+<body>
+  <div class="game" role="application" aria-label="Interactive Noah's Ark Bible adventure game">
+    <header>
+      <h1>Noah's Ark</h1>
+      <p class="subtitle">A rescue-and-promise Bible adventure game (Genesis 6-9).</p>
+      <div class="story-badge" aria-hidden="true">🛶 🕊️ 🌈</div>
+    </header>
+    <div class="escape-links">
+      <a href="bible-games.html">← Bible Games</a>
+      <a href="index.html">← Dragonia Home</a>
+    </div>
+    <section class="status" aria-live="polite">
+      <div class="pill">Chapter: <span id="chapter">1</span> / 8</div>
+      <div class="pill">Faith Stars: <span id="stars">0</span></div>
+      <div class="pill">Obedience: <span id="listen">0</span></div>
+    </section>
+    <div class="progress-wrap" aria-hidden="true"><div class="progress-track"><div class="progress-bar" id="progress"></div></div></div>
+    <main>
+      <section class="scene" id="scene"></section>
+      <section class="choices" id="choices"></section>
+      <section class="feedback" id="feedback">Choose what happens next...</section>
+      <button class="restart" id="restart" style="display:none;">Play Again</button>
+    </main>
+    <div class="footer">Tip: Follow Noah's choices in Scripture and watch the promise unfold.</div>
+  </div>
+
+  <script>
+    const sceneEl=document.getElementById('scene'),choicesEl=document.getElementById('choices'),feedbackEl=document.getElementById('feedback'),chapterEl=document.getElementById('chapter'),starsEl=document.getElementById('stars'),listenEl=document.getElementById('listen'),restartEl=document.getElementById('restart'),progressEl=document.getElementById('progress');
+    const game={step:0,stars:0,listening:0,displayedChoices:[]};
+    const steps=[
+      {title:'1) God Speaks to Noah',text:'God told Noah that judgment was coming and instructed him to build an ark.',verse:'Genesis 6:13-14 (paraphrase).',choices:[
+        {label:'Noah listens to God and starts building',correct:true,message:'Yes. He trusted God\'s word.',stars:1,listen:1},
+        {label:'Noah waits for neighbors to approve first',correct:false,message:'Noah obeyed God, even when others did not.',stars:0},
+        {label:'Noah chooses to build a palace instead',correct:false,message:'God commanded an ark, not a palace.',stars:0}
+      ]},
+      {title:'2) Build the Ark',text:'Noah built the ark exactly as God commanded.',verse:'Genesis 6:22 (paraphrase).',choices:[
+        {label:'Noah follows the plan God gave',correct:true,message:'Correct. Obedience mattered.',stars:2,listen:1},
+        {label:'Noah shortens the ark to save time',correct:false,message:'He followed God\'s design, not his own shortcut.',stars:0},
+        {label:'Noah paints the ark and skips the structure',correct:false,message:'The ark had to be real and ready.',stars:0}
+      ]},
+      {title:'3) Animals Enter',text:'God brought animals to the ark in pairs, and Noah received them.',verse:'Genesis 7:8-9 (paraphrase).',choices:[
+        {label:'Animals come in pairs to the ark',correct:true,message:'Yes. God provided what was needed.',stars:1},
+        {label:'Only birds are allowed on board',correct:false,message:'Many kinds came, not only birds.',stars:0},
+        {label:'Noah picks favorites and turns others away',correct:false,message:'God directed who entered.',stars:0}
+      ]},
+      {title:'4) The Door Is Shut',text:'Noah\'s family entered, and the Lord shut the door.',verse:'Genesis 7:16 (paraphrase).',choices:[
+        {label:'God shuts the ark door securely',correct:true,message:'Right. God sealed them in safely.',stars:1,listen:1},
+        {label:'Noah leaves the door open for airflow',correct:false,message:'Scripture says the Lord shut the door.',stars:0},
+        {label:'The family jumps out for one more picnic',correct:false,message:'Once inside, they stayed in the ark.',stars:0}
+      ]},
+      {title:'5) Rain and Flood',text:'Rain fell for forty days and the waters rose over the earth.',verse:'Genesis 7:17-19 (paraphrase).',choices:[
+        {label:'Floodwaters cover the land',correct:true,message:'Yes. God\'s warning was true.',stars:2},
+        {label:'A short drizzle ends by lunchtime',correct:false,message:'The rain continued for forty days.',stars:0},
+        {label:'The ark sails straight to Egypt',correct:false,message:'The ark floated where the waters carried it.',stars:0}
+      ]},
+      {title:'6) Waiting and Sending Birds',text:'After many days, Noah sent out birds to check if the ground was dry.',verse:'Genesis 8:6-12 (paraphrase).',choices:[
+        {label:'Noah sends a raven and then a dove',correct:true,message:'Correct. The dove later returned with an olive leaf.',stars:2,listen:1},
+        {label:'Noah sends a lion to scout the mountain',correct:false,message:'He sent birds, not lions.',stars:0},
+        {label:'Noah climbs out while waters still rise',correct:false,message:'He waited until God\'s timing.',stars:0}
+      ]},
+      {title:'7) Leave the Ark',text:'God told Noah to come out with his family and all the animals.',verse:'Genesis 8:15-17 (paraphrase).',choices:[
+        {label:'Noah exits when God says to go',correct:true,message:'Yes. He moved at God\'s command.',stars:1,listen:1},
+        {label:'Noah refuses to leave forever',correct:false,message:'He obeyed God and stepped out.',stars:0},
+        {label:'Noah builds a second ark immediately',correct:false,message:'God called him out to begin again.',stars:0}
+      ]},
+      {title:'8) Covenant and Rainbow',text:'God promised never again to flood all the earth and set a rainbow as a sign.',verse:'Genesis 9:12-13 (paraphrase).',choices:[
+        {label:'God sets the rainbow as a covenant sign',correct:true,message:'Exactly. A promise of mercy.',stars:3,listen:1},
+        {label:'The rainbow means only Noah can travel',correct:false,message:'It is God\'s covenant sign for all generations.',stars:0},
+        {label:'The promise lasts for one season only',correct:false,message:'God called it an enduring covenant.',stars:0}
+      ]}
+    ];
+    function shuffle(arr){const out=[...arr];for(let i=out.length-1;i>0;i-=1){const j=Math.floor(Math.random()*(i+1));[out[i],out[j]]=[out[j],out[i]];}return out;}
+    function renderStep(){const c=steps[game.step];chapterEl.textContent=game.step+1;starsEl.textContent=game.stars;listenEl.textContent=game.listening;progressEl.style.width=`${(game.step/steps.length)*100}%`;sceneEl.innerHTML=`<h2>${c.title}</h2><p>${c.text}</p><div class="verse"><strong>Bible anchor:</strong> ${c.verse}</div>`;game.displayedChoices=shuffle(c.choices);choicesEl.innerHTML='';game.displayedChoices.forEach((choice,i)=>{const b=document.createElement('button');b.type='button';b.textContent=choice.label;b.addEventListener('click',()=>choose(i));choicesEl.appendChild(b);});feedbackEl.className='feedback';feedbackEl.textContent='Choose what happens next...';}
+    function choose(index){const p=game.displayedChoices[index];if(p.correct){game.stars+=p.stars||0;game.listening+=p.listen||0;feedbackEl.className='feedback good';feedbackEl.textContent=`Nice! ${p.message}`;setTimeout(()=>{game.step+=1;if(game.step<steps.length){renderStep();}else{finishGame();}},900);}else{feedbackEl.className='feedback oops';feedbackEl.textContent=`${p.message} Try again to stay on the Bible story path.`;}starsEl.textContent=game.stars;listenEl.textContent=game.listening;}
+    function finishGame(){progressEl.style.width='100%';sceneEl.innerHTML=`<h2>Adventure Complete</h2><p>You finished Noah's Ark on the true Bible path.</p><p><strong>1)</strong> God warns and saves.<br><strong>2)</strong> Obedience matters.<br><strong>3)</strong> God keeps covenant promises.</p><p>Final score: <strong>${game.stars}</strong> Faith Stars, <strong>${game.listening}</strong> Obedience.</p><div class="verse"><strong>Church lesson:</strong> God remembered Noah (Genesis 8:1).</div>`;chapterEl.textContent=steps.length;choicesEl.innerHTML='';feedbackEl.className='feedback good';feedbackEl.textContent='Ark complete. Promise remembered.';restartEl.style.display='block';}
+    restartEl.addEventListener('click',()=>{game.step=0;game.stars=0;game.listening=0;restartEl.style.display='none';renderStep();});renderStep();
+  </script>
+</body>
+</html>

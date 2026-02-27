@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Moses and the Red Sea Adventure</title>
+  <link rel="stylesheet" href="dragonia-bible.css" />
+</head>
+<body>
+  <div class="game" role="application" aria-label="Interactive Moses and the Red Sea Bible adventure game">
+    <header>
+      <h1>Moses and the Red Sea</h1>
+      <p class="subtitle">A freedom-and-faith Bible adventure game (Exodus 1-14).</p>
+      <div class="story-badge" aria-hidden="true">🔥 🐑 🌊</div>
+    </header>
+    <div class="escape-links">
+      <a href="bible-games.html">← Bible Games</a>
+      <a href="index.html">← Dragonia Home</a>
+    </div>
+    <section class="status" aria-live="polite">
+      <div class="pill">Chapter: <span id="chapter">1</span> / 8</div>
+      <div class="pill">Courage Stars: <span id="stars">0</span></div>
+      <div class="pill">Trust Meter: <span id="listen">0</span></div>
+    </section>
+    <div class="progress-wrap" aria-hidden="true"><div class="progress-track"><div class="progress-bar" id="progress"></div></div></div>
+    <main>
+      <section class="scene" id="scene"></section>
+      <section class="choices" id="choices"></section>
+      <section class="feedback" id="feedback">Choose what happens next...</section>
+      <button class="restart" id="restart" style="display:none;">Play Again</button>
+    </main>
+    <div class="footer">Tip: This story follows God's rescue from slavery to freedom.</div>
+  </div>
+
+  <script>
+    const sceneEl=document.getElementById('scene'),choicesEl=document.getElementById('choices'),feedbackEl=document.getElementById('feedback'),chapterEl=document.getElementById('chapter'),starsEl=document.getElementById('stars'),listenEl=document.getElementById('listen'),restartEl=document.getElementById('restart'),progressEl=document.getElementById('progress');
+    const game={step:0,stars:0,listening:0,displayedChoices:[]};
+    const steps=[
+      {title:'1) God Hears His People',text:'Israel cried out in slavery, and God remembered His covenant.',verse:'Exodus 2:23-25 (paraphrase).',choices:[
+        {label:'God sees their suffering and prepares rescue',correct:true,message:'Yes. God hears the oppressed.',stars:1,listen:1},
+        {label:'Israel decides Egypt is comfortable now',correct:false,message:'They were crying out for deliverance.',stars:0},
+        {label:'Pharaoh volunteers to free everyone quickly',correct:false,message:'Pharaoh resisted God\'s command.',stars:0}
+      ]},
+      {title:'2) The Burning Bush',text:'God called Moses from a bush that burned without being consumed.',verse:'Exodus 3:2-4 (paraphrase).',choices:[
+        {label:'Moses turns aside and listens to God',correct:true,message:'Correct. Holy ground moment.',stars:2,listen:1},
+        {label:'Moses runs because he forgot his sandals',correct:false,message:'God called him to draw near and listen.',stars:0},
+        {label:'Moses tries to extinguish the bush with sand',correct:false,message:'This was a divine sign, not an accident.',stars:0}
+      ]},
+      {title:'3) Let My People Go',text:'Moses and Aaron told Pharaoh to release Israel to worship God.',verse:'Exodus 5:1 (paraphrase).',choices:[
+        {label:'Moses speaks God\'s message to Pharaoh',correct:true,message:'Yes. Truth was spoken to power.',stars:1},
+        {label:'Moses asks Pharaoh only for a holiday pass',correct:false,message:'God demanded true release, not a short break.',stars:0},
+        {label:'Moses agrees to stay if workload improves',correct:false,message:'The command was freedom, not better slavery.',stars:0}
+      ]},
+      {title:'4) Signs and Plagues',text:'God sent signs so Egypt would know He is Lord.',verse:'Exodus 7:5; 12:31-32 (paraphrase).',choices:[
+        {label:'God sends plagues and Pharaoh finally releases Israel',correct:true,message:'Right. God\'s power was unmistakable.',stars:2,listen:1},
+        {label:'Egypt changes ruler and forgets everything',correct:false,message:'Pharaoh personally hardened then relented.',stars:0},
+        {label:'Israel wins freedom in a game contest',correct:false,message:'Deliverance came by God\'s mighty hand.',stars:0}
+      ]},
+      {title:'5) Trapped at the Sea',text:'Pharaoh chased Israel to the sea, and people feared.',verse:'Exodus 14:10-12 (paraphrase).',choices:[
+        {label:'People panic when they see Egypt coming',correct:true,message:'Yes. The moment looked impossible.',stars:1},
+        {label:'Israel turns back to surrender immediately',correct:false,message:'God called them to stand firm.',stars:0},
+        {label:'Moses tells everyone to scatter alone',correct:false,message:'God would rescue them together.',stars:0}
+      ]},
+      {title:'6) Stand Firm',text:'Moses said, "Do not be afraid. Stand firm and see the salvation of the Lord."',verse:'Exodus 14:13-14 (paraphrase).',choices:[
+        {label:'Moses tells the people to trust God',correct:true,message:'Exactly. Faith before the miracle.',stars:2,listen:1},
+        {label:'Moses tells everyone to build boats quickly',correct:false,message:'God gave a different rescue plan.',stars:0},
+        {label:'Moses asks them to negotiate with Pharaoh',correct:false,message:'The Lord would fight for them.',stars:0}
+      ]},
+      {title:'7) Sea Divided',text:'God parted the sea, and Israel crossed on dry ground.',verse:'Exodus 14:21-22 (paraphrase).',choices:[
+        {label:'Israel walks through with water walls on both sides',correct:true,message:'Yes. A miraculous path opened.',stars:2,listen:1},
+        {label:'The sea drains naturally overnight and stays calm',correct:false,message:'Scripture describes God dividing the waters.',stars:0},
+        {label:'Israel builds a bridge across in one hour',correct:false,message:'God made the way, not engineers.',stars:0}
+      ]},
+      {title:'8) Song of Rescue',text:'After deliverance, Moses and the people praised God.',verse:'Exodus 15:1-2 (paraphrase).',choices:[
+        {label:'Israel sings because God has triumphed',correct:true,message:'Great answer. Worship follows rescue.',stars:3,listen:1},
+        {label:'They credit only their own strategy',correct:false,message:'The song gives glory to the Lord.',stars:0},
+        {label:'They return to Egypt by choice',correct:false,message:'God led them out toward freedom.',stars:0}
+      ]}
+    ];
+    function shuffle(arr){const out=[...arr];for(let i=out.length-1;i>0;i-=1){const j=Math.floor(Math.random()*(i+1));[out[i],out[j]]=[out[j],out[i]];}return out;}
+    function renderStep(){const c=steps[game.step];chapterEl.textContent=game.step+1;starsEl.textContent=game.stars;listenEl.textContent=game.listening;progressEl.style.width=`${(game.step/steps.length)*100}%`;sceneEl.innerHTML=`<h2>${c.title}</h2><p>${c.text}</p><div class=\"verse\"><strong>Bible anchor:</strong> ${c.verse}</div>`;game.displayedChoices=shuffle(c.choices);choicesEl.innerHTML='';game.displayedChoices.forEach((choice,i)=>{const b=document.createElement('button');b.type='button';b.textContent=choice.label;b.addEventListener('click',()=>choose(i));choicesEl.appendChild(b);});feedbackEl.className='feedback';feedbackEl.textContent='Choose what happens next...';}
+    function choose(index){const p=game.displayedChoices[index];if(p.correct){game.stars+=p.stars||0;game.listening+=p.listen||0;feedbackEl.className='feedback good';feedbackEl.textContent=`Nice! ${p.message}`;setTimeout(()=>{game.step+=1;if(game.step<steps.length){renderStep();}else{finishGame();}},900);}else{feedbackEl.className='feedback oops';feedbackEl.textContent=`${p.message} Try again to stay on the Bible story path.`;}starsEl.textContent=game.stars;listenEl.textContent=game.listening;}
+    function finishGame(){progressEl.style.width='100%';sceneEl.innerHTML=`<h2>Adventure Complete</h2><p>You finished Moses and the Red Sea on the true Bible path.</p><p><strong>1)</strong> God hears His people.<br><strong>2)</strong> Trust God when trapped.<br><strong>3)</strong> God makes a way.</p><p>Final score: <strong>${game.stars}</strong> Courage Stars, <strong>${game.listening}</strong> Trust Meter.</p><div class=\"verse\"><strong>Church lesson:</strong> The Lord will fight for you (Exodus 14:14).</div>`;chapterEl.textContent=steps.length;choicesEl.innerHTML='';feedbackEl.className='feedback good';feedbackEl.textContent='Sea crossed. Faith strengthened.';restartEl.style.display='block';}
+    restartEl.addEventListener('click',()=>{game.step=0;game.stars=0;game.listening=0;restartEl.style.display='none';renderStep();});renderStep();
+  </script>
+</body>
+</html>

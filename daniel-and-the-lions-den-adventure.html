@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daniel and the Lions' Den Adventure</title>
+  <style>
+    :root { --sky:#d9efff; --sea:#0ea5c6; --deep:#0a3f60; --ink:#173a4f; --card:rgba(255,255,255,.88); --good:#1f9d8b; --outline:rgba(16,83,117,.2); }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:"Avenir Next","Segoe UI","Trebuchet MS",sans-serif; color:var(--ink); background:radial-gradient(circle at 15% 6%,#fff6d1 0%,#fff6d100 28%),radial-gradient(circle at 92% 0%,#9fe0ff 0%,#9fe0ff00 34%),linear-gradient(160deg,#dff3ff 0%,#a8ddf4 40%,#8ecde7 100%); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .game { width:min(920px,100%); background:linear-gradient(180deg,#ffffffde 0%,#f6fcffea 100%); border:1px solid var(--outline); border-radius:24px; box-shadow:0 18px 40px rgba(12,76,115,.23); overflow:hidden; }
+    header { padding:16px 20px; background:linear-gradient(90deg,#ffe18f 0%,#ffd166 40%,#ffc04f 100%); border-bottom:1px solid rgba(11,73,107,.25); }
+    h1 { margin:0; font-size:clamp(1.4rem,2vw + 1rem,2rem); }
+    .subtitle { margin:6px 0 0; font-size:.98rem; opacity:.9; }
+    .status { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:12px 16px; background:linear-gradient(180deg,#ebf8ff 0%,#e0f3fd 100%); border-bottom:1px solid #b9def0; }
+    .pill { background:#fff; border:1px solid #c8ebf8; border-radius:999px; padding:8px 10px; text-align:center; font-weight:700; font-size:.9rem; }
+    .progress-wrap { padding:0 16px 12px; background:linear-gradient(180deg,#ebf8ff 0%,#e0f3fd 100%); border-bottom:1px solid #b9def0; }
+    .progress-track { height:10px; border-radius:999px; background:#b9e2f1; overflow:hidden; }
+    .progress-bar { height:100%; width:0%; background:linear-gradient(90deg,#1fc1aa 0%,#10a0d0 100%); transition:width .24s ease; }
+    main { padding:18px; display:grid; gap:14px; }
+    .scene { background:var(--card); border:1px solid #b9e3f3; border-radius:16px; padding:16px; line-height:1.45; font-size:1.05rem; }
+    .scene h2 { margin:0 0 8px; font-size:1.25rem; color:var(--deep); }
+    .verse { margin-top:12px; padding:10px 12px; border-left:5px solid var(--good); background:#eefcf9; border-radius:8px; font-size:.95rem; }
+    .choices { display:grid; gap:10px; }
+    button { border:1px solid #0f7ea6; border-radius:14px; padding:12px; font-size:1rem; font-weight:700; cursor:pointer; background:linear-gradient(180deg,#2ec0e9,var(--sea)); color:#fff; text-align:left; }
+    button:hover { filter:brightness(1.06); }
+    .feedback { min-height:2.2em; padding:10px 12px; border-radius:10px; font-weight:700; background:#eef5ff; border:2px solid #bfd8ff; }
+    .good { color:#0a7568; } .oops { color:#a94830; }
+    .footer { padding:12px 16px 16px; font-size:.9rem; color:#2f5b72; }
+    .restart { background:linear-gradient(180deg,#48c78e,#2a9d8f); border-color:#1d776c; text-align:center; }
+    @media (max-width:700px) { .status { grid-template-columns:1fr; } main { padding:12px; } }
+  </style>
+  <link rel="stylesheet" href="dragonia-bible.css" />
+</head>
+<body>
+  <div class="game" role="application" aria-label="Interactive Daniel and the Lions' Den Bible adventure game">
+    <header>
+      <h1>Daniel and the Lions' Den</h1>
+      
+      <div class="story-badge" aria-hidden="true">🦁 🙏 👑</div>
+    </header>
+    <div class="escape-links">
+      <a href="bible-games.html">← Bible Games</a>
+      <a href="index.html">← Dragonia Home</a>
+    </div>
+    <section class="status" aria-live="polite">
+      <div class="pill">Chapter: <span id="chapter">1</span> / 8</div>
+      <div class="pill">Courage Stars: <span id="stars">0</span></div>
+      <div class="pill">Faith Focus: <span id="listen">0</span></div>
+    </section>
+    <div class="progress-wrap" aria-hidden="true"><div class="progress-track"><div class="progress-bar" id="progress"></div></div></div>
+    <main>
+      <section class="scene" id="scene"></section>
+      <section class="choices" id="choices"></section>
+      <section class="feedback" id="feedback">Choose what happens next...</section>
+      <button class="restart" id="restart" style="display:none;">Play Again</button>
+    </main>
+    <div class="footer">Tip: This game keeps the story in biblical order with fun detours.</div>
+  </div>
+  <script>
+    const sceneEl=document.getElementById('scene'),choicesEl=document.getElementById('choices'),feedbackEl=document.getElementById('feedback'),chapterEl=document.getElementById('chapter'),starsEl=document.getElementById('stars'),listenEl=document.getElementById('listen'),restartEl=document.getElementById('restart'),progressEl=document.getElementById('progress');
+    const game={step:0,stars:0,listening:0,displayedChoices:[]};
+    const steps=[
+      {title:'1) A Trap Is Planned',text:'Daniel served King Darius so well that jealous officials planned a trap.',verse:'Daniel 6:3-4 (paraphrase).',choices:[
+        {label:'Officials make a plan against Daniel',correct:true,message:'Yes. They targeted his faithfulness.',stars:1},
+        {label:'Officials ask Daniel for homework help',correct:false,message:'Not this time.',stars:0},
+        {label:"They nominate Daniel as the empire's mascot",correct:false,message:'No celebration - this was a political trap.',stars:0}
+      ]},
+      {title:'2) New Law for 30 Days',text:'The king signed a law: pray only to the king for 30 days, or face the lions\' den.',verse:'Daniel 6:7-9 (paraphrase).',choices:[
+        {label:'A law is signed against prayer to God',correct:true,message:'Correct. The trap was legal and serious.',stars:1},
+        {label:'A law is signed to ban all public gathering in Babylon',correct:false,message:'This decree targeted prayer to trap Daniel specifically.',stars:0},
+        {label:'A law says everyone must wear hats',correct:false,message:'Nope, just a prayer ban.',stars:0}
+      ]},
+      {title:'3) Daniel Prays Anyway',text:'Daniel still prayed to God three times a day, giving thanks as before.',verse:'Daniel 6:10 (paraphrase).',choices:[
+        {label:'Daniel keeps praying faithfully',correct:true,message:'Exactly. He stayed faithful.',stars:2,listen:1},
+        {label:'Daniel locks the windows and stops praying',correct:false,message:'Daniel prayed openly as before.',stars:0},
+        {label:'Daniel hides under his bed',correct:false,message:'He did not hide.',stars:0}
+      ]},
+      {title:'4) Arrested for Faith',text:'The officials caught Daniel praying and reported him to the king.',verse:'Daniel 6:11-13 (paraphrase).',choices:[
+        {label:'Daniel is reported to the king',correct:true,message:'Yes. The trap worked.',stars:1},
+        {label:'Daniel starts a lion petting zoo',correct:false,message:'Not biblical and very risky.',stars:0},
+        {label:'The officials forget why they came',correct:false,message:'They remembered very well.',stars:0}
+      ]},
+      {title:'5) Into the Den',text:'King Darius was distressed but had to enforce the law. Daniel was thrown into the lions\' den.',verse:'Daniel 6:16-17 (paraphrase).',choices:[
+        {label:'Daniel is placed in the lions\' den',correct:true,message:'Correct. The king hoped God would rescue him.',stars:1,listen:1},
+        {label:'Daniel tries to bargain with guards at the den',correct:false,message:'Daniel trusted God, not weapons or deals.',stars:0},
+        {label:'Daniel is sent on a beach holiday',correct:false,message:'Definitely not.',stars:0}
+      ]},
+      {title:'6) God Sends Rescue',text:'At dawn, the king called out. Daniel replied: God sent His angel and shut the lions\' mouths.',verse:'Daniel 6:19-22 (paraphrase).',choices:[
+        {label:'Daniel is safe because God protected him',correct:true,message:'Yes. God shut the lions\' mouths.',stars:2,listen:1},
+        {label:'The lions fall asleep from lullabies',correct:false,message:'God\'s angel protected Daniel.',stars:0},
+        {label:'Daniel teaches lions to juggle',correct:false,message:'No juggling lessons recorded.',stars:0}
+      ]},
+      {title:'7) The King Praises God',text:'King Darius praised Daniel\'s God and made a decree honoring Him.',verse:'Daniel 6:25-27 (paraphrase).',choices:[
+        {label:'The king honors the living God',correct:true,message:'Exactly. God was glorified.',stars:2},
+        {label:'The king declares nap time forever',correct:false,message:'Not in Daniel 6.',stars:0},
+        {label:'The king becomes a stand-up comedian',correct:false,message:'No comedy tour noted.',stars:0}
+      ]},
+      {title:'8) Final Lesson',text:'Daniel prospered because he trusted God and stayed faithful in hard times.',verse:'Daniel 6:28 (paraphrase).',choices:[
+        {label:'Lesson: Stay faithful; God is trustworthy',correct:true,message:'Great answer.',stars:3,listen:1},
+        {label:'Lesson: Lions are always cuddly',correct:false,message:'Not the point.',stars:0},
+        {label:'Lesson: Never open windows',correct:false,message:'Nope. The point is faithful prayer.',stars:0}
+      ]}
+    ];
+    function shuffle(arr){const out=[...arr];for(let i=out.length-1;i>0;i-=1){const j=Math.floor(Math.random()*(i+1));[out[i],out[j]]=[out[j],out[i]];}return out;}
+    function renderStep(){const c=steps[game.step];chapterEl.textContent=game.step+1;starsEl.textContent=game.stars;listenEl.textContent=game.listening;progressEl.style.width=`${(game.step/steps.length)*100}%`;sceneEl.innerHTML=`<h2>${c.title}</h2><p>${c.text}</p><div class="verse"><strong>Bible anchor:</strong> ${c.verse}</div>`;game.displayedChoices=shuffle(c.choices);choicesEl.innerHTML='';game.displayedChoices.forEach((choice,i)=>{const b=document.createElement('button');b.type='button';b.textContent=choice.label;b.addEventListener('click',()=>choose(i));choicesEl.appendChild(b);});feedbackEl.className='feedback';feedbackEl.textContent='Choose what happens next...';}
+    function choose(index){const p=game.displayedChoices[index];if(p.correct){game.stars+=p.stars||0;game.listening+=p.listen||0;feedbackEl.className='feedback good';feedbackEl.textContent=`Nice! ${p.message}`;setTimeout(()=>{game.step+=1;if(game.step<steps.length){renderStep();}else{finishGame();}},900);}else{feedbackEl.className='feedback oops';feedbackEl.textContent=`${p.message} Try again to follow the Bible story path.`;}starsEl.textContent=game.stars;listenEl.textContent=game.listening;}
+    function finishGame(){progressEl.style.width='100%';sceneEl.innerHTML=`<h2>Adventure Complete</h2><p>You finished Daniel and the Lions' Den on the true Bible path.</p><p><strong>1)</strong> Faithfulness matters.<br><strong>2)</strong> Prayer comes first.<br><strong>3)</strong> God is able to rescue.</p><p>Final score: <strong>${game.stars}</strong> Courage Stars, <strong>${game.listening}</strong> Faith Focus.</p><div class="verse"><strong>Church lesson:</strong> He is the living God and He rescues (Daniel 6:26-27).</div>`;chapterEl.textContent=steps.length;choicesEl.innerHTML='';feedbackEl.className='feedback good';feedbackEl.textContent='Steady faith. Well played.';restartEl.style.display='block';}
+    restartEl.addEventListener('click',()=>{game.step=0;game.stars=0;game.listening=0;restartEl.style.display='none';renderStep();});renderStep();
+  </script>
+</body>
+</html>
