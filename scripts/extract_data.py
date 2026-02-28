@@ -192,6 +192,9 @@ def parse_et53_month(ws):
         "title": "Monthly Fuel Use in Electricity Generation (Recent 48 Months)",
         "unit": "million tonnes of oil equivalent (Mtoe)",
         "frequency": "monthly",
+        "note": "This is fuel input energy (Mtoe), not electricity output (GWh/TWh).",
+        "convertible_to_twh": True,
+        "mtoe_to_twh_factor": 11.63,
         "series": out,
     }
 
@@ -273,8 +276,25 @@ def parse_et52_main(ws):
         "title": "Supply and Demand Main Table (Latest Annual + Quarterly)",
         "unit": "GWh",
         "frequency": "mixed",
+        "note": "Contains annual totals and quarterly values in the same table; compare like-with-like periods.",
         "series": [{"name": k, "points": v} for k, v in series.items() if v],
     }
+
+
+def extract_et51_main_gas_twh_2024():
+    wb = openpyxl.load_workbook(RAW / "ET_5.1_DEC_25.xlsx", data_only=True, read_only=True)
+    ws = wb["Main Table"]
+    # Row 10 is Gas (TWh), col 4 is 2024 value in this sheet layout.
+    val = ws.cell(10, 4).value
+    return float(val) if isinstance(val, (int, float)) else None
+
+
+def extract_et53_main_gas_mtoe_2024():
+    wb = openpyxl.load_workbook(RAW / "ET_5.3_FEB_26.xlsx", data_only=True, read_only=True)
+    ws = wb["Main Table"]
+    # Row 8 = 2024, col 5 = Gas.
+    val = ws.cell(8, 5).value
+    return float(val) if isinstance(val, (int, float)) else None
 
 
 def build():
@@ -421,6 +441,27 @@ def build():
             if (RAW / name).exists()
         ],
         "datasets": [d for d in datasets if d and d.get("series")],
+    }
+
+    gas_twh_2024 = extract_et51_main_gas_twh_2024()
+    gas_mtoe_2024 = extract_et53_main_gas_mtoe_2024()
+    gas_mtoe_to_twh_2024 = gas_mtoe_2024 * 11.63 if gas_mtoe_2024 is not None else None
+
+    payload["unit_audit"] = {
+        "checks_ran_at": datetime.now(UTC).isoformat(),
+        "gas_2024_cross_check": {
+            "et51_gas_twh_2024": gas_twh_2024,
+            "et53_gas_mtoe_2024": gas_mtoe_2024,
+            "et53_gas_mtoe_as_twh_2024": gas_mtoe_to_twh_2024,
+            "difference_twh": None
+            if gas_twh_2024 is None or gas_mtoe_to_twh_2024 is None
+            else gas_twh_2024 - gas_mtoe_to_twh_2024,
+            "note": "Expected to be very close; ET 5.1 reports gas in TWh and ET 5.3 in Mtoe.",
+        },
+        "dataset_units": [
+            {"id": d["id"], "unit": d.get("unit"), "frequency": d.get("frequency")}
+            for d in payload["datasets"]
+        ],
     }
 
     OUT.parent.mkdir(parents=True, exist_ok=True)

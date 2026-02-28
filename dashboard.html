@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UK Electricity Statistics Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --bg-1: #0f1b2d;
+      --bg-2: #0b3a35;
+      --panel: rgba(10, 18, 31, 0.76);
+      --text: #e8eef5;
+      --muted: #a4b1be;
+      --accent: #f2b705;
+      --edge: rgba(255, 255, 255, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 12% 20%, rgba(242, 183, 5, 0.20), transparent 34%),
+        radial-gradient(circle at 80% 80%, rgba(0, 187, 130, 0.22), transparent 38%),
+        linear-gradient(145deg, var(--bg-1), var(--bg-2));
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 22px 18px 36px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      letter-spacing: 0.03em;
+      font-size: clamp(1.5rem, 4vw, 2.3rem);
+    }
+
+    .sub {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 14px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--edge);
+      border-radius: 14px;
+      backdrop-filter: blur(4px);
+    }
+
+    .controls {
+      padding: 14px;
+    }
+
+    label {
+      display: block;
+      margin: 8px 0 6px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--edge);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin: 10px 0;
+    }
+
+    button {
+      flex: 1;
+      border: 1px solid var(--edge);
+      border-radius: 10px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    button:hover { border-color: var(--accent); }
+
+    .series-list {
+      max-height: 340px;
+      overflow: auto;
+      padding: 8px;
+      border: 1px solid var(--edge);
+      border-radius: 10px;
+      background: rgba(0,0,0,0.16);
+    }
+
+    .series-list label {
+      margin: 0;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text);
+      font-size: 0.9rem;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 6px 2px;
+    }
+
+    .series-list input { width: auto; }
+
+    .content {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 12px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .card {
+      border: 1px solid var(--edge);
+      border-radius: 12px;
+      padding: 10px;
+      background: rgba(0,0,0,0.15);
+    }
+
+    .card .k { color: var(--muted); font-size: 0.78rem; }
+    .card .v { font-size: 1.06rem; font-weight: 600; margin-top: 4px; }
+
+    #chart {
+      min-height: 520px;
+      width: 100%;
+      border-radius: 14px;
+    }
+
+    .sources {
+      padding: 10px 12px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .sources a { color: #f4cb50; }
+
+    .note {
+      margin-top: 8px;
+      font-size: 0.84rem;
+      color: #c9d6e2;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--edge);
+      border-radius: 10px;
+      padding: 8px;
+    }
+
+    .live-grid {
+      margin-top: 14px;
+      padding: 12px;
+    }
+
+    .live-grid h2 {
+      margin: 0 0 8px;
+      font-size: 1.1rem;
+    }
+
+    .live-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .live-chart-wrap {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 10px;
+    }
+
+    #liveIntensityChart, #liveMixChart {
+      min-height: 260px;
+      border: 1px solid var(--edge);
+      border-radius: 10px;
+    }
+
+    @media (max-width: 980px) {
+      .grid { grid-template-columns: 1fr; }
+      #chart { min-height: 420px; }
+      .live-chart-wrap { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>UK Electricity Statistics Dashboard</h1>
+    <p class="sub">Built from GOV.UK electricity statistics workbooks (DUKES + Energy Trends + historical series).</p>
+
+    <div class="grid">
+      <section class="panel controls">
+        <label for="dataset">Dataset</label>
+        <select id="dataset"></select>
+
+        <label for="chartType">Chart Type</label>
+        <select id="chartType">
+          <option value="line">Line</option>
+          <option value="bar">Bar</option>
+        </select>
+
+        <label for="convertMtoe">
+          Unit Conversion
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;color:var(--text);font-size:0.9rem;margin:4px 0 8px;">
+          <input id="convertMtoe" type="checkbox" style="width:auto;" />
+          Convert Mtoe datasets to TWh equivalent
+        </label>
+
+        <label for="seriesSearch">Filter Series</label>
+        <input id="seriesSearch" type="text" placeholder="Type series name..." />
+
+        <div class="btn-row">
+          <button id="allBtn" type="button">Select All</button>
+          <button id="noneBtn" type="button">Select None</button>
+        </div>
+
+        <div id="seriesList" class="series-list"></div>
+      </section>
+
+      <section class="content">
+        <div id="cards" class="panel cards"></div>
+        <div id="chart" class="panel"></div>
+        <div id="datasetNote" class="panel note"></div>
+        <div id="sources" class="panel sources"></div>
+      </section>
+    </div>
+
+    <section class="panel live-grid">
+      <h2>Live UK Grid Snapshot</h2>
+      <div id="liveCards" class="live-cards"></div>
+      <div class="live-chart-wrap">
+        <div id="liveIntensityChart"></div>
+        <div id="liveMixChart"></div>
+      </div>
+      <div id="liveNote" class="sources" style="padding-left:0;padding-right:0;"></div>
+    </section>
+  </div>
+
+  <script src="data/processed/electricity_dashboard_data.js"></script>
+  <script src="data/processed/live_grid_data.js"></script>
+  <script>
+    const palette = [
+      '#f2b705', '#55d6be', '#ff7f50', '#6ec6ff', '#ff595e', '#8ac926', '#f08a5d', '#c77dff', '#ffd166', '#06d6a0'
+    ];
+
+    const els = {
+      dataset: document.getElementById('dataset'),
+      chartType: document.getElementById('chartType'),
+      convertMtoe: document.getElementById('convertMtoe'),
+      seriesSearch: document.getElementById('seriesSearch'),
+      seriesList: document.getElementById('seriesList'),
+      allBtn: document.getElementById('allBtn'),
+      noneBtn: document.getElementById('noneBtn'),
+      chart: document.getElementById('chart'),
+      cards: document.getElementById('cards'),
+      datasetNote: document.getElementById('datasetNote'),
+      sources: document.getElementById('sources'),
+      liveCards: document.getElementById('liveCards'),
+      liveIntensityChart: document.getElementById('liveIntensityChart'),
+      liveMixChart: document.getElementById('liveMixChart'),
+      liveNote: document.getElementById('liveNote')
+    };
+
+    let dataBundle;
+    let activeDataset;
+
+    function fmt(n) {
+      if (n === null || n === undefined || Number.isNaN(n)) return '-';
+      return new Intl.NumberFormat('en-GB', { maximumFractionDigits: 2 }).format(n);
+    }
+
+    function setSources() {
+      const links = dataBundle.sources
+        .map(s => `<a href="${s.url}" target="_blank" rel="noopener">${s.file}</a>`)
+        .join(' | ');
+      els.sources.innerHTML =
+        `Collection: <a href="${dataBundle.collection}" target="_blank" rel="noopener">electricity-statistics</a><br/>` +
+        `Generated: ${new Date(dataBundle.generated_at).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC<br/>` +
+        `Source files: ${links}`;
+    }
+
+    function renderSeriesControls() {
+      const q = els.seriesSearch.value.toLowerCase().trim();
+      els.seriesList.innerHTML = '';
+      activeDataset.series.forEach((s, i) => {
+        const show = !q || s.name.toLowerCase().includes(q);
+        if (!show) return;
+
+        const row = document.createElement('label');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = s.visible !== false;
+        cb.dataset.index = String(i);
+        cb.addEventListener('change', () => {
+          s.visible = cb.checked;
+          drawChart();
+        });
+
+        const text = document.createElement('span');
+        text.textContent = s.name;
+
+        row.appendChild(cb);
+        row.appendChild(text);
+        els.seriesList.appendChild(row);
+      });
+    }
+
+    function getDisplayUnitAndFactor() {
+      if (els.convertMtoe.checked && activeDataset.convertible_to_twh && typeof activeDataset.mtoe_to_twh_factor === 'number') {
+        return { unit: 'TWh equivalent', factor: activeDataset.mtoe_to_twh_factor };
+      }
+      return { unit: activeDataset.unit, factor: 1 };
+    }
+
+    function drawCards() {
+      const { unit, factor } = getDisplayUnitAndFactor();
+      const visibleSeries = activeDataset.series.filter(s => s.visible !== false);
+      els.cards.innerHTML = '';
+      visibleSeries.slice(0, 6).forEach(s => {
+        const last = s.points[s.points.length - 1];
+        const card = document.createElement('div');
+        card.className = 'card';
+        const y = last?.y !== undefined ? last.y * factor : undefined;
+        card.innerHTML = `<div class="k">${s.name}</div><div class="v">${fmt(y)} ${unit}</div><div class="k">${last?.x ?? '-'}</div>`;
+        els.cards.appendChild(card);
+      });
+    }
+
+    function drawChart() {
+      const selected = activeDataset.series.filter(s => s.visible !== false);
+      const type = els.chartType.value === 'bar' ? 'bar' : 'scatter';
+      const { unit, factor } = getDisplayUnitAndFactor();
+
+      const traces = selected.map((s, i) => ({
+        x: s.points.map(p => p.x),
+        y: s.points.map(p => p.y * factor),
+        mode: type === 'scatter' ? 'lines+markers' : undefined,
+        type,
+        name: s.name,
+        marker: { color: palette[i % palette.length] },
+        line: { width: 2.2, color: palette[i % palette.length] }
+      }));
+
+      Plotly.newPlot(els.chart, traces, {
+        title: { text: `${activeDataset.title}<br><sup>${unit} | ${activeDataset.frequency}</sup>`, font: { color: '#e8eef5' } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(8,12,20,0.58)',
+        font: { color: '#d7e1ea' },
+        margin: { l: 55, r: 20, t: 80, b: 55 },
+        xaxis: {
+          title: 'Period',
+          showgrid: true,
+          gridcolor: 'rgba(255,255,255,0.09)',
+          tickangle: -30
+        },
+        yaxis: {
+          title: unit,
+          showgrid: true,
+          gridcolor: 'rgba(255,255,255,0.12)'
+        },
+        legend: { orientation: 'h', y: -0.28 },
+        hovermode: 'x unified'
+      }, { responsive: true, displaylogo: false });
+
+      const note = activeDataset.note ? activeDataset.note : 'No additional unit caveats.';
+      const audit = dataBundle.unit_audit?.gas_2024_cross_check;
+      const gasCheck = audit
+        ? `Gas cross-check (2024): ET 5.1 gas = ${fmt(audit.et51_gas_twh_2024)} TWh; ET 5.3 gas = ${fmt(audit.et53_gas_mtoe_2024)} Mtoe = ${fmt(audit.et53_gas_mtoe_as_twh_2024)} TWh equivalent; difference ${fmt(audit.difference_twh)} TWh.`
+        : '';
+      els.datasetNote.textContent = `${note} ${gasCheck}`;
+
+      drawCards();
+    }
+
+    function setDataset(index) {
+      activeDataset = dataBundle.datasets[index];
+      activeDataset.series.forEach(s => { if (s.visible === undefined) s.visible = true; });
+      renderSeriesControls();
+      drawChart();
+    }
+
+    function init() {
+      dataBundle.datasets.forEach((d, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = `${d.title} (${d.frequency})`;
+        els.dataset.appendChild(opt);
+      });
+
+      els.dataset.addEventListener('change', (e) => setDataset(Number(e.target.value)));
+      els.seriesSearch.addEventListener('input', renderSeriesControls);
+      els.chartType.addEventListener('change', drawChart);
+      els.convertMtoe.addEventListener('change', drawChart);
+
+      els.allBtn.addEventListener('click', () => {
+        activeDataset.series.forEach(s => { s.visible = true; });
+        renderSeriesControls();
+        drawChart();
+      });
+
+      els.noneBtn.addEventListener('click', () => {
+        activeDataset.series.forEach(s => { s.visible = false; });
+        renderSeriesControls();
+        drawChart();
+      });
+
+      setDataset(0);
+      setSources();
+      loadLiveGridData();
+    }
+
+    function renderLiveCards(items) {
+      els.liveCards.innerHTML = '';
+      items.forEach(([k, v]) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<div class="k">${k}</div><div class="v">${v}</div>`;
+        els.liveCards.appendChild(card);
+      });
+    }
+
+    function renderLiveFromSnapshot(snapshot) {
+      if (!snapshot) return false;
+      const current = snapshot.current || {};
+      const hist = snapshot.history || [];
+      const mix = snapshot.generationmix || [];
+
+      renderLiveCards([
+        ['Current intensity', `${fmt(current.actual ?? current.forecast)} gCO2/kWh`],
+        ['Intensity index', `${current.index ?? '-'}`],
+        ['Window from', current.from ? new Date(current.from).toLocaleString('en-GB') : '-'],
+        ['Window to', current.to ? new Date(current.to).toLocaleString('en-GB') : '-']
+      ]);
+
+      Plotly.newPlot(els.liveIntensityChart, [{
+        x: hist.map(d => new Date(d.from).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })),
+        y: hist.map(d => d.actual ?? d.forecast),
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#55d6be', width: 2.2 },
+        name: 'Grid intensity'
+      }], {
+        title: { text: 'Last 24h Carbon Intensity (gCO2/kWh)', font: { color: '#e8eef5' } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(8,12,20,0.58)',
+        font: { color: '#d7e1ea' },
+        margin: { l: 45, r: 12, t: 46, b: 42 },
+        xaxis: { showgrid: true, gridcolor: 'rgba(255,255,255,0.08)' },
+        yaxis: { showgrid: true, gridcolor: 'rgba(255,255,255,0.10)' }
+      }, { responsive: true, displaylogo: false });
+
+      Plotly.newPlot(els.liveMixChart, [{
+        labels: mix.map(d => d.fuel),
+        values: mix.map(d => d.perc),
+        type: 'pie',
+        hole: 0.42,
+        textinfo: 'label+percent'
+      }], {
+        title: { text: 'Current Generation Mix (%)', font: { color: '#e8eef5' } },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(8,12,20,0.58)',
+        font: { color: '#d7e1ea' },
+        margin: { l: 12, r: 12, t: 46, b: 12 }
+      }, { responsive: true, displaylogo: false });
+
+      const updated = snapshot.updated_at ? new Date(snapshot.updated_at).toLocaleString('en-GB') : 'unknown';
+      els.liveNote.innerHTML =
+        `Live source: <a href="https://api.carbonintensity.org.uk/" target="_blank" rel="noopener">NESO Carbon Intensity API</a>. ` +
+        `Loaded from local snapshot updated ${updated}.`;
+      return true;
+    }
+
+    async function loadLiveGridData() {
+      if (window.__LIVE_GRID_DATA__) {
+        if (renderLiveFromSnapshot(window.__LIVE_GRID_DATA__)) return;
+      }
+
+      try {
+        const formatCiDate = (d) => {
+          const pad = (n) => String(n).padStart(2, '0');
+          return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}Z`;
+        };
+
+        const fetchJson = async (url) => {
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+          return r.json();
+        };
+
+        const fetchJsonWithFallback = async (url) => {
+          try {
+            return await fetchJson(url);
+          } catch (_) {
+            const proxied = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            return await fetchJson(proxied);
+          }
+        };
+
+        const now = new Date();
+        const start = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        const from = encodeURIComponent(formatCiDate(start));
+
+        const [intensityCurrent, intensityHist, generation] = await Promise.all([
+          fetchJsonWithFallback('https://api.carbonintensity.org.uk/intensity'),
+          fetchJsonWithFallback(`https://api.carbonintensity.org.uk/intensity/${from}/pt24h`),
+          fetchJsonWithFallback('https://api.carbonintensity.org.uk/generation')
+        ]);
+
+        const current = intensityCurrent?.data?.[0];
+        const hist = intensityHist?.data || [];
+        const mix = generation?.data?.generationmix || [];
+
+        renderLiveFromSnapshot({
+          updated_at: new Date().toISOString(),
+          current: {
+            from: current?.from,
+            to: current?.to,
+            actual: current?.intensity?.actual,
+            forecast: current?.intensity?.forecast,
+            index: current?.intensity?.index
+          },
+          history: hist.map(d => ({
+            from: d.from,
+            to: d.to,
+            actual: d.intensity?.actual,
+            forecast: d.intensity?.forecast
+          })),
+          generationmix: mix
+        });
+      } catch (err) {
+        const fileHint = location.protocol === 'file:'
+          ? ' You are opening this as a local file; some environments block API calls from file://. Running a local server (python3 -m http.server 8000) is more reliable.'
+          : '';
+        els.liveNote.textContent = `Live grid data unavailable: ${String(err)}.${fileHint}`;
+      }
+    }
+
+    const embedded = window.__ELECTRICITY_DASHBOARD_DATA__;
+    if (embedded && embedded.datasets) {
+      dataBundle = embedded;
+      init();
+    } else {
+      fetch('data/processed/electricity_dashboard_data.json')
+        .then(r => r.json())
+        .then(json => {
+          dataBundle = json;
+          init();
+        })
+        .catch(err => {
+          document.body.innerHTML = `<pre style="padding:20px;color:#fff">Failed to load dashboard data:\n${String(err)}\n\nIf opened via file://, either use the generated JS bundle or run:\npython3 -m http.server 8000</pre>`;
+        });
+    }
+  </script>
+</body>
+</html>

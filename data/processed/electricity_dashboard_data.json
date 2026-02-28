@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-27T22:08:38.097534+00:00",
+  "generated_at": "2026-02-28T09:51:14.418423+00:00",
   "collection": "https://www.gov.uk/government/collections/electricity-statistics",
   "sources": [
     {
@@ -7006,6 +7006,9 @@
       "title": "Monthly Fuel Use in Electricity Generation (Recent 48 Months)",
       "unit": "million tonnes of oil equivalent (Mtoe)",
       "frequency": "monthly",
+      "note": "This is fuel input energy (Mtoe), not electricity output (GWh/TWh).",
+      "convertible_to_twh": true,
+      "mtoe_to_twh_factor": 11.63,
       "series": [
         {
           "name": "Coal",
@@ -8803,7 +8806,57 @@
       "title": "Supply and Demand Main Table (Latest Annual + Quarterly)",
       "unit": "GWh",
       "frequency": "mixed",
+      "note": "Contains annual totals and quarterly values in the same table; compare like-with-like periods.",
       "series": [
+        {
+          "name": "Indigenous production",
+          "points": [
+            {
+              "x": "2023",
+              "y": 294078.54079999996
+            },
+            {
+              "x": "2024",
+              "y": 284956.2015
+            },
+            {
+              "x": "2023 3rd quarter",
+              "y": 68629.0849
+            },
+            {
+              "x": "2023 4th quarter",
+              "y": 79595.1512
+            },
+            {
+              "x": "2024 1st quarter",
+              "y": 78787.3301
+            },
+            {
+              "x": "2024 2nd quarter",
+              "y": 64424.8199
+            },
+            {
+              "x": "2024 3rd quarter",
+              "y": 64691.9811
+            },
+            {
+              "x": "2024 4th quarter",
+              "y": 77052.0704
+            },
+            {
+              "x": "2025 1st quarter",
+              "y": 80249.7671
+            },
+            {
+              "x": "2025 2nd quarter",
+              "y": 65308.2013
+            },
+            {
+              "x": "2025 3rd quarter [provisional]",
+              "y": 64920.812
+            }
+          ]
+        },
         {
           "name": "Total demand",
           "points": [
@@ -8850,55 +8903,6 @@
             {
               "x": "2025 3rd quarter [provisional]",
               "y": 72991.8072
-            }
-          ]
-        },
-        {
-          "name": "Exports",
-          "points": [
-            {
-              "x": "2023",
-              "y": 9485.5506
-            },
-            {
-              "x": "2024",
-              "y": 10325.1261
-            },
-            {
-              "x": "2023 3rd quarter",
-              "y": 3318.2649
-            },
-            {
-              "x": "2023 4th quarter",
-              "y": 2540.5428
-            },
-            {
-              "x": "2024 1st quarter",
-              "y": 2168.1526
-            },
-            {
-              "x": "2024 2nd quarter",
-              "y": 2922.4885
-            },
-            {
-              "x": "2024 3rd quarter",
-              "y": 2912.36
-            },
-            {
-              "x": "2024 4th quarter",
-              "y": 2322.125
-            },
-            {
-              "x": "2025 1st quarter",
-              "y": 2913.2382
-            },
-            {
-              "x": "2025 2nd quarter",
-              "y": 3498.2623
-            },
-            {
-              "x": "2025 3rd quarter [provisional]",
-              "y": 3696.2063
             }
           ]
         },
@@ -8952,100 +8956,51 @@
           ]
         },
         {
-          "name": "Indigenous production",
+          "name": "Exports",
           "points": [
             {
               "x": "2023",
-              "y": 294078.54079999996
+              "y": 9485.5506
             },
             {
               "x": "2024",
-              "y": 284956.2015
+              "y": 10325.1261
             },
             {
               "x": "2023 3rd quarter",
-              "y": 68629.0849
+              "y": 3318.2649
             },
             {
               "x": "2023 4th quarter",
-              "y": 79595.1512
+              "y": 2540.5428
             },
             {
               "x": "2024 1st quarter",
-              "y": 78787.3301
+              "y": 2168.1526
             },
             {
               "x": "2024 2nd quarter",
-              "y": 64424.8199
+              "y": 2922.4885
             },
             {
               "x": "2024 3rd quarter",
-              "y": 64691.9811
+              "y": 2912.36
             },
             {
               "x": "2024 4th quarter",
-              "y": 77052.0704
+              "y": 2322.125
             },
             {
               "x": "2025 1st quarter",
-              "y": 80249.7671
+              "y": 2913.2382
             },
             {
               "x": "2025 2nd quarter",
-              "y": 65308.2013
+              "y": 3498.2623
             },
             {
               "x": "2025 3rd quarter [provisional]",
-              "y": 64920.812
-            }
-          ]
-        },
-        {
-          "name": "Total supply",
-          "points": [
-            {
-              "x": "2023",
-              "y": 317912.2115
-            },
-            {
-              "x": "2024",
-              "y": 318364.0217
-            },
-            {
-              "x": "2023 3rd quarter",
-              "y": 72499.6501
-            },
-            {
-              "x": "2023 4th quarter",
-              "y": 84743.9835
-            },
-            {
-              "x": "2024 1st quarter",
-              "y": 87813.9405
-            },
-            {
-              "x": "2024 2nd quarter",
-              "y": 73643.0275
-            },
-            {
-              "x": "2024 3rd quarter",
-              "y": 72828.8663
-            },
-            {
-              "x": "2024 4th quarter",
-              "y": 84078.1874
-            },
-            {
-              "x": "2025 1st quarter",
-              "y": 88082.3348
-            },
-            {
-              "x": "2025 2nd quarter",
-              "y": 72690.2336
-            },
-            {
-              "x": "2025 3rd quarter [provisional]",
-              "y": 73020.2329
+              "y": 3696.2063
             }
           ]
         },
@@ -9097,8 +9052,114 @@
               "y": 11795.6272
             }
           ]
+        },
+        {
+          "name": "Total supply",
+          "points": [
+            {
+              "x": "2023",
+              "y": 317912.2115
+            },
+            {
+              "x": "2024",
+              "y": 318364.0217
+            },
+            {
+              "x": "2023 3rd quarter",
+              "y": 72499.6501
+            },
+            {
+              "x": "2023 4th quarter",
+              "y": 84743.9835
+            },
+            {
+              "x": "2024 1st quarter",
+              "y": 87813.9405
+            },
+            {
+              "x": "2024 2nd quarter",
+              "y": 73643.0275
+            },
+            {
+              "x": "2024 3rd quarter",
+              "y": 72828.8663
+            },
+            {
+              "x": "2024 4th quarter",
+              "y": 84078.1874
+            },
+            {
+              "x": "2025 1st quarter",
+              "y": 88082.3348
+            },
+            {
+              "x": "2025 2nd quarter",
+              "y": 72690.2336
+            },
+            {
+              "x": "2025 3rd quarter [provisional]",
+              "y": 73020.2329
+            }
+          ]
         }
       ]
     }
-  ]
+  ],
+  "unit_audit": {
+    "checks_ran_at": "2026-02-28T09:51:14.462587+00:00",
+    "gas_2024_cross_check": {
+      "et51_gas_twh_2024": 154.0726,
+      "et53_gas_mtoe_2024": 13.247499999999999,
+      "et53_gas_mtoe_as_twh_2024": 154.068425,
+      "difference_twh": 0.0041750000000035925,
+      "note": "Expected to be very close; ET 5.1 reports gas in TWh and ET 5.3 in Mtoe."
+    },
+    "dataset_units": [
+      {
+        "id": "historical_generation_1920",
+        "unit": "GWh",
+        "frequency": "annual"
+      },
+      {
+        "id": "historical_supply_consumption",
+        "unit": "TWh",
+        "frequency": "annual"
+      },
+      {
+        "id": "historical_capacity",
+        "unit": "MW",
+        "frequency": "annual"
+      },
+      {
+        "id": "dukes_514_emissions",
+        "unit": "tonnes CO2 per GWh",
+        "frequency": "annual"
+      },
+      {
+        "id": "dukes_57_capacity_mix",
+        "unit": "MW",
+        "frequency": "annual"
+      },
+      {
+        "id": "dukes_51_balance",
+        "unit": "GWh",
+        "frequency": "annual"
+      },
+      {
+        "id": "et53_monthly_fuel_mix_recent",
+        "unit": "million tonnes of oil equivalent (Mtoe)",
+        "frequency": "monthly"
+      },
+      {
+        "id": "et56_quarterly_trade",
+        "unit": "GWh",
+        "frequency": "quarterly"
+      },
+      {
+        "id": "et52_supply_demand_main",
+        "unit": "GWh",
+        "frequency": "mixed"
+      }
+    ]
+  }
 }
