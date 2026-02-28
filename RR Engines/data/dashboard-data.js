@@ -1,0 +1,929 @@
+window.RR_ENGINES_DATA = {
+  "meta": {
+    "project": "RR Commercial Engines Dashboard",
+    "generated_on": "2026-02-28",
+    "snapshot_date": "2026-02-28",
+    "update_cadence": "Monthly",
+    "notes": [
+      "Coverage prioritizes publicly visible operator-level data where engine-aircraft mapping is unambiguous.",
+      "Some engine families remain in-service but do not publish reliable global active engine totals."
+    ]
+  },
+  "engine_registry": [
+    {
+      "engine_family": "XWB",
+      "segment": "Commercial",
+      "in_service_estimate": 1264,
+      "in_service_unit": "engines",
+      "estimate_type": "derived_from_aircraft",
+      "primary_aircraft": "A350-900;A350-1000",
+      "notes": "Estimated as 632 A350 aircraft in service x 2 engines.",
+      "coverage_confidence": "high",
+      "source_id": "WIKI_A350_OPERATORS",
+      "last_verified": "2026-02-28",
+      "operator_snapshot_estimate": 984
+    },
+    {
+      "engine_family": "7000",
+      "segment": "Commercial",
+      "in_service_estimate": 372,
+      "in_service_unit": "engines",
+      "estimate_type": "derived_from_aircraft",
+      "primary_aircraft": "A330-800;A330-900",
+      "notes": "Estimated as 186 A330neo aircraft in service x 2 engines.",
+      "coverage_confidence": "high",
+      "source_id": "WIKI_A330NEO",
+      "last_verified": "2026-02-28",
+      "operator_snapshot_estimate": 528
+    },
+    {
+      "engine_family": "1000",
+      "segment": "Commercial",
+      "in_service_estimate": null,
+      "in_service_unit": "engines",
+      "estimate_type": "operator_inference",
+      "primary_aircraft": "Boeing 787-8/9/10",
+      "notes": "Operator-level mapping inferred from public fleet/operator pages; per-tail engine fit is incomplete.",
+      "coverage_confidence": "low",
+      "source_id": "WIKI_B787_OPERATORS",
+      "last_verified": "2026-02-28",
+      "operator_snapshot_estimate": 394
+    },
+    {
+      "engine_family": "900",
+      "segment": "Commercial",
+      "in_service_estimate": null,
+      "in_service_unit": "engines",
+      "estimate_type": "operator_inference",
+      "primary_aircraft": "Airbus A380-800",
+      "notes": "Operator-level mapping inferred from public A380 operator and airline fleet pages.",
+      "coverage_confidence": "low",
+      "source_id": "WIKI_A380_OPERATORS",
+      "last_verified": "2026-02-28",
+      "operator_snapshot_estimate": 168
+    },
+    {
+      "engine_family": "700",
+      "segment": "Commercial",
+      "in_service_estimate": null,
+      "in_service_unit": "engines",
+      "estimate_type": "operator_inference",
+      "primary_aircraft": "Airbus A330-200/300",
+      "notes": "Operator-level mapping inferred from public A330 operator and airline fleet pages.",
+      "coverage_confidence": "low",
+      "source_id": "WIKI_A330_OPERATORS",
+      "last_verified": "2026-02-28",
+      "operator_snapshot_estimate": 248
+    }
+  ],
+  "operator_snapshot": [
+    {
+      "segment": "Commercial Airline",
+      "operator": "Porter Airlines",
+      "country_or_region": "Canada",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "44",
+      "estimated_engines_in_service": "88",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Delta Air Lines",
+      "country_or_region": "United States",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "33",
+      "estimated_engines_in_service": "66",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "STARLUX Airlines",
+      "country_or_region": "Taiwan",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "28",
+      "estimated_engines_in_service": "56",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "TAP Air Portugal",
+      "country_or_region": "Portugal",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "21",
+      "estimated_engines_in_service": "42",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Virgin Atlantic",
+      "country_or_region": "United Kingdom",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "19",
+      "estimated_engines_in_service": "38",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Condor",
+      "country_or_region": "Germany",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "18",
+      "estimated_engines_in_service": "36",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Norse Atlantic Airways",
+      "country_or_region": "Norway",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "17",
+      "estimated_engines_in_service": "34",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Cebu Pacific",
+      "country_or_region": "Philippines",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "11",
+      "estimated_engines_in_service": "22",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "ITA Airways",
+      "country_or_region": "Italy",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "11",
+      "estimated_engines_in_service": "22",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Corsair International",
+      "country_or_region": "France",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "9",
+      "estimated_engines_in_service": "18",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Garuda Indonesia",
+      "country_or_region": "Indonesia",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "8",
+      "estimated_engines_in_service": "16",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Kuwait Airways",
+      "country_or_region": "Kuwait",
+      "aircraft_type": "Airbus A330-800/900",
+      "engine_family": "7000",
+      "aircraft_in_service": "8",
+      "estimated_engines_in_service": "16",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Lion Air",
+      "country_or_region": "Indonesia",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "8",
+      "estimated_engines_in_service": "16",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Evelop Airlines",
+      "country_or_region": "Spain",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "6",
+      "estimated_engines_in_service": "12",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Neos",
+      "country_or_region": "Italy",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "6",
+      "estimated_engines_in_service": "12",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Hi Fly",
+      "country_or_region": "Portugal",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "5",
+      "estimated_engines_in_service": "10",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Iberojet",
+      "country_or_region": "Spain",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "5",
+      "estimated_engines_in_service": "10",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Utair",
+      "country_or_region": "Russia",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "3",
+      "estimated_engines_in_service": "6",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Air Belgium",
+      "country_or_region": "Belgium",
+      "aircraft_type": "Airbus A330-900",
+      "engine_family": "7000",
+      "aircraft_in_service": "2",
+      "estimated_engines_in_service": "4",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Uganda Airlines",
+      "country_or_region": "Uganda",
+      "aircraft_type": "Airbus A330-800",
+      "engine_family": "7000",
+      "aircraft_in_service": "2",
+      "estimated_engines_in_service": "4",
+      "coverage": "table_row",
+      "source_id": "WIKI_A330NEO",
+      "snapshot_date": "2026-01-31"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Delta Air Lines",
+      "country_or_region": "United States",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "37",
+      "estimated_engines_in_service": "74",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Air France",
+      "country_or_region": "France",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "38",
+      "estimated_engines_in_service": "76",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Air China",
+      "country_or_region": "China",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "30",
+      "estimated_engines_in_service": "60",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "British Airways",
+      "country_or_region": "United Kingdom",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "18",
+      "estimated_engines_in_service": "36",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Cathay Pacific",
+      "country_or_region": "Hong Kong",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "48",
+      "estimated_engines_in_service": "96",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "China Eastern Airlines",
+      "country_or_region": "China",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "20",
+      "estimated_engines_in_service": "40",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "China Southern Airlines",
+      "country_or_region": "China",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "20",
+      "estimated_engines_in_service": "40",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Emirates",
+      "country_or_region": "United Arab Emirates",
+      "aircraft_type": "Airbus A350-900",
+      "engine_family": "XWB",
+      "aircraft_in_service": "16",
+      "estimated_engines_in_service": "32",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Ethiopian Airlines",
+      "country_or_region": "Ethiopia",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "22",
+      "estimated_engines_in_service": "44",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Etihad Airways",
+      "country_or_region": "United Arab Emirates",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "6",
+      "estimated_engines_in_service": "12",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Iberia",
+      "country_or_region": "Spain",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "22",
+      "estimated_engines_in_service": "44",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Japan Airlines",
+      "country_or_region": "Japan",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "25",
+      "estimated_engines_in_service": "50",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Lufthansa",
+      "country_or_region": "Germany",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "30",
+      "estimated_engines_in_service": "60",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Qatar Airways",
+      "country_or_region": "Qatar",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "58",
+      "estimated_engines_in_service": "116",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Singapore Airlines",
+      "country_or_region": "Singapore",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "65",
+      "estimated_engines_in_service": "130",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Turkish Airlines",
+      "country_or_region": "Turkey",
+      "aircraft_type": "Airbus A350 Family",
+      "engine_family": "XWB",
+      "aircraft_in_service": "25",
+      "estimated_engines_in_service": "50",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Virgin Atlantic",
+      "country_or_region": "United Kingdom",
+      "aircraft_type": "Airbus A350-1000",
+      "engine_family": "XWB",
+      "aircraft_in_service": "12",
+      "estimated_engines_in_service": "24",
+      "coverage": "operator_table_row",
+      "source_id": "WIKI_A350_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "All Nippon Airways",
+      "country_or_region": "Japan",
+      "aircraft_type": "Boeing 787 Family",
+      "engine_family": "1000",
+      "aircraft_in_service": "35",
+      "estimated_engines_in_service": "70",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_B787_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Air New Zealand",
+      "country_or_region": "New Zealand",
+      "aircraft_type": "Boeing 787 Family",
+      "engine_family": "1000",
+      "aircraft_in_service": "14",
+      "estimated_engines_in_service": "28",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_B787_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "British Airways",
+      "country_or_region": "United Kingdom",
+      "aircraft_type": "Boeing 787 Family",
+      "engine_family": "1000",
+      "aircraft_in_service": "42",
+      "estimated_engines_in_service": "84",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_B787_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Etihad Airways",
+      "country_or_region": "United Arab Emirates",
+      "aircraft_type": "Boeing 787 Family",
+      "engine_family": "1000",
+      "aircraft_in_service": "39",
+      "estimated_engines_in_service": "78",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_B787_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Qatar Airways",
+      "country_or_region": "Qatar",
+      "aircraft_type": "Boeing 787 Family",
+      "engine_family": "1000",
+      "aircraft_in_service": "30",
+      "estimated_engines_in_service": "60",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_B787_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Virgin Atlantic",
+      "country_or_region": "United Kingdom",
+      "aircraft_type": "Boeing 787 Family",
+      "engine_family": "1000",
+      "aircraft_in_service": "17",
+      "estimated_engines_in_service": "34",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_B787_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Scoot",
+      "country_or_region": "Singapore",
+      "aircraft_type": "Boeing 787 Family",
+      "engine_family": "1000",
+      "aircraft_in_service": "20",
+      "estimated_engines_in_service": "40",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_B787_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Qantas",
+      "country_or_region": "Australia",
+      "aircraft_type": "Airbus A380-800",
+      "engine_family": "900",
+      "aircraft_in_service": "10",
+      "estimated_engines_in_service": "40",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_A380_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "British Airways",
+      "country_or_region": "United Kingdom",
+      "aircraft_type": "Airbus A380-800",
+      "engine_family": "900",
+      "aircraft_in_service": "12",
+      "estimated_engines_in_service": "48",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_A380_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Singapore Airlines",
+      "country_or_region": "Singapore",
+      "aircraft_type": "Airbus A380-800",
+      "engine_family": "900",
+      "aircraft_in_service": "12",
+      "estimated_engines_in_service": "48",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_A380_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Lufthansa",
+      "country_or_region": "Germany",
+      "aircraft_type": "Airbus A380-800",
+      "engine_family": "900",
+      "aircraft_in_service": "8",
+      "estimated_engines_in_service": "32",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_A380_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Delta Air Lines",
+      "country_or_region": "United States",
+      "aircraft_type": "Airbus A330-300",
+      "engine_family": "700",
+      "aircraft_in_service": "31",
+      "estimated_engines_in_service": "62",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_A330_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Cathay Pacific",
+      "country_or_region": "Hong Kong",
+      "aircraft_type": "Airbus A330-300",
+      "engine_family": "700",
+      "aircraft_in_service": "43",
+      "estimated_engines_in_service": "86",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_A330_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Turkish Airlines",
+      "country_or_region": "Turkey",
+      "aircraft_type": "Airbus A330-300",
+      "engine_family": "700",
+      "aircraft_in_service": "38",
+      "estimated_engines_in_service": "76",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_A330_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Garuda Indonesia",
+      "country_or_region": "Indonesia",
+      "aircraft_type": "Airbus A330-200/300",
+      "engine_family": "700",
+      "aircraft_in_service": "8",
+      "estimated_engines_in_service": "16",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_A330_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    },
+    {
+      "segment": "Commercial Airline",
+      "operator": "Kuwait Airways",
+      "country_or_region": "Kuwait",
+      "aircraft_type": "Airbus A330-200/300",
+      "engine_family": "700",
+      "aircraft_in_service": "4",
+      "estimated_engines_in_service": "8",
+      "coverage": "low_confidence_inference",
+      "source_id": "WIKI_A330_OPERATORS",
+      "snapshot_date": "2026-02-28"
+    }
+  ],
+  "engine_lifecycle_meta": [
+    {
+      "engine_family": "700",
+      "entry_into_service_year": "1995",
+      "maturity_stage": "Legacy",
+      "notes": "Trent 700 entered service mid-1990s; mature/legacy lifecycle."
+    },
+    {
+      "engine_family": "900",
+      "entry_into_service_year": "2007",
+      "maturity_stage": "Mature",
+      "notes": "Trent 900 entered service with A380; mature low-growth lifecycle."
+    },
+    {
+      "engine_family": "1000",
+      "entry_into_service_year": "2011",
+      "maturity_stage": "Mature",
+      "notes": "Trent 1000 entered service with 787 family; mature lifecycle with active fleet."
+    },
+    {
+      "engine_family": "7000",
+      "entry_into_service_year": "2018",
+      "maturity_stage": "Growth",
+      "notes": "Trent 7000 entered service with A330neo; growth-phase fleet."
+    },
+    {
+      "engine_family": "XWB",
+      "entry_into_service_year": "2015",
+      "maturity_stage": "Growth",
+      "notes": "Trent XWB entered service with A350 family; growth-phase flagship fleet."
+    }
+  ],
+  "lessor_operator_links": [
+    {
+      "lessor": "AerCap",
+      "operator": "Etihad Airways",
+      "engine_family": "1000",
+      "estimated_engines": "18",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "AerCap",
+      "operator": "Qatar Airways",
+      "engine_family": "1000",
+      "estimated_engines": "16",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "AerCap",
+      "operator": "Virgin Atlantic",
+      "engine_family": "1000",
+      "estimated_engines": "10",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "SMBC Aviation Capital",
+      "operator": "Turkish Airlines",
+      "engine_family": "7000",
+      "estimated_engines": "12",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "SMBC Aviation Capital",
+      "operator": "ITA Airways",
+      "engine_family": "7000",
+      "estimated_engines": "10",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "Avolon",
+      "operator": "Air France",
+      "engine_family": "XWB",
+      "estimated_engines": "10",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "Avolon",
+      "operator": "Cathay Pacific",
+      "engine_family": "XWB",
+      "estimated_engines": "12",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "BBAM",
+      "operator": "Porter Airlines",
+      "engine_family": "7000",
+      "estimated_engines": "14",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "Air Lease Corporation",
+      "operator": "STARLUX Airlines",
+      "engine_family": "7000",
+      "estimated_engines": "10",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "BOC Aviation",
+      "operator": "Scoot",
+      "engine_family": "1000",
+      "estimated_engines": "12",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "Dubai Aerospace Enterprise",
+      "operator": "Emirates",
+      "engine_family": "XWB",
+      "estimated_engines": "8",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    },
+    {
+      "lessor": "CDB Aviation",
+      "operator": "Cebu Pacific",
+      "engine_family": "7000",
+      "estimated_engines": "8",
+      "confidence": "low",
+      "notes": "Public fleet/lessor exposure inference; not tail-level validated."
+    }
+  ],
+  "segment_summary": [
+    {
+      "segment": "Commercial Airline",
+      "operators": 39,
+      "aircraft": 1119,
+      "engines": 2322
+    }
+  ],
+  "sources": [
+    {
+      "source_id": "WIKI_A330NEO",
+      "title": "List of Airbus A330neo operators",
+      "url": "https://en.wikipedia.org/wiki/List_of_Airbus_A330neo_operators",
+      "publisher": "Wikipedia",
+      "last_checked": "2026-02-28",
+      "notes": "Primary operator-level source for Trent 7000 via A330neo fleets."
+    },
+    {
+      "source_id": "WIKI_A350_OPERATORS",
+      "title": "List of Airbus A350 operators",
+      "url": "https://en.wikipedia.org/wiki/List_of_Airbus_A350_operators",
+      "publisher": "Wikipedia",
+      "last_checked": "2026-02-28",
+      "notes": "Primary operator-level source for Trent XWB via A350 fleets."
+    },
+    {
+      "source_id": "WIKI_B787_OPERATORS",
+      "title": "List of Boeing 787 operators",
+      "url": "https://en.wikipedia.org/wiki/List_of_Boeing_787_operators",
+      "publisher": "Wikipedia",
+      "last_checked": "2026-02-28",
+      "notes": "Used for low-confidence operator inference rows for Trent 1000."
+    },
+    {
+      "source_id": "WIKI_A380_OPERATORS",
+      "title": "List of Airbus A380 operators",
+      "url": "https://en.wikipedia.org/wiki/List_of_Airbus_A380_operators",
+      "publisher": "Wikipedia",
+      "last_checked": "2026-02-28",
+      "notes": "Used for low-confidence operator inference rows for Trent 900."
+    },
+    {
+      "source_id": "WIKI_A330_OPERATORS",
+      "title": "List of Airbus A330 operators",
+      "url": "https://en.wikipedia.org/wiki/List_of_Airbus_A330_operators",
+      "publisher": "Wikipedia",
+      "last_checked": "2026-02-28",
+      "notes": "Used for low-confidence operator inference rows for Trent 700."
+    },
+    {
+      "source_id": "RR_TRENT700_PAGE",
+      "title": "Trent 700 Engine Program",
+      "url": "https://www.rolls-royce.com/products-and-services/civil-aerospace/airlines/trent-700.aspx",
+      "publisher": "Rolls-Royce",
+      "last_checked": "2026-02-28",
+      "notes": "Program status reference for Trent 700 family."
+    },
+    {
+      "source_id": "RR_TRENT7000_PRESS_2025",
+      "title": "Trent 7000 flying hours update",
+      "url": "https://www.rolls-royce.com/media/press-releases/2025/17-01-2025-rr-trent-7000-engine-surpasses-3-million-flying-hours.aspx",
+      "publisher": "Rolls-Royce",
+      "last_checked": "2026-02-28",
+      "notes": "Program maturity context for Trent 7000."
+    },
+    {
+      "source_id": "RR_TRENT1000_XE_2025",
+      "title": "Trent 1000 flying hours milestone",
+      "url": "https://www.rolls-royce.com/media/press-releases/2025/30-04-2025-rr-trent-1000-achieves-23-million-engine-flying-hours.aspx",
+      "publisher": "Rolls-Royce",
+      "last_checked": "2026-02-28",
+      "notes": "Program activity context for Trent 1000."
+    },
+    {
+      "source_id": "RR_XWB_CHINA_2026",
+      "title": "Trent XWB in-service update",
+      "url": "https://www.rolls-royce.com/media/press-releases/2026/13-01-2026-rolls-royce-celebrates-over-5-million-trent-xwb-engine-flying-hours-in-china.aspx",
+      "publisher": "Rolls-Royce",
+      "last_checked": "2026-02-28",
+      "notes": "Program activity context for Trent XWB family."
+    }
+  ]
+};

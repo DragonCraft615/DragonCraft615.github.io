@@ -1,0 +1,6 @@
+engine_family,segment,in_service_estimate,in_service_unit,estimate_type,primary_aircraft,notes,coverage_confidence,source_id,last_verified
+XWB,Commercial,1264,engines,derived_from_aircraft,A350-900;A350-1000,"Estimated as 632 A350 aircraft in service x 2 engines.",high,WIKI_A350_OPERATORS,2026-02-28
+7000,Commercial,372,engines,derived_from_aircraft,A330-800;A330-900,"Estimated as 186 A330neo aircraft in service x 2 engines.",high,WIKI_A330NEO,2026-02-28
+1000,Commercial,,engines,operator_inference,Boeing 787-8/9/10,"Operator-level mapping inferred from public fleet/operator pages; per-tail engine fit is incomplete.",low,WIKI_B787_OPERATORS,2026-02-28
+900,Commercial,,engines,operator_inference,Airbus A380-800,"Operator-level mapping inferred from public A380 operator and airline fleet pages.",low,WIKI_A380_OPERATORS,2026-02-28
+700,Commercial,,engines,operator_inference,Airbus A330-200/300,"Operator-level mapping inferred from public A330 operator and airline fleet pages.",low,WIKI_A330_OPERATORS,2026-02-28

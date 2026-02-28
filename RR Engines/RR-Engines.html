@@ -1,0 +1,999 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RR Commercial Engines Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/map/js/world.js"></script>
+  <style>
+    :root {
+      --rr-navy: #0b1b34;
+      --rr-blue: #002f6c;
+      --rr-steel: #8f97a3;
+      --rr-mist: #f3f5f8;
+      --rr-ink: #121722;
+      --ok: #0a7f5a;
+      --warn: #9d6b02;
+      --low: #8b1d2c;
+      --card-shadow: 0 10px 30px rgba(8, 20, 40, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", Tahoma, sans-serif;
+      color: var(--rr-ink);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(0, 47, 108, 0.1), transparent 32%),
+        radial-gradient(circle at 90% 0%, rgba(143, 151, 163, 0.2), transparent 30%),
+        linear-gradient(180deg, #f8fafc 0%, #eef2f6 100%);
+      min-height: 100vh;
+    }
+
+    .shell { width: min(1320px, 94vw); margin: 24px auto 48px; }
+
+    .hero {
+      background: linear-gradient(135deg, var(--rr-navy), var(--rr-blue));
+      border-radius: 20px;
+      color: #fff;
+      padding: 24px;
+      box-shadow: var(--card-shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      top: -130px;
+      right: -80px;
+    }
+
+    .hero-top {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 1;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(1.65rem, 2.8vw, 2.35rem);
+      letter-spacing: 0.015em;
+      line-height: 1.05;
+    }
+
+    .hero-logo-right {
+      width: 100px;
+      max-width: 30vw;
+      height: auto;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px 8px;
+      opacity: 0.98;
+    }
+
+    .muted { opacity: 0.86; font-size: clamp(1rem, 1.35vw, 1.18rem); margin-top: 8px; }
+
+    .grid {
+      margin-top: 20px;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      position: relative;
+      z-index: 1;
+    }
+
+    .kpi {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 14px;
+      padding: 14px;
+      min-height: 88px;
+    }
+
+    .kpi .label {
+      font-size: 0.76rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.75;
+    }
+
+    .kpi .value { font-size: clamp(1.55rem, 2vw, 1.95rem); margin-top: 8px; font-weight: 700; }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: var(--card-shadow);
+      margin-top: 14px;
+    }
+
+    .panel-title { margin: 0 0 12px; font-size: 1rem; color: var(--rr-navy); }
+
+    .filters {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 10px;
+      align-items: end;
+    }
+
+    select, input, button {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #d6dae2;
+      padding: 10px;
+      font: inherit;
+      background: #fff;
+    }
+
+    button { background: var(--rr-blue); color: #fff; border: 0; cursor: pointer; }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    #sunburstChart { height: 420px; width: 100%; }
+
+    .mg-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .insights-box {
+      border: 1px solid #e5ebf4;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      background: #f8fbff;
+    }
+
+    .insights-box ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .insights-box li {
+      margin: 0 0 8px;
+      line-height: 1.35;
+      color: #1d2e46;
+    }
+
+    .mg-card {
+      border: 1px solid #e5ebf4;
+      border-radius: 12px;
+      padding: 10px;
+      background: #fbfcff;
+    }
+
+    .mg-card h3 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      color: #14335c;
+    }
+
+    .mg-chart { height: 330px; width: 100%; }
+    #tierWaterfallChart { height: 300px; }
+
+    .table-wrap { overflow: auto; border-radius: 12px; border: 1px solid #e3e7ee; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      min-width: 900px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #edf0f5;
+      text-align: left;
+      font-size: 0.9rem;
+      white-space: nowrap;
+    }
+
+    thead th {
+      background: #f4f7fb;
+      color: var(--rr-navy);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    .high { background: rgba(10, 127, 90, 0.12); color: var(--ok); }
+    .medium { background: rgba(157, 107, 2, 0.14); color: var(--warn); }
+    .low { background: rgba(139, 29, 44, 0.12); color: var(--low); }
+
+    .source-list a { color: var(--rr-blue); text-decoration: none; }
+    .source-list li { margin-bottom: 8px; line-height: 1.3; }
+    .foot { margin-top: 12px; font-size: 0.82rem; color: #4c5667; }
+
+    @media (max-width: 1080px) {
+      .charts { grid-template-columns: 1fr; }
+      .mg-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 900px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filters { grid-template-columns: 1fr 1fr; }
+      #sunburstChart { height: 360px; }
+    }
+
+    @media (max-width: 620px) {
+      .hero-top { flex-direction: column; align-items: flex-start; }
+      .grid { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: 1fr; }
+      #sunburstChart { height: 320px; }
+      .hero-logo-right { width: 86px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="brand">
+          <div>
+            <h1>RR Commercial Engines Dashboard</h1>
+            <div class="muted" id="snapshotMeta">Loading data snapshot...</div>
+          </div>
+        </div>
+        <img class="hero-logo-right" src="./assets/rr-logo.svg" alt="Rolls-Royce Holdings logo" onerror="this.style.display='none';" />
+      </div>
+      <div class="grid" id="kpiGrid"></div>
+    </section>
+
+    <section class="card">
+      <h2 class="panel-title">Filters</h2>
+      <div class="filters">
+        <label>Engine Type
+          <select id="engineFilter"></select>
+        </label>
+        <label>Operator Search
+          <input id="operatorSearch" placeholder="e.g. Emirates" />
+        </label>
+        <button id="resetBtn" type="button">Reset Filters</button>
+      </div>
+    </section>
+
+    <section class="charts">
+      <div class="card" style="margin-top:0;">
+        <h2 class="panel-title">Top Operators (Estimated Engines)</h2>
+        <canvas id="operatorChart" height="130"></canvas>
+      </div>
+      <div class="card" style="margin-top:0;">
+        <h2 class="panel-title">Engine Type → Operator Sunburst</h2>
+        <div id="sunburstChart"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="panel-title">Management Views</h2>
+      <div class="insights-box">
+        <h3 style="margin:0 0 8px; font-size:0.95rem; color:#14335c;">Top 5 Management Insights</h3>
+        <ol id="managementInsights"></ol>
+      </div>
+      <div class="mg-grid">
+        <div class="mg-card">
+          <h3>Fleet Composition Heatmap</h3>
+          <div id="heatmapChart" class="mg-chart"></div>
+        </div>
+        <div class="mg-card">
+          <h3>Market Share Treemap</h3>
+          <div id="treemapChart" class="mg-chart"></div>
+        </div>
+        <div class="mg-card">
+          <h3>Operator Tier Waterfall</h3>
+          <div id="tierWaterfallChart" class="mg-chart"></div>
+        </div>
+        <div class="mg-card">
+          <h3>Engine Lifecycle Bubble</h3>
+          <div id="lifecycleBubbleChart" class="mg-chart"></div>
+        </div>
+        <div class="mg-card">
+          <h3>Geographic Distribution Map</h3>
+          <div id="geoMapChart" class="mg-chart"></div>
+        </div>
+        <div class="mg-card">
+          <h3>Lessor ↔ Operator Network (Chord Style)</h3>
+          <div id="chordChart" class="mg-chart"></div>
+        </div>
+      </div>
+      <div class="foot">Lifecycle and lessor-network views are derived from public/inferred metadata and are flagged low confidence where tail-level records are unavailable.</div>
+    </section>
+
+    <section class="card">
+      <h2 class="panel-title">Commercial Engine Registry</h2>
+      <div class="table-wrap">
+        <table id="engineTable">
+          <thead>
+            <tr>
+              <th>Engine Type</th>
+              <th>In-Service Estimate</th>
+              <th>Estimate Type</th>
+              <th>Primary Aircraft</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2 class="panel-title">Operator Mapping</h2>
+      <div class="table-wrap">
+        <table id="operatorTable">
+          <thead>
+            <tr>
+              <th>Operator</th>
+              <th>Country/Region</th>
+              <th>Aircraft Type</th>
+              <th>Engine Type</th>
+              <th>Aircraft In Service</th>
+              <th>Estimated Engines</th>
+              <th>Coverage</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="foot">Coverage flags show data confidence: direct fleet-engine mappings are high; inferred legacy mappings are low.</div>
+    </section>
+
+    <section class="card" style="margin-bottom:20px;">
+      <details open>
+        <summary>Sources</summary>
+        <ul id="sourceList" class="source-list"></ul>
+      </details>
+    </section>
+  </main>
+
+  <script src="./data/dashboard-data.js"></script>
+  <script>
+    let operatorChart;
+    let sunburstChart;
+    let heatmapChart;
+    let treemapChart;
+    let waterfallChart;
+    let lifecycleChart;
+    let geoChart;
+    let chordChart;
+
+    const ENGINE_COLORS = ["#002f6c", "#1d4a85", "#3b6497", "#5679a7", "#708cb4", "#8f97a3"];
+    const COUNTRY_COORDS = {
+      Australia: [133.7751, -25.2744],
+      Belgium: [4.4699, 50.5039],
+      Canada: [-106.3468, 56.1304],
+      China: [104.1954, 35.8617],
+      Ethiopia: [40.4897, 9.145],
+      France: [2.2137, 46.2276],
+      Germany: [10.4515, 51.1657],
+      "Hong Kong": [114.1694, 22.3193],
+      Indonesia: [113.9213, -0.7893],
+      Italy: [12.5674, 41.8719],
+      Japan: [138.2529, 36.2048],
+      Kuwait: [47.4818, 29.3117],
+      "New Zealand": [174.886, -40.9006],
+      Norway: [8.4689, 60.472],
+      Philippines: [121.774, 12.8797],
+      Portugal: [-8.2245, 39.3999],
+      Qatar: [51.1839, 25.3548],
+      Russia: [105.3188, 61.524],
+      Singapore: [103.8198, 1.3521],
+      Spain: [-3.7492, 40.4637],
+      Taiwan: [120.9605, 23.6978],
+      Turkey: [35.2433, 38.9637],
+      Uganda: [32.2903, 1.3733],
+      "United Arab Emirates": [53.8478, 23.4241],
+      "United Kingdom": [-3.436, 55.3781],
+      "United States": [-95.7129, 37.0902]
+    };
+
+    const state = { data: null, filteredOperators: [], filteredEngines: [] };
+
+    function uniq(values) {
+      return [...new Set(values)].filter(Boolean).sort((a, b) => a.localeCompare(b));
+    }
+
+    function intOrZero(value) {
+      const parsed = Number.parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function formatNumber(value) {
+      if (value === null || value === undefined || value === "") return "N/A";
+      return Number(value).toLocaleString();
+    }
+
+    function confidenceBadge(confidence) {
+      const cls = (confidence || "low").toLowerCase();
+      return `<span class="badge ${cls}">${confidence || "low"}</span>`;
+    }
+
+    function summarizeByOperator(rows) {
+      const totals = {};
+      rows.forEach((row) => {
+        const op = row.operator;
+        totals[op] = (totals[op] || 0) + intOrZero(row.estimated_engines_in_service);
+      });
+      return Object.entries(totals).sort((a, b) => b[1] - a[1]);
+    }
+
+    function summarizeByEngine(rows) {
+      const totals = {};
+      rows.forEach((row) => {
+        const e = row.engine_family;
+        totals[e] = (totals[e] || 0) + intOrZero(row.estimated_engines_in_service);
+      });
+      return totals;
+    }
+
+    function renderInsights() {
+      const rows = state.filteredOperators;
+      const totalEngines = rows.reduce((sum, r) => sum + intOrZero(r.estimated_engines_in_service), 0);
+      const byOperator = summarizeByOperator(rows);
+      const byEngine = Object.entries(summarizeByEngine(rows)).sort((a, b) => b[1] - a[1]);
+      const byCountry = {};
+      rows.forEach((r) => {
+        byCountry[r.country_or_region] = (byCountry[r.country_or_region] || 0) + intOrZero(r.estimated_engines_in_service);
+      });
+      const topCountry = Object.entries(byCountry).sort((a, b) => b[1] - a[1])[0];
+
+      const top1 = byOperator[0] || ["N/A", 0];
+      const top5Sum = byOperator.slice(0, 5).reduce((s, r) => s + r[1], 0);
+      const topEngine = byEngine[0] || ["N/A", 0];
+
+      const lifecycle = state.data.engine_lifecycle_meta || [];
+      const engineSet = new Set(rows.map((r) => r.engine_family));
+      const oldestInView = lifecycle
+        .filter((m) => engineSet.has(m.engine_family))
+        .sort((a, b) => intOrZero(a.entry_into_service_year) - intOrZero(b.entry_into_service_year))
+        .slice(0, 2)
+        .map((m) => `${m.engine_family} (${m.entry_into_service_year})`);
+
+      const insights = [
+        `${top1[0]} is the largest visible operator in-scope with ${formatNumber(top1[1])} estimated RR engines (${totalEngines ? ((top1[1] / totalEngines) * 100).toFixed(1) : "0.0"}% of visible fleet).`,
+        `Operator concentration is material: top 5 operators represent ${totalEngines ? ((top5Sum / totalEngines) * 100).toFixed(1) : "0.0"}% of visible engines (${formatNumber(top5Sum)} of ${formatNumber(totalEngines)}).`,
+        `${topEngine[0]} is the dominant engine family at ${formatNumber(topEngine[1])} engines (${totalEngines ? ((topEngine[1] / totalEngines) * 100).toFixed(1) : "0.0"}% share in current view).`,
+        `${topCountry ? topCountry[0] : "N/A"} is the largest country exposure with ${formatNumber(topCountry ? topCountry[1] : 0)} estimated engines in mapped operators.`,
+        `Replacement opportunity: oldest engine families in view are ${oldestInView.length ? oldestInView.join(" and ") : "not available from current metadata"}.`
+      ];
+
+      document.getElementById("managementInsights").innerHTML = insights.map((text) => `<li>${text}</li>`).join("");
+    }
+
+    function populateFilterOptions(data) {
+      const engineFilter = document.getElementById("engineFilter");
+      const engines = uniq(data.operator_snapshot.map((row) => row.engine_family));
+      engineFilter.innerHTML = `<option value="">All engine types</option>${engines.map((e) => `<option value="${e}">${e}</option>`).join("")}`;
+    }
+
+    function applyFilters() {
+      const engineValue = document.getElementById("engineFilter").value;
+      const searchValue = document.getElementById("operatorSearch").value.toLowerCase().trim();
+
+      state.filteredOperators = state.data.operator_snapshot.filter((row) => {
+        if (engineValue && row.engine_family !== engineValue) return false;
+        if (searchValue && !row.operator.toLowerCase().includes(searchValue)) return false;
+        return true;
+      });
+
+      const visibleFamilies = new Set(state.filteredOperators.map((row) => row.engine_family));
+      state.filteredEngines = state.data.engine_registry.filter((row) => {
+        if (engineValue && row.engine_family !== engineValue) return false;
+        if (!engineValue && visibleFamilies.size && !visibleFamilies.has(row.engine_family)) return false;
+        return true;
+      });
+
+      renderKpis();
+      renderTables();
+      renderCharts();
+      renderInsights();
+      renderManagementCharts();
+    }
+
+    function renderKpis() {
+      const trackedFamilies = state.filteredEngines.length;
+      const trackedOperators = uniq(state.filteredOperators.map((row) => row.operator)).length;
+      const quantifiedEngines = state.filteredOperators.reduce((sum, row) => sum + intOrZero(row.estimated_engines_in_service), 0);
+      const trackedAircraft = state.filteredOperators.reduce((sum, row) => sum + intOrZero(row.aircraft_in_service), 0);
+
+      const cards = [
+        { label: "Engine Types in View", value: trackedFamilies.toLocaleString() },
+        { label: "Operators in View", value: trackedOperators.toLocaleString() },
+        { label: "Estimated Engines", value: quantifiedEngines.toLocaleString() },
+        { label: "Aircraft in View", value: trackedAircraft.toLocaleString() }
+      ];
+
+      document.getElementById("kpiGrid").innerHTML = cards.map((item) => `
+        <div class="kpi">
+          <div class="label">${item.label}</div>
+          <div class="value">${item.value}</div>
+        </div>
+      `).join("");
+    }
+
+    function renderTables() {
+      const operatorTbody = document.querySelector("#operatorTable tbody");
+      operatorTbody.innerHTML = state.filteredOperators.map((row) => `
+        <tr>
+          <td>${row.operator}</td>
+          <td>${row.country_or_region}</td>
+          <td>${row.aircraft_type}</td>
+          <td>${row.engine_family}</td>
+          <td>${formatNumber(row.aircraft_in_service)}</td>
+          <td>${formatNumber(row.estimated_engines_in_service)}</td>
+          <td>${row.coverage}</td>
+        </tr>
+      `).join("");
+
+      const engineTbody = document.querySelector("#engineTable tbody");
+      engineTbody.innerHTML = state.filteredEngines.map((row) => `
+        <tr>
+          <td>${row.engine_family}</td>
+          <td>${row.in_service_estimate ? formatNumber(row.in_service_estimate) : "Not publicly disclosed"}</td>
+          <td>${row.estimate_type}</td>
+          <td>${row.primary_aircraft}</td>
+          <td>${confidenceBadge(row.coverage_confidence)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function buildSunburstData(rows) {
+      const byEngine = {};
+      rows.forEach((row) => {
+        const engine = row.engine_family;
+        const operator = row.operator;
+        const engines = intOrZero(row.estimated_engines_in_service);
+        if (!byEngine[engine]) byEngine[engine] = {};
+        byEngine[engine][operator] = (byEngine[engine][operator] || 0) + engines;
+      });
+
+      return Object.entries(byEngine).map(([engine, operators]) => ({
+        name: engine,
+        value: Object.values(operators).reduce((a, b) => a + b, 0),
+        children: Object.entries(operators)
+          .sort((a, b) => b[1] - a[1])
+          .map(([operator, value]) => ({ name: operator, value }))
+      }));
+    }
+
+    function renderCharts() {
+      const topOperators = summarizeByOperator(state.filteredOperators).slice(0, 14);
+
+      if (operatorChart) operatorChart.destroy();
+      operatorChart = new Chart(document.getElementById("operatorChart"), {
+        type: "bar",
+        data: {
+          labels: topOperators.map((item) => item[0]),
+          datasets: [{
+            label: "Estimated Engines",
+            data: topOperators.map((item) => item[1]),
+            backgroundColor: "#002f6c",
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.06)" } },
+            x: { ticks: { maxRotation: 45, minRotation: 45 } }
+          }
+        }
+      });
+
+      if (!sunburstChart) {
+        sunburstChart = echarts.init(document.getElementById("sunburstChart"));
+        window.addEventListener("resize", () => sunburstChart.resize());
+      }
+
+      sunburstChart.setOption({
+        color: ENGINE_COLORS,
+        tooltip: {
+          trigger: "item",
+          formatter: (params) => `${params.treePathInfo.map((n) => n.name).filter(Boolean).join(" -> ")}<br/>${formatNumber(params.value)} est. engines`
+        },
+        series: {
+          type: "sunburst",
+          radius: ["14%", "94%"],
+          sort: (a, b) => b.getValue() - a.getValue(),
+          emphasis: { focus: "ancestor" },
+          data: buildSunburstData(state.filteredOperators),
+          nodeClick: "rootToNode",
+          labelLayout: { hideOverlap: true },
+          levels: [
+            {},
+            {
+              r0: "14%",
+              r: "50%",
+              label: { rotate: "radial", fontWeight: 700, fontSize: 12, color: "#0b1b34" },
+              itemStyle: { borderColor: "#ffffff", borderWidth: 1 }
+            },
+            {
+              r0: "50%",
+              r: "94%",
+              minAngle: 4,
+              label: {
+                rotate: "horizontal",
+                align: "right",
+                fontSize: 10,
+                color: "#1b2738",
+                formatter: (params) => {
+                  if ((params.value || 0) < 18) return "";
+                  return params.name.length > 14 ? `${params.name.slice(0, 13)}…` : params.name;
+                }
+              },
+              itemStyle: { borderColor: "#ffffff", borderWidth: 1 }
+            }
+          ]
+        }
+      });
+    }
+
+    function renderHeatmap() {
+      if (!heatmapChart) {
+        heatmapChart = echarts.init(document.getElementById("heatmapChart"));
+        window.addEventListener("resize", () => heatmapChart.resize());
+      }
+
+      const operatorTotals = summarizeByOperator(state.filteredOperators);
+      const operators = operatorTotals.slice(0, 20).map((row) => row[0]);
+      const engines = uniq(state.filteredOperators.map((row) => row.engine_family));
+
+      const matrix = {};
+      state.filteredOperators.forEach((row) => {
+        const key = `${row.operator}||${row.engine_family}`;
+        matrix[key] = (matrix[key] || 0) + intOrZero(row.estimated_engines_in_service);
+      });
+
+      const values = [];
+      operators.forEach((op, y) => {
+        engines.forEach((eng, x) => {
+          values.push([x, y, matrix[`${op}||${eng}`] || 0]);
+        });
+      });
+
+      heatmapChart.setOption({
+        tooltip: { position: "top", formatter: (p) => `${operators[p.value[1]]} / ${engines[p.value[0]]}<br/>${formatNumber(p.value[2])} engines` },
+        grid: { left: 95, right: 10, top: 20, bottom: 70 },
+        xAxis: {
+          type: "category",
+          data: engines,
+          axisLabel: { color: "#1b2c43" }
+        },
+        yAxis: {
+          type: "category",
+          data: operators,
+          axisLabel: { color: "#1b2c43", width: 88, overflow: "truncate" }
+        },
+        visualMap: {
+          min: 0,
+          max: Math.max(10, ...values.map((v) => v[2])),
+          calculable: true,
+          orient: "horizontal",
+          left: "center",
+          bottom: 8,
+          inRange: { color: ["#e8eef7", "#8ba1be", "#002f6c"] }
+        },
+        series: [{
+          type: "heatmap",
+          data: values,
+          label: { show: false },
+          emphasis: { itemStyle: { borderColor: "#fff", borderWidth: 1 } }
+        }]
+      });
+    }
+
+    function renderTreemap() {
+      if (!treemapChart) {
+        treemapChart = echarts.init(document.getElementById("treemapChart"));
+        window.addEventListener("resize", () => treemapChart.resize());
+      }
+
+      const sunData = buildSunburstData(state.filteredOperators);
+      treemapChart.setOption({
+        tooltip: { formatter: (p) => `${p.treePathInfo.map((n) => n.name).filter(Boolean).join(" -> ")}<br/>${formatNumber(p.value)} engines` },
+        series: [{
+          type: "treemap",
+          roam: false,
+          breadcrumb: { show: false },
+          nodeClick: false,
+          color: ENGINE_COLORS,
+          data: sunData,
+          upperLabel: { show: true, height: 20, color: "#0b1b34", fontWeight: 700 },
+          itemStyle: { borderColor: "#fff", gapWidth: 1 }
+        }]
+      });
+    }
+
+    function renderWaterfall() {
+      if (!waterfallChart) {
+        waterfallChart = echarts.init(document.getElementById("tierWaterfallChart"));
+        window.addEventListener("resize", () => waterfallChart.resize());
+      }
+
+      const rows = summarizeByOperator(state.filteredOperators);
+      const total = rows.reduce((s, r) => s + r[1], 0) || 1;
+      const labels = rows.map((r) => r[0]);
+      const pct = rows.map((r) => +(r[1] / total * 100).toFixed(2));
+      const base = [];
+      let run = 0;
+      pct.forEach((v) => {
+        base.push(+run.toFixed(2));
+        run += v;
+      });
+
+      waterfallChart.setOption({
+        tooltip: {
+          formatter: (p) => {
+            if (p.seriesName === "offset") return "";
+            const idx = p.dataIndex;
+            return `${labels[idx]}<br/>Increment: ${pct[idx].toFixed(2)}%<br/>Cumulative: ${(base[idx] + pct[idx]).toFixed(2)}%`;
+          }
+        },
+        grid: { left: 60, right: 20, top: 20, bottom: 70 },
+        xAxis: { type: "category", data: labels, axisLabel: { rotate: 45, width: 85, overflow: "truncate" } },
+        yAxis: { type: "value", name: "% fleet", max: 100 },
+        series: [
+          { name: "offset", type: "bar", stack: "coverage", itemStyle: { color: "transparent" }, emphasis: { disabled: true }, data: base },
+          { name: "increment", type: "bar", stack: "coverage", data: pct, itemStyle: { color: "#33598a" }, label: { show: false } }
+        ]
+      });
+    }
+
+    function renderLifecycleBubble() {
+      if (!lifecycleChart) {
+        lifecycleChart = echarts.init(document.getElementById("lifecycleBubbleChart"));
+        window.addEventListener("resize", () => lifecycleChart.resize());
+      }
+
+      const engineTotals = summarizeByEngine(state.filteredOperators);
+      const operatorSetByEngine = {};
+      state.filteredOperators.forEach((row) => {
+        if (!operatorSetByEngine[row.engine_family]) operatorSetByEngine[row.engine_family] = new Set();
+        operatorSetByEngine[row.engine_family].add(row.operator);
+      });
+
+      const metaRows = state.data.engine_lifecycle_meta || [];
+      const nowYear = 2026;
+      const points = metaRows
+        .filter((m) => engineTotals[m.engine_family] !== undefined)
+        .map((m) => {
+          const age = nowYear - intOrZero(m.entry_into_service_year);
+          const fleet = engineTotals[m.engine_family] || 0;
+          const operators = (operatorSetByEngine[m.engine_family] || new Set()).size;
+          return {
+            name: m.engine_family,
+            value: [age, fleet, operators, m.maturity_stage]
+          };
+        });
+
+      lifecycleChart.setOption({
+        tooltip: {
+          formatter: (p) => `${p.name}<br/>Age: ${p.value[0]} years<br/>Fleet: ${formatNumber(p.value[1])} engines<br/>Operators: ${p.value[2]}<br/>Stage: ${p.value[3]}`
+        },
+        xAxis: { type: "value", name: "Engine Age (years)", nameLocation: "middle", nameGap: 26 },
+        yAxis: { type: "value", name: "Estimated Fleet (engines)" },
+        series: [{
+          type: "scatter",
+          data: points,
+          symbolSize: (val) => Math.max(12, val[2] * 1.8),
+          itemStyle: {
+            color: (p) => (p.value[3] === "Growth" ? "#1d4a85" : "#708cb4"),
+            opacity: 0.85
+          },
+          label: { show: true, formatter: (p) => p.name, position: "top", color: "#1c2c45" }
+        }]
+      });
+    }
+
+    function renderGeoMap() {
+      if (!geoChart) {
+        geoChart = echarts.init(document.getElementById("geoMapChart"));
+        window.addEventListener("resize", () => geoChart.resize());
+      }
+
+      const byCountry = {};
+      state.filteredOperators.forEach((row) => {
+        const c = row.country_or_region;
+        byCountry[c] = (byCountry[c] || 0) + intOrZero(row.estimated_engines_in_service);
+      });
+
+      const scatterData = Object.entries(byCountry)
+        .filter(([country]) => COUNTRY_COORDS[country])
+        .map(([country, value]) => ({ name: country, value: [...COUNTRY_COORDS[country], value] }));
+      const worldMapReady = !!echarts.getMap("world");
+      if (worldMapReady) {
+        geoChart.setOption({
+          tooltip: { formatter: (p) => `${p.name}<br/>${formatNumber(p.value[2])} engines` },
+          geo: {
+            map: "world",
+            roam: true,
+            itemStyle: { areaColor: "#edf2f8", borderColor: "#9fb0c5" },
+            emphasis: { itemStyle: { areaColor: "#d8e3f1" } }
+          },
+          series: [{
+            type: "scatter",
+            coordinateSystem: "geo",
+            data: scatterData,
+            symbolSize: (val) => Math.max(8, Math.sqrt(val[2]) * 1.1),
+            itemStyle: { color: "#002f6c", opacity: 0.75 }
+          }]
+        });
+      } else {
+        const rows = Object.entries(byCountry).sort((a, b) => b[1] - a[1]).slice(0, 15);
+        geoChart.setOption({
+          title: {
+            text: "Map unavailable in current runtime. Showing top countries.",
+            left: "center",
+            top: 4,
+            textStyle: { color: "#6b7788", fontSize: 11, fontWeight: 500 }
+          },
+          tooltip: { formatter: (p) => `${p.name}<br/>${formatNumber(p.value)} engines` },
+          grid: { left: 55, right: 20, top: 32, bottom: 22 },
+          xAxis: { type: "value" },
+          yAxis: {
+            type: "category",
+            data: rows.map((r) => r[0]).reverse(),
+            axisLabel: { width: 110, overflow: "truncate" }
+          },
+          series: [{
+            type: "bar",
+            data: rows.map((r) => r[1]).reverse(),
+            itemStyle: { color: "#33598a" }
+          }]
+        });
+      }
+    }
+
+    function renderChord() {
+      if (!chordChart) {
+        chordChart = echarts.init(document.getElementById("chordChart"));
+        window.addEventListener("resize", () => chordChart.resize());
+      }
+
+      const engineValue = document.getElementById("engineFilter").value;
+      const searchValue = document.getElementById("operatorSearch").value.toLowerCase().trim();
+
+      let links = (state.data.lessor_operator_links || []).filter((row) => {
+        if (engineValue && row.engine_family !== engineValue) return false;
+        if (searchValue && !row.operator.toLowerCase().includes(searchValue)) return false;
+        return true;
+      });
+
+      if (!links.length) {
+        chordChart.setOption({
+          title: {
+            text: "No lessor/operator links in current filter",
+            left: "center",
+            top: "middle",
+            textStyle: { color: "#6b7788", fontSize: 13 }
+          }
+        });
+        return;
+      }
+
+      const lessors = uniq(links.map((l) => l.lessor));
+      const operators = uniq(links.map((l) => l.operator));
+      const nodes = [
+        ...lessors.map((name) => ({ name, category: 0, symbolSize: 26 })),
+        ...operators.map((name) => ({ name, category: 1, symbolSize: 20 }))
+      ];
+
+      const edgeData = links.map((l) => ({ source: l.lessor, target: l.operator, value: intOrZero(l.estimated_engines) }));
+
+      chordChart.setOption({
+        tooltip: {
+          formatter: (p) => {
+            if (p.dataType === "edge") return `${p.data.source} → ${p.data.target}<br/>${formatNumber(p.data.value)} est. engines`;
+            return p.data.name;
+          }
+        },
+        legend: [{ data: ["Lessor", "Operator"], bottom: 0 }],
+        series: [{
+          type: "graph",
+          layout: "circular",
+          circular: { rotateLabel: true },
+          roam: true,
+          categories: [{ name: "Lessor" }, { name: "Operator" }],
+          data: nodes,
+          links: edgeData,
+          lineStyle: { color: "source", curveness: 0.22, opacity: 0.55, width: 1.4 },
+          label: { show: true, color: "#1b2c43", fontSize: 10 },
+          edgeSymbol: ["none", "arrow"],
+          edgeSymbolSize: 6,
+          emphasis: { focus: "adjacency" }
+        }]
+      });
+    }
+
+    function renderManagementCharts() {
+      const safeRender = (fn) => {
+        try {
+          fn();
+        } catch (err) {
+          console.error("Chart render failed:", err);
+        }
+      };
+      safeRender(renderHeatmap);
+      safeRender(renderTreemap);
+      safeRender(renderWaterfall);
+      safeRender(renderLifecycleBubble);
+      safeRender(renderGeoMap);
+      safeRender(renderChord);
+    }
+
+    function renderSources(data) {
+      document.getElementById("sourceList").innerHTML = data.sources.map((source) => `
+        <li>
+          <strong>${source.source_id}</strong>: ${source.title}
+          (<a href="${source.url}" target="_blank" rel="noopener">link</a>)
+          <div class="muted">${source.notes}</div>
+        </li>
+      `).join("");
+    }
+
+    function attachEvents() {
+      document.getElementById("engineFilter").addEventListener("change", applyFilters);
+      document.getElementById("operatorSearch").addEventListener("input", applyFilters);
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        document.getElementById("engineFilter").value = "";
+        document.getElementById("operatorSearch").value = "";
+        applyFilters();
+      });
+    }
+
+    async function loadData() {
+      if (window.RR_ENGINES_DATA) return window.RR_ENGINES_DATA;
+      const response = await fetch("./data/dashboard-data.json", { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+
+    async function init() {
+      try {
+        const data = await loadData();
+        state.data = data;
+        state.filteredOperators = data.operator_snapshot;
+        state.filteredEngines = data.engine_registry;
+
+        document.getElementById("snapshotMeta").textContent =
+          `Snapshot date: ${data.meta.snapshot_date} | Generated: ${data.meta.generated_on} | Update cadence: ${data.meta.update_cadence}`;
+
+        populateFilterOptions(data);
+        renderSources(data);
+        attachEvents();
+        applyFilters();
+      } catch (error) {
+        document.body.innerHTML = `<main class="shell"><section class="card"><h2>Data load failed</h2><p>${error.message}</p><p>Run <code>python3 scripts/build_dashboard_data.py</code> to generate both <code>dashboard-data.json</code> and <code>dashboard-data.js</code>, then reload <code>RR-Engines.html</code>.</p></section></main>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

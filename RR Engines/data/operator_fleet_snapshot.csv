@@ -1,0 +1,54 @@
+segment,operator,country_or_region,aircraft_type,engine_family,aircraft_in_service,estimated_engines_in_service,coverage,source_id,snapshot_date
+Commercial Airline,Porter Airlines,Canada,Airbus A330-900,7000,44,88,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Delta Air Lines,United States,Airbus A330-900,7000,33,66,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,STARLUX Airlines,Taiwan,Airbus A330-900,7000,28,56,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,TAP Air Portugal,Portugal,Airbus A330-900,7000,21,42,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Virgin Atlantic,United Kingdom,Airbus A330-900,7000,19,38,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Condor,Germany,Airbus A330-900,7000,18,36,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Norse Atlantic Airways,Norway,Airbus A330-900,7000,17,34,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Cebu Pacific,Philippines,Airbus A330-900,7000,11,22,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,ITA Airways,Italy,Airbus A330-900,7000,11,22,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Corsair International,France,Airbus A330-900,7000,9,18,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Garuda Indonesia,Indonesia,Airbus A330-900,7000,8,16,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Kuwait Airways,Kuwait,Airbus A330-800/900,7000,8,16,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Lion Air,Indonesia,Airbus A330-900,7000,8,16,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Evelop Airlines,Spain,Airbus A330-900,7000,6,12,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Neos,Italy,Airbus A330-900,7000,6,12,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Hi Fly,Portugal,Airbus A330-900,7000,5,10,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Iberojet,Spain,Airbus A330-900,7000,5,10,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Utair,Russia,Airbus A330-900,7000,3,6,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Air Belgium,Belgium,Airbus A330-900,7000,2,4,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Uganda Airlines,Uganda,Airbus A330-800,7000,2,4,table_row,WIKI_A330NEO,2026-01-31
+Commercial Airline,Delta Air Lines,United States,Airbus A350 Family,XWB,37,74,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Air France,France,Airbus A350 Family,XWB,38,76,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Air China,China,Airbus A350 Family,XWB,30,60,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,British Airways,United Kingdom,Airbus A350 Family,XWB,18,36,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Cathay Pacific,Hong Kong,Airbus A350 Family,XWB,48,96,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,China Eastern Airlines,China,Airbus A350 Family,XWB,20,40,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,China Southern Airlines,China,Airbus A350 Family,XWB,20,40,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Emirates,United Arab Emirates,Airbus A350-900,XWB,16,32,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Ethiopian Airlines,Ethiopia,Airbus A350 Family,XWB,22,44,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Etihad Airways,United Arab Emirates,Airbus A350 Family,XWB,6,12,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Iberia,Spain,Airbus A350 Family,XWB,22,44,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Japan Airlines,Japan,Airbus A350 Family,XWB,25,50,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Lufthansa,Germany,Airbus A350 Family,XWB,30,60,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Qatar Airways,Qatar,Airbus A350 Family,XWB,58,116,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Singapore Airlines,Singapore,Airbus A350 Family,XWB,65,130,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Turkish Airlines,Turkey,Airbus A350 Family,XWB,25,50,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,Virgin Atlantic,United Kingdom,Airbus A350-1000,XWB,12,24,operator_table_row,WIKI_A350_OPERATORS,2026-02-28
+Commercial Airline,All Nippon Airways,Japan,Boeing 787 Family,1000,35,70,low_confidence_inference,WIKI_B787_OPERATORS,2026-02-28
+Commercial Airline,Air New Zealand,New Zealand,Boeing 787 Family,1000,14,28,low_confidence_inference,WIKI_B787_OPERATORS,2026-02-28
+Commercial Airline,British Airways,United Kingdom,Boeing 787 Family,1000,42,84,low_confidence_inference,WIKI_B787_OPERATORS,2026-02-28
+Commercial Airline,Etihad Airways,United Arab Emirates,Boeing 787 Family,1000,39,78,low_confidence_inference,WIKI_B787_OPERATORS,2026-02-28
+Commercial Airline,Qatar Airways,Qatar,Boeing 787 Family,1000,30,60,low_confidence_inference,WIKI_B787_OPERATORS,2026-02-28
+Commercial Airline,Virgin Atlantic,United Kingdom,Boeing 787 Family,1000,17,34,low_confidence_inference,WIKI_B787_OPERATORS,2026-02-28
+Commercial Airline,Scoot,Singapore,Boeing 787 Family,1000,20,40,low_confidence_inference,WIKI_B787_OPERATORS,2026-02-28
+Commercial Airline,Qantas,Australia,Airbus A380-800,900,10,40,low_confidence_inference,WIKI_A380_OPERATORS,2026-02-28
+Commercial Airline,British Airways,United Kingdom,Airbus A380-800,900,12,48,low_confidence_inference,WIKI_A380_OPERATORS,2026-02-28
+Commercial Airline,Singapore Airlines,Singapore,Airbus A380-800,900,12,48,low_confidence_inference,WIKI_A380_OPERATORS,2026-02-28
+Commercial Airline,Lufthansa,Germany,Airbus A380-800,900,8,32,low_confidence_inference,WIKI_A380_OPERATORS,2026-02-28
+Commercial Airline,Delta Air Lines,United States,Airbus A330-300,700,31,62,low_confidence_inference,WIKI_A330_OPERATORS,2026-02-28
+Commercial Airline,Cathay Pacific,Hong Kong,Airbus A330-300,700,43,86,low_confidence_inference,WIKI_A330_OPERATORS,2026-02-28
+Commercial Airline,Turkish Airlines,Turkey,Airbus A330-300,700,38,76,low_confidence_inference,WIKI_A330_OPERATORS,2026-02-28
+Commercial Airline,Garuda Indonesia,Indonesia,Airbus A330-200/300,700,8,16,low_confidence_inference,WIKI_A330_OPERATORS,2026-02-28
+Commercial Airline,Kuwait Airways,Kuwait,Airbus A330-200/300,700,4,8,low_confidence_inference,WIKI_A330_OPERATORS,2026-02-28

@@ -1,0 +1,13 @@
+lessor,operator,engine_family,estimated_engines,confidence,notes
+AerCap,Etihad Airways,1000,18,low,"Public fleet/lessor exposure inference; not tail-level validated."
+AerCap,Qatar Airways,1000,16,low,"Public fleet/lessor exposure inference; not tail-level validated."
+AerCap,Virgin Atlantic,1000,10,low,"Public fleet/lessor exposure inference; not tail-level validated."
+SMBC Aviation Capital,Turkish Airlines,7000,12,low,"Public fleet/lessor exposure inference; not tail-level validated."
+SMBC Aviation Capital,ITA Airways,7000,10,low,"Public fleet/lessor exposure inference; not tail-level validated."
+Avolon,Air France,XWB,10,low,"Public fleet/lessor exposure inference; not tail-level validated."
+Avolon,Cathay Pacific,XWB,12,low,"Public fleet/lessor exposure inference; not tail-level validated."
+BBAM,Porter Airlines,7000,14,low,"Public fleet/lessor exposure inference; not tail-level validated."
+Air Lease Corporation,STARLUX Airlines,7000,10,low,"Public fleet/lessor exposure inference; not tail-level validated."
+BOC Aviation,Scoot,1000,12,low,"Public fleet/lessor exposure inference; not tail-level validated."
+Dubai Aerospace Enterprise,Emirates,XWB,8,low,"Public fleet/lessor exposure inference; not tail-level validated."
+CDB Aviation,Cebu Pacific,7000,8,low,"Public fleet/lessor exposure inference; not tail-level validated."

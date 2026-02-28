@@ -1,0 +1,10 @@
+source_id,title,url,publisher,last_checked,notes
+WIKI_A330NEO,"List of Airbus A330neo operators",https://en.wikipedia.org/wiki/List_of_Airbus_A330neo_operators,Wikipedia,2026-02-28,"Primary operator-level source for Trent 7000 via A330neo fleets."
+WIKI_A350_OPERATORS,"List of Airbus A350 operators",https://en.wikipedia.org/wiki/List_of_Airbus_A350_operators,Wikipedia,2026-02-28,"Primary operator-level source for Trent XWB via A350 fleets."
+WIKI_B787_OPERATORS,"List of Boeing 787 operators",https://en.wikipedia.org/wiki/List_of_Boeing_787_operators,Wikipedia,2026-02-28,"Used for low-confidence operator inference rows for Trent 1000."
+WIKI_A380_OPERATORS,"List of Airbus A380 operators",https://en.wikipedia.org/wiki/List_of_Airbus_A380_operators,Wikipedia,2026-02-28,"Used for low-confidence operator inference rows for Trent 900."
+WIKI_A330_OPERATORS,"List of Airbus A330 operators",https://en.wikipedia.org/wiki/List_of_Airbus_A330_operators,Wikipedia,2026-02-28,"Used for low-confidence operator inference rows for Trent 700."
+RR_TRENT700_PAGE,"Trent 700 Engine Program",https://www.rolls-royce.com/products-and-services/civil-aerospace/airlines/trent-700.aspx,Rolls-Royce,2026-02-28,"Program status reference for Trent 700 family."
+RR_TRENT7000_PRESS_2025,"Trent 7000 flying hours update",https://www.rolls-royce.com/media/press-releases/2025/17-01-2025-rr-trent-7000-engine-surpasses-3-million-flying-hours.aspx,Rolls-Royce,2026-02-28,"Program maturity context for Trent 7000."
+RR_TRENT1000_XE_2025,"Trent 1000 flying hours milestone",https://www.rolls-royce.com/media/press-releases/2025/30-04-2025-rr-trent-1000-achieves-23-million-engine-flying-hours.aspx,Rolls-Royce,2026-02-28,"Program activity context for Trent 1000."
+RR_XWB_CHINA_2026,"Trent XWB in-service update",https://www.rolls-royce.com/media/press-releases/2026/13-01-2026-rolls-royce-celebrates-over-5-million-trent-xwb-engine-flying-hours-in-china.aspx,Rolls-Royce,2026-02-28,"Program activity context for Trent XWB family."
