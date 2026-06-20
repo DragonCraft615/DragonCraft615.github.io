@@ -398,7 +398,7 @@ const BASE_SPEED = 270;
 const POO_SIZE   = 44;      // font size for emoji
 const BIG_POO_SIZE = 72;    // big poo emoji size
 const BIG_POO_CHANCE  = 0.12; // 12% chance each spawn is a big poo
-const TOILET_CHANCE   = 0.06; // 6% chance each spawn is a toilet (+10 lives)
+const TOILET_CHANCE   = 0.012; // ~1.2% chance each spawn is a toilet (+10 lives)
 
 // ── Input: mouse + touch
 let inputX = null;
@@ -534,7 +534,7 @@ function update(dt) {
 
 function increaseSpeed() {
   // speed ramps: every catch adds a tiny bit, capped at 6x
-  speed = Math.min(10, 1 + catchCount * 0.04);
+  speed = Math.min(10, 1 + catchCount * 0.052);
   // spawn interval shrinks
   spawnInterval = Math.max(300, 1200 - catchCount * 18);
 }
