@@ -283,24 +283,24 @@ const MAX_ENTRIES = 10;
 let lbCache = [];
 
 async function fetchLB() {
-  if (!CONFIGURED) return [];
+  if (!CONFIGURED) return { data: [], error: null };
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/leaderboard?select=name,score&order=score.desc&limit=${MAX_ENTRIES}`,
       { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
     );
-    if (!res.ok) throw new Error(res.statusText);
-    return await res.json();
+    const body = await res.json();
+    if (!res.ok) return { data: [], error: body.message || body.error || res.statusText };
+    return { data: body, error: null };
   } catch (e) {
-    console.warn('Leaderboard fetch failed:', e);
-    return [];
+    return { data: [], error: e.message };
   }
 }
 
 async function postEntry(name, score) {
   if (!CONFIGURED) return;
   try {
-    await fetch(
+    const res = await fetch(
       `${SUPABASE_URL}/rest/v1/leaderboard`,
       {
         method: 'POST',
@@ -313,8 +313,12 @@ async function postEntry(name, score) {
         body: JSON.stringify({ name, score }),
       }
     );
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      console.error('Score save failed:', body.message || res.statusText);
+    }
   } catch (e) {
-    console.warn('Score save failed:', e);
+    console.error('Score save failed:', e.message);
   }
 }
 
@@ -334,7 +338,13 @@ async function renderLB(containerId) {
     return;
   }
 
-  lbCache = await fetchLB();
+  const { data, error } = await fetchLB();
+  if (error) {
+    el.innerHTML = `<div class="lb-title">🏆 Leaderboard</div><div class="lb-empty" style="color:#e74c3c;font-style:normal;">⚠️ ${escHtml(String(error))}</div>`;
+    return;
+  }
+
+  lbCache = data;
   const medals = ['🥇','🥈','🥉'];
   if (lbCache.length === 0) {
     el.innerHTML = `<div class="lb-title">🏆 Leaderboard</div><div class="lb-empty">No scores yet — be the first!</div>`;
