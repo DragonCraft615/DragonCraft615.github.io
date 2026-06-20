@@ -252,7 +252,7 @@
   </div>
   <div class="hud-box">
     <div class="hud-label">💩 Missed</div>
-    <div class="hud-value" id="missCount">0 / 50</div>
+    <div class="hud-value" id="missCount">0 / 25</div>
   </div>
 </div>
 
@@ -260,7 +260,7 @@
 <div class="screen" id="startScreen">
   <div class="screen-emoji">💩</div>
   <div class="screen-title">Poo Catcher</div>
-  <p class="screen-sub">Catch the 💩 — big ones score +5 pts but missing one costs 5 lives!<br>Catch the 🚽 toilet for +10 lives.<br>Miss 50 and it's game over. 💀</p>
+  <p class="screen-sub">Catch the 💩 — big ones score +5 pts but missing one costs 5 lives!<br>Catch the 🚽 toilet for +5 lives — but missing one costs 5 too!<br>You start with 25 lives. 💀</p>
 
   <div class="leaderboard" id="startLeaderboard"></div>
 
@@ -435,7 +435,7 @@ const BASE_SPEED = 270;
 const POO_SIZE   = 44;      // font size for emoji
 const BIG_POO_SIZE = 72;    // big poo emoji size
 const BIG_POO_CHANCE  = 0.12; // 12% chance each spawn is a big poo
-const TOILET_CHANCE   = 0.012; // ~1.2% chance each spawn is a toilet (+10 lives)
+const TOILET_CHANCE   = 0.015; // ~1.5% chance each spawn is a toilet (+5 lives)
 
 // ── Input: mouse + touch
 let inputX = null;
@@ -467,7 +467,7 @@ function startGame() {
   hide('startScreen'); hide('gameoverScreen');
   score       = 0;
   missed      = 0;
-  maxMiss     = 50;
+  maxMiss     = 25;
   speed       = 1;
   catchCount  = 0;
   poos        = [];
@@ -565,7 +565,7 @@ function update(dt) {
       spawnParticles(p.x, p.y);
       poos.splice(i, 1);
       if (p.toilet) {
-        maxMiss += 10;
+        maxMiss += 5;
       } else {
         score += p.points;
         catchCount++;
@@ -578,7 +578,7 @@ function update(dt) {
     // missed
     if (p.y > H + sz) {
       poos.splice(i, 1);
-      missed += p.big ? 5 : 1;
+      missed += (p.big || p.toilet) ? 5 : 1;
       updateHUD();
       flashMiss();
       if (missed >= maxMiss) { endGame(); return; }
