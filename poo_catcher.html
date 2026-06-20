@@ -389,7 +389,7 @@ let bucketW, bucketH;
 let lastTime     = 0;
 let spawnTimer   = 0;
 let spawnInterval= 1200;    // ms between spawns
-const MAX_MISS   = 50;
+const MAX_MISS   = 40;
 
 // base drop speed in px/s at speed=1
 const BASE_SPEED = 180;
@@ -515,7 +515,7 @@ function update(dt) {
 
 function increaseSpeed() {
   // speed ramps: every catch adds a tiny bit, capped at 6x
-  speed = Math.min(6, 1 + catchCount * 0.04);
+  speed = Math.min(10, 1 + catchCount * 0.04);
   // spawn interval shrinks
   spawnInterval = Math.max(300, 1200 - catchCount * 18);
 }
