@@ -216,7 +216,7 @@
   </div>
   <div class="hud-box">
     <div class="hud-label">💩 Missed</div>
-    <div class="hud-value" id="missCount">0 / 40</div>
+    <div class="hud-value" id="missCount">0 / 100</div>
   </div>
 </div>
 
@@ -224,7 +224,7 @@
 <div class="screen" id="startScreen">
   <div class="screen-emoji">💩</div>
   <div class="screen-title">Poo Catcher</div>
-  <p class="screen-sub">Catch the falling poos!<br>Miss 40 and it's game over. 💀</p>
+  <p class="screen-sub">Catch the falling poos — big ones are worth 5 pts!<br>Miss 100 and it's game over. 💀</p>
 
   <div class="leaderboard" id="startLeaderboard"></div>
 
@@ -391,11 +391,13 @@ let bucketW, bucketH;
 let lastTime     = 0;
 let spawnTimer   = 0;
 let spawnInterval= 1200;    // ms between spawns
-const MAX_MISS   = 40;
+const MAX_MISS   = 100;
 
-// base drop speed in px/s at speed=1
-const BASE_SPEED = 180;
+// base drop speed in px/s at speed=1 (displayed as 1x, but 50% faster than original)
+const BASE_SPEED = 270;
 const POO_SIZE   = 44;      // font size for emoji
+const BIG_POO_SIZE = 72;    // big poo emoji size
+const BIG_POO_CHANCE = 0.12; // 12% chance each spawn is a big poo
 
 // ── Input: mouse + touch
 let inputX = null;
@@ -462,11 +464,16 @@ function update(dt) {
   spawnTimer += dt * 1000;
   if (spawnTimer >= spawnInterval) {
     spawnTimer = 0;
+    const big = Math.random() < BIG_POO_CHANCE;
+    const sz  = big ? BIG_POO_SIZE : POO_SIZE;
     poos.push({
-      x: POO_SIZE/2 + Math.random() * (W - POO_SIZE),
-      y: -POO_SIZE,
-      vy: BASE_SPEED * speed,
+      x: sz/2 + Math.random() * (W - sz),
+      y: -sz,
+      vy: BASE_SPEED * speed * (big ? 0.75 : 1),
       wobble: Math.random() * Math.PI * 2,
+      big,
+      size: sz,
+      points: big ? 5 : 1,
     });
   }
 
@@ -477,17 +484,18 @@ function update(dt) {
     p.wobble += dt * 3;
     p.x  += Math.sin(p.wobble) * 0.6;
 
+    const sz = p.size;
     const bucketTop = H - bucketH - 10;
     // catch check
     if (
-      p.y + POO_SIZE/2 >= bucketTop &&
-      p.y - POO_SIZE/2 <= H - 10 &&
-      p.x >= bucketX - bucketW/2 - POO_SIZE/3 &&
-      p.x <= bucketX + bucketW/2 + POO_SIZE/3
+      p.y + sz/2 >= bucketTop &&
+      p.y - sz/2 <= H - 10 &&
+      p.x >= bucketX - bucketW/2 - sz/3 &&
+      p.x <= bucketX + bucketW/2 + sz/3
     ) {
       spawnParticles(p.x, p.y);
       poos.splice(i, 1);
-      score++;
+      score += p.points;
       catchCount++;
       increaseSpeed();
       updateHUD();
@@ -495,7 +503,7 @@ function update(dt) {
     }
 
     // missed
-    if (p.y > H + POO_SIZE) {
+    if (p.y > H + sz) {
       poos.splice(i, 1);
       missed++;
       updateHUD();
@@ -555,11 +563,23 @@ function draw() {
   ctx.globalAlpha = 1;
 
   // poos
-  ctx.font = `${POO_SIZE}px serif`;
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
   for (const p of poos) {
+    if (p.big) {
+      ctx.save();
+      ctx.shadowColor  = '#f5d769';
+      ctx.shadowBlur   = 18;
+    }
+    ctx.font = `${p.size}px serif`;
     ctx.fillText('💩', p.x, p.y);
+    if (p.big) {
+      ctx.restore();
+      // +5 label above big poo
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillStyle = '#f5d769';
+      ctx.fillText('+5', p.x, p.y - p.size/2 - 6);
+    }
   }
 
   // bucket
