@@ -731,7 +731,7 @@ function updateHUD() {
   document.getElementById('scoreVal').textContent  = score;
   document.getElementById('missCount').textContent = `${missed} / ${maxMiss}`;
   document.getElementById('speedVal').textContent  = speed.toFixed(1) + 'x';
-  document.getElementById('timerVal').textContent  = Math.floor(elapsed) + 's';
+  document.getElementById('timerVal').textContent  = elapsed.toFixed(2) + 's';
 }
 
 const missFlash = document.getElementById('missFlash');
