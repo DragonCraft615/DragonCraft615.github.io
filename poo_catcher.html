@@ -391,7 +391,7 @@ let bucketW, bucketH;
 let lastTime     = 0;
 let spawnTimer   = 0;
 let spawnInterval= 1200;    // ms between spawns
-const MAX_MISS   = 50;
+let maxMiss      = 50;
 
 // base drop speed in px/s at speed=1 (displayed as 1x, but 50% faster than original)
 const BASE_SPEED = 270;
@@ -430,6 +430,7 @@ function startGame() {
   hide('startScreen'); hide('gameoverScreen');
   score       = 0;
   missed      = 0;
+  maxMiss     = 50;
   speed       = 1;
   catchCount  = 0;
   poos        = [];
@@ -500,7 +501,7 @@ function update(dt) {
       spawnParticles(p.x, p.y);
       poos.splice(i, 1);
       if (p.toilet) {
-        missed = Math.max(0, missed - 10);
+        maxMiss += 10;
       } else {
         score += p.points;
         catchCount++;
@@ -516,7 +517,7 @@ function update(dt) {
       missed++;
       updateHUD();
       flashMiss();
-      if (missed >= MAX_MISS) { endGame(); return; }
+      if (missed >= maxMiss) { endGame(); return; }
     }
   }
 
@@ -644,7 +645,7 @@ function drawBucket(cx, y, w, h) {
 // ─────────────────────────────────────────────
 function updateHUD() {
   document.getElementById('scoreVal').textContent  = score;
-  document.getElementById('missCount').textContent = `${missed} / ${MAX_MISS}`;
+  document.getElementById('missCount').textContent = `${missed} / ${maxMiss}`;
   document.getElementById('speedVal').textContent  = speed.toFixed(1) + 'x';
 }
 
