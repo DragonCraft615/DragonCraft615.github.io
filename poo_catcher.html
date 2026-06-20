@@ -264,7 +264,7 @@
 <div class="screen" id="startScreen">
   <div class="screen-emoji">💩</div>
   <div class="screen-title">Poo Catcher</div>
-  <p class="screen-sub">Catch the 💩 — big ones score +5 pts but missing one costs 5 lives!<br>Catch the 🚽 toilet for +5 lives — but missing one costs 5 too!<br>You start with 25 lives. 💀</p>
+  <p class="screen-sub">Miss any 💩 and lose a life. Big ones earn +5 pts if caught — or cost you 5 pts if missed!<br>Catch the 🚽 toilet for +5 lives — but missing one costs 5 lives too!<br>You start with 25 lives. 💀</p>
 
   <div class="leaderboard" id="startLeaderboard"></div>
 
@@ -597,7 +597,8 @@ function update(dt) {
     // missed
     if (p.y > H + sz) {
       poos.splice(i, 1);
-      missed += (p.big || p.toilet) ? 5 : 1;
+      missed += p.toilet ? 5 : 1;
+      if (p.big) score = Math.max(0, score - 5);
       updateHUD();
       flashMiss();
       if (missed >= maxMiss) { endGame(); return; }
