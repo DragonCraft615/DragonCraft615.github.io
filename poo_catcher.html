@@ -247,6 +247,10 @@
     <div class="hud-value" id="scoreVal">0</div>
   </div>
   <div class="hud-box">
+    <div class="hud-label">⏱ Time</div>
+    <div class="hud-value" id="timerVal" style="color:#c39bd3;">0s</div>
+  </div>
+  <div class="hud-box">
     <div class="hud-label">Speed</div>
     <div class="hud-value" id="speedVal">1x</div>
   </div>
@@ -273,6 +277,7 @@
   <div class="screen-emoji">💀</div>
   <div class="screen-title">Game Over!</div>
   <p class="screen-sub" id="gameoverMsg">You missed too many poos!</p>
+  <p class="screen-sub" id="gameoverTime" style="color:#c39bd3;margin-top:-12px;"></p>
 
   <div id="newHighScoreEntry" class="name-entry hidden">
     <p>🏆 New High Score! Enter your name:</p>
@@ -418,6 +423,8 @@ resize();
 // ── Game state
 let gameRunning  = false;
 let paused       = false;
+let elapsed      = 0;   // seconds survived
+let bonusTimer   = 0;   // accumulator for whole-second bonuses
 let score        = 0;
 let missed       = 0;
 let speed        = 1;       // multiplier
@@ -479,6 +486,8 @@ function startGame() {
   bucketX     = W / 2;
   inputX      = W / 2;
   paused      = false;
+  elapsed     = 0;
+  bonusTimer  = 0;
   updateHUD();
   document.getElementById('pauseBtn').style.display = 'block';
   document.getElementById('pauseOverlay').style.display = 'none';
@@ -522,6 +531,16 @@ function loop(now) {
 }
 
 function update(dt) {
+  // timer + 1pt bonus per second survived
+  elapsed    += dt;
+  bonusTimer += dt;
+  if (bonusTimer >= 1) {
+    const secs = Math.floor(bonusTimer);
+    bonusTimer -= secs;
+    score += secs;
+  }
+  updateHUD();
+
   // smooth bucket to input
   const target = clamp((inputX ?? bucketX), bucketW / 2, W - bucketW / 2);
   bucketX += (target - bucketX) * Math.min(1, dt * 18);
@@ -711,6 +730,7 @@ function updateHUD() {
   document.getElementById('scoreVal').textContent  = score;
   document.getElementById('missCount').textContent = `${missed} / ${maxMiss}`;
   document.getElementById('speedVal').textContent  = speed.toFixed(1) + 'x';
+  document.getElementById('timerVal').textContent  = Math.floor(elapsed) + 's';
 }
 
 const missFlash = document.getElementById('missFlash');
@@ -729,8 +749,13 @@ async function endGame() {
   paused = false;
   document.getElementById('pauseBtn').style.display = 'none';
   document.getElementById('pauseOverlay').style.display = 'none';
+  const secs = Math.floor(elapsed);
+  const mins = Math.floor(secs / 60);
+  const timeStr = mins > 0 ? `${mins}m ${secs % 60}s` : `${secs}s`;
   document.getElementById('gameoverMsg').textContent =
-    `You caught 💩 ${score} poos before missing ${MAX_MISS}. Speed reached ${speed.toFixed(1)}x!`;
+    `Score: ${score} 💩  ·  Speed: ${speed.toFixed(1)}x`;
+  document.getElementById('gameoverTime').textContent =
+    `⏱ Survived ${timeStr} — earning ${secs} bonus point${secs !== 1 ? 's' : ''}!`;
 
   show('gameoverScreen');
   hide('newHighScoreEntry');
