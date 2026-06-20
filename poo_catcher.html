@@ -216,7 +216,7 @@
   </div>
   <div class="hud-box">
     <div class="hud-label">💩 Missed</div>
-    <div class="hud-value" id="missCount">0 / 100</div>
+    <div class="hud-value" id="missCount">0 / 50</div>
   </div>
 </div>
 
@@ -224,7 +224,7 @@
 <div class="screen" id="startScreen">
   <div class="screen-emoji">💩</div>
   <div class="screen-title">Poo Catcher</div>
-  <p class="screen-sub">Catch the falling poos — big ones are worth 5 pts!<br>Miss 100 and it's game over. 💀</p>
+  <p class="screen-sub">Catch the 💩 poos — big ones worth 5 pts!<br>Catch the 🚽 toilet for +10 lives.<br>Miss 50 and it's game over. 💀</p>
 
   <div class="leaderboard" id="startLeaderboard"></div>
 
@@ -391,13 +391,14 @@ let bucketW, bucketH;
 let lastTime     = 0;
 let spawnTimer   = 0;
 let spawnInterval= 1200;    // ms between spawns
-const MAX_MISS   = 100;
+const MAX_MISS   = 50;
 
 // base drop speed in px/s at speed=1 (displayed as 1x, but 50% faster than original)
 const BASE_SPEED = 270;
 const POO_SIZE   = 44;      // font size for emoji
 const BIG_POO_SIZE = 72;    // big poo emoji size
-const BIG_POO_CHANCE = 0.12; // 12% chance each spawn is a big poo
+const BIG_POO_CHANCE  = 0.12; // 12% chance each spawn is a big poo
+const TOILET_CHANCE   = 0.06; // 6% chance each spawn is a toilet (+10 lives)
 
 // ── Input: mouse + touch
 let inputX = null;
@@ -464,16 +465,19 @@ function update(dt) {
   spawnTimer += dt * 1000;
   if (spawnTimer >= spawnInterval) {
     spawnTimer = 0;
-    const big = Math.random() < BIG_POO_CHANCE;
-    const sz  = big ? BIG_POO_SIZE : POO_SIZE;
+    const roll = Math.random();
+    const isToilet = roll < TOILET_CHANCE;
+    const isBig    = !isToilet && roll < TOILET_CHANCE + BIG_POO_CHANCE;
+    const sz = isBig ? BIG_POO_SIZE : POO_SIZE;
     poos.push({
       x: sz/2 + Math.random() * (W - sz),
       y: -sz,
-      vy: BASE_SPEED * speed * (big ? 0.75 : 1),
+      vy: BASE_SPEED * speed * (isBig ? 0.75 : isToilet ? 0.6 : 1),
       wobble: Math.random() * Math.PI * 2,
-      big,
+      big: isBig,
+      toilet: isToilet,
       size: sz,
-      points: big ? 5 : 1,
+      points: isBig ? 5 : 1,
     });
   }
 
@@ -495,9 +499,13 @@ function update(dt) {
     ) {
       spawnParticles(p.x, p.y);
       poos.splice(i, 1);
-      score += p.points;
-      catchCount++;
-      increaseSpeed();
+      if (p.toilet) {
+        missed = Math.max(0, missed - 10);
+      } else {
+        score += p.points;
+        catchCount++;
+        increaseSpeed();
+      }
       updateHUD();
       continue;
     }
@@ -562,23 +570,29 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // poos
+  // poos + toilets
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
   for (const p of poos) {
+    ctx.save();
     if (p.big) {
-      ctx.save();
-      ctx.shadowColor  = '#f5d769';
-      ctx.shadowBlur   = 18;
+      ctx.shadowColor = '#f5d769';
+      ctx.shadowBlur  = 18;
+    } else if (p.toilet) {
+      ctx.shadowColor = '#2ecc71';
+      ctx.shadowBlur  = 22;
     }
     ctx.font = `${p.size}px serif`;
-    ctx.fillText('💩', p.x, p.y);
+    ctx.fillText(p.toilet ? '🚽' : '💩', p.x, p.y);
+    ctx.restore();
     if (p.big) {
-      ctx.restore();
-      // +5 label above big poo
       ctx.font = 'bold 13px sans-serif';
       ctx.fillStyle = '#f5d769';
       ctx.fillText('+5', p.x, p.y - p.size/2 - 6);
+    } else if (p.toilet) {
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillStyle = '#2ecc71';
+      ctx.fillText('+10 lives', p.x, p.y - p.size/2 - 6);
     }
   }
 
