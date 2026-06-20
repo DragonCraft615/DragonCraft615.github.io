@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>💩 Poo Catcher</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1a0a2e;
+    --sky: #0d0520;
+    --gold: #f5d769;
+    --brown: #8B4513;
+    --red: #e74c3c;
+    --green: #2ecc71;
+    --panel: rgba(255,255,255,0.07);
+    --border: rgba(255,255,255,0.12);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #fff;
+    touch-action: none;
+  }
+
+  /* ── CANVAS LAYER ── */
+  #gameCanvas {
+    display: block;
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  /* ── HUD (sits above canvas) ── */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: clamp(8px, 2vw, 16px) clamp(10px, 3vw, 20px);
+    pointer-events: none;
+    z-index: 10;
+  }
+  .hud-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 6px 14px;
+    text-align: center;
+    min-width: 70px;
+  }
+  .hud-label {
+    font-size: clamp(9px, 1.8vw, 12px);
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .hud-value {
+    font-size: clamp(18px, 4vw, 28px);
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  #missCount { color: var(--red); }
+  #scoreVal  { color: var(--gold); }
+  #speedVal  { color: #a0d8ef; }
+
+  /* ── OVERLAY SCREENS ── */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(10,4,22,0.92);
+    z-index: 20;
+    padding: 20px;
+    text-align: center;
+  }
+  .screen.hidden { display: none; }
+
+  .screen-emoji { font-size: clamp(60px, 15vw, 100px); line-height: 1; margin-bottom: 12px; }
+  .screen-title {
+    font-size: clamp(28px, 7vw, 52px);
+    font-weight: 900;
+    background: linear-gradient(135deg, #f5d769, #f5a623, #ff6b1a);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+  .screen-sub {
+    font-size: clamp(13px, 2.5vw, 17px);
+    color: rgba(255,255,255,0.6);
+    max-width: 380px;
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+
+  /* leaderboard panel */
+  .leaderboard {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 20px;
+    width: 100%;
+    max-width: 380px;
+    margin-bottom: 20px;
+  }
+  .lb-title {
+    font-size: clamp(11px, 2vw, 14px);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .lb-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: clamp(13px, 2.5vw, 16px);
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank { color: rgba(255,255,255,0.4); width: 24px; }
+  .lb-name { flex: 1; padding: 0 8px; text-align: left; }
+  .lb-score { font-weight: 700; color: var(--gold); }
+  .lb-empty { color: rgba(255,255,255,0.3); font-style: italic; font-size: 13px; padding: 8px 0; }
+
+  /* name entry */
+  .name-entry {
+    background: var(--panel);
+    border: 1px solid var(--gold);
+    border-radius: 16px;
+    padding: 16px 20px;
+    width: 100%;
+    max-width: 380px;
+    margin-bottom: 20px;
+  }
+  .name-entry p {
+    font-size: clamp(13px, 2.5vw, 16px);
+    margin-bottom: 10px;
+    color: var(--gold);
+    font-weight: 600;
+  }
+  .name-entry input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    font-size: clamp(15px, 3vw, 18px);
+    outline: none;
+    margin-bottom: 10px;
+  }
+  .name-entry input:focus { border-color: var(--gold); }
+
+  /* buttons */
+  .btn {
+    display: inline-block;
+    padding: clamp(12px,3vw,16px) clamp(28px,6vw,44px);
+    border-radius: 14px;
+    border: none;
+    font-size: clamp(15px, 3.5vw, 20px);
+    font-weight: 800;
+    color: #fff;
+    cursor: pointer;
+    background: linear-gradient(135deg, #f5a623, #e74c3c);
+    box-shadow: 0 4px 20px rgba(245,166,35,0.35);
+    transition: transform 0.1s, box-shadow 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    margin: 4px;
+  }
+  .btn:active { transform: scale(0.96); box-shadow: 0 2px 10px rgba(245,166,35,0.2); }
+  .btn-secondary {
+    background: rgba(255,255,255,0.1);
+    box-shadow: none;
+    font-size: clamp(13px, 2.5vw, 16px);
+  }
+
+  /* miss-flash overlay */
+  #missFlash {
+    position: absolute;
+    inset: 0;
+    background: rgba(231,76,60,0.25);
+    pointer-events: none;
+    z-index: 15;
+    opacity: 0;
+    transition: opacity 0.05s;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div id="missFlash"></div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-box">
+    <div class="hud-label">Score</div>
+    <div class="hud-value" id="scoreVal">0</div>
+  </div>
+  <div class="hud-box">
+    <div class="hud-label">Speed</div>
+    <div class="hud-value" id="speedVal">1x</div>
+  </div>
+  <div class="hud-box">
+    <div class="hud-label">💩 Missed</div>
+    <div class="hud-value" id="missCount">0 / 50</div>
+  </div>
+</div>
+
+<!-- START SCREEN -->
+<div class="screen" id="startScreen">
+  <div class="screen-emoji">💩</div>
+  <div class="screen-title">Poo Catcher</div>
+  <p class="screen-sub">Catch the falling poos!<br>Miss 50 and it's game over. 💀</p>
+
+  <div class="leaderboard" id="startLeaderboard"></div>
+
+  <button class="btn" onclick="startGame()">▶ Play</button>
+</div>
+
+<!-- GAME OVER SCREEN -->
+<div class="screen hidden" id="gameoverScreen">
+  <div class="screen-emoji">💀</div>
+  <div class="screen-title">Game Over!</div>
+  <p class="screen-sub" id="gameoverMsg">You missed too many poos!</p>
+
+  <div id="newHighScoreEntry" class="name-entry hidden">
+    <p>🏆 New High Score! Enter your name:</p>
+    <input type="text" id="playerNameInput" maxlength="20" placeholder="Your name..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="btn" onclick="saveHighScore()" style="width:100%;">Save Score</button>
+  </div>
+
+  <div class="leaderboard" id="gameoverLeaderboard"></div>
+
+  <div>
+    <button class="btn" onclick="startGame()">▶ Play Again</button>
+    <button class="btn btn-secondary" onclick="showStart()">🏠 Menu</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  LEADERBOARD  (localStorage, top 10)
+// ─────────────────────────────────────────────
+const LB_KEY = 'poo_catcher_lb_v1';
+const MAX_ENTRIES = 10;
+
+function loadLB() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; }
+  catch { return []; }
+}
+function saveLB(lb) {
+  localStorage.setItem(LB_KEY, JSON.stringify(lb));
+}
+function isHighScore(score) {
+  if (score === 0) return false;
+  const lb = loadLB();
+  if (lb.length < MAX_ENTRIES) return true;
+  return score > lb[lb.length - 1].score;
+}
+function addEntry(name, score) {
+  const lb = loadLB();
+  lb.push({ name: name.trim() || 'Anonymous', score });
+  lb.sort((a, b) => b.score - a.score);
+  if (lb.length > MAX_ENTRIES) lb.length = MAX_ENTRIES;
+  saveLB(lb);
+}
+function renderLB(containerId) {
+  const el = document.getElementById(containerId);
+  const lb = loadLB();
+  const medals = ['🥇','🥈','🥉'];
+  if (lb.length === 0) {
+    el.innerHTML = `<div class="lb-title">🏆 Leaderboard</div><div class="lb-empty">No scores yet — be the first!</div>`;
+    return;
+  }
+  const rows = lb.slice(0, MAX_ENTRIES).map((e, i) => `
+    <div class="lb-row">
+      <span class="lb-rank">${medals[i] || (i+1)}</span>
+      <span class="lb-name">${escHtml(e.name)}</span>
+      <span class="lb-score">💩 ${e.score}</span>
+    </div>`).join('');
+  el.innerHTML = `<div class="lb-title">🏆 Leaderboard</div>${rows}`;
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─────────────────────────────────────────────
+//  CANVAS / GAME ENGINE
+// ─────────────────────────────────────────────
+const canvas = document.getElementById('gameCanvas');
+const ctx    = canvas.getContext('2d');
+
+let W, H;
+function resize() {
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ── Game state
+let gameRunning  = false;
+let score        = 0;
+let missed       = 0;
+let speed        = 1;       // multiplier
+let catchCount   = 0;
+let poos         = [];
+let bucketX      = 0;
+let bucketW, bucketH;
+let lastTime     = 0;
+let spawnTimer   = 0;
+let spawnInterval= 1200;    // ms between spawns
+const MAX_MISS   = 50;
+
+// base drop speed in px/s at speed=1
+const BASE_SPEED = 180;
+const POO_SIZE   = 44;      // font size for emoji
+
+// ── Input: mouse + touch
+let inputX = null;
+
+canvas.addEventListener('mousemove', e => { if (gameRunning) inputX = e.clientX; });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); if (gameRunning) inputX = e.touches[0].clientX; }, { passive: false });
+canvas.addEventListener('touchmove',  e => { e.preventDefault(); if (gameRunning) inputX = e.touches[0].clientX; }, { passive: false });
+
+// ── Particles
+let particles = [];
+function spawnParticles(x, y) {
+  for (let i = 0; i < 8; i++) {
+    const angle = (Math.PI * 2 / 8) * i + (Math.random() - 0.5) * 0.4;
+    const spd   = 60 + Math.random() * 100;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * spd,
+      vy: Math.sin(angle) * spd - 60,
+      life: 1,
+      size: 8 + Math.random() * 8,
+    });
+  }
+}
+
+// ─────────────────────────────────────────────
+//  GAME LOOP
+// ─────────────────────────────────────────────
+function startGame() {
+  hide('startScreen'); hide('gameoverScreen');
+  score       = 0;
+  missed      = 0;
+  speed       = 1;
+  catchCount  = 0;
+  poos        = [];
+  particles   = [];
+  spawnTimer  = 0;
+  spawnInterval = 1200;
+  bucketW     = Math.min(W * 0.22, 120);
+  bucketH     = bucketW * 0.55;
+  bucketX     = W / 2;
+  inputX      = W / 2;
+  updateHUD();
+  gameRunning = true;
+  lastTime    = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function loop(now) {
+  if (!gameRunning) return;
+  const dt = Math.min((now - lastTime) / 1000, 0.1);
+  lastTime = now;
+
+  update(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function update(dt) {
+  // smooth bucket to input
+  const target = clamp((inputX ?? bucketX), bucketW / 2, W - bucketW / 2);
+  bucketX += (target - bucketX) * Math.min(1, dt * 18);
+
+  // spawn
+  spawnTimer += dt * 1000;
+  if (spawnTimer >= spawnInterval) {
+    spawnTimer = 0;
+    poos.push({
+      x: POO_SIZE/2 + Math.random() * (W - POO_SIZE),
+      y: -POO_SIZE,
+      vy: BASE_SPEED * speed,
+      wobble: Math.random() * Math.PI * 2,
+    });
+  }
+
+  // update poos
+  for (let i = poos.length - 1; i >= 0; i--) {
+    const p = poos[i];
+    p.y  += p.vy * dt;
+    p.wobble += dt * 3;
+    p.x  += Math.sin(p.wobble) * 0.6;
+
+    const bucketTop = H - bucketH - 10;
+    // catch check
+    if (
+      p.y + POO_SIZE/2 >= bucketTop &&
+      p.y - POO_SIZE/2 <= H - 10 &&
+      p.x >= bucketX - bucketW/2 - POO_SIZE/3 &&
+      p.x <= bucketX + bucketW/2 + POO_SIZE/3
+    ) {
+      spawnParticles(p.x, p.y);
+      poos.splice(i, 1);
+      score++;
+      catchCount++;
+      increaseSpeed();
+      updateHUD();
+      continue;
+    }
+
+    // missed
+    if (p.y > H + POO_SIZE) {
+      poos.splice(i, 1);
+      missed++;
+      updateHUD();
+      flashMiss();
+      if (missed >= MAX_MISS) { endGame(); return; }
+    }
+  }
+
+  // particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x    += p.vx * dt;
+    p.y    += p.vy * dt;
+    p.vy   += 200 * dt;
+    p.life -= dt * 2;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function increaseSpeed() {
+  // speed ramps: every catch adds a tiny bit, capped at 6x
+  speed = Math.min(6, 1 + catchCount * 0.04);
+  // spawn interval shrinks
+  spawnInterval = Math.max(300, 1200 - catchCount * 18);
+}
+
+// ─────────────────────────────────────────────
+//  DRAWING
+// ─────────────────────────────────────────────
+function draw() {
+  ctx.clearRect(0, 0, W, H);
+
+  // sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#0d0520');
+  sky.addColorStop(1, '#1a0a2e');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  // stars (static, cheap)
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  for (let i = 0; i < 40; i++) {
+    // deterministic positions using index as seed
+    const sx = ((i * 137.5) % W);
+    const sy = ((i * 97.3)  % (H * 0.7));
+    ctx.fillRect(sx, sy, 1.5, 1.5);
+  }
+
+  // particles
+  for (const p of particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle   = '#f5d769';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // poos
+  ctx.font = `${POO_SIZE}px serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  for (const p of poos) {
+    ctx.fillText('💩', p.x, p.y);
+  }
+
+  // bucket
+  drawBucket(bucketX, H - bucketH - 10, bucketW, bucketH);
+
+  // ground line
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, H - 8); ctx.lineTo(W, H - 8);
+  ctx.stroke();
+}
+
+function drawBucket(cx, y, w, h) {
+  const x = cx - w / 2;
+  // trapezoid shape
+  const rim = w * 0.08;
+  ctx.beginPath();
+  ctx.moveTo(x + rim,     y);
+  ctx.lineTo(x + w - rim, y);
+  ctx.lineTo(x + w,       y + h);
+  ctx.lineTo(x,           y + h);
+  ctx.closePath();
+
+  // bucket body gradient
+  const grad = ctx.createLinearGradient(x, y, x + w, y);
+  grad.addColorStop(0,   '#5a3010');
+  grad.addColorStop(0.4, '#8B4513');
+  grad.addColorStop(1,   '#5a3010');
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // rim highlight
+  ctx.strokeStyle = '#c0722a';
+  ctx.lineWidth   = 3;
+  ctx.stroke();
+
+  // handle arcs
+  ctx.strokeStyle = '#a0601e';
+  ctx.lineWidth   = 4;
+  ctx.beginPath();
+  ctx.arc(cx, y - h * 0.2, w * 0.3, Math.PI, 0);
+  ctx.stroke();
+}
+
+// ─────────────────────────────────────────────
+//  HUD + EFFECTS
+// ─────────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('scoreVal').textContent  = score;
+  document.getElementById('missCount').textContent = `${missed} / ${MAX_MISS}`;
+  document.getElementById('speedVal').textContent  = speed.toFixed(1) + 'x';
+}
+
+const missFlash = document.getElementById('missFlash');
+let flashTO = null;
+function flashMiss() {
+  missFlash.style.opacity = '1';
+  if (flashTO) clearTimeout(flashTO);
+  flashTO = setTimeout(() => missFlash.style.opacity = '0', 180);
+}
+
+// ─────────────────────────────────────────────
+//  GAME OVER
+// ─────────────────────────────────────────────
+function endGame() {
+  gameRunning = false;
+  document.getElementById('gameoverMsg').textContent =
+    `You caught 💩 ${score} poos before missing ${MAX_MISS}. Speed reached ${speed.toFixed(1)}x!`;
+
+  renderLB('gameoverLeaderboard');
+
+  const entry = document.getElementById('newHighScoreEntry');
+  if (isHighScore(score)) {
+    show(entry);
+    document.getElementById('playerNameInput').value = '';
+    setTimeout(() => document.getElementById('playerNameInput').focus(), 300);
+  } else {
+    hide(entry);
+  }
+
+  show('gameoverScreen');
+}
+
+function saveHighScore() {
+  const name = document.getElementById('playerNameInput').value.trim() || 'Anonymous';
+  addEntry(name, score);
+  hide('newHighScoreEntry');
+  renderLB('gameoverLeaderboard');
+}
+
+// allow Enter key in name field
+document.getElementById('playerNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveHighScore();
+});
+
+// ─────────────────────────────────────────────
+//  SCREENS
+// ─────────────────────────────────────────────
+function showStart() {
+  gameRunning = false;
+  renderLB('startLeaderboard');
+  show('startScreen');
+  hide('gameoverScreen');
+}
+
+function show(id) {
+  const el = typeof id === 'string' ? document.getElementById(id) : id;
+  el.classList.remove('hidden');
+}
+function hide(id) {
+  const el = typeof id === 'string' ? document.getElementById(id) : id;
+  el.classList.add('hidden');
+}
+
+// ─────────────────────────────────────────────
+//  UTILS
+// ─────────────────────────────────────────────
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+renderLB('startLeaderboard');
+</script>
+</body>
+</html>
