@@ -253,40 +253,94 @@
 
 <script>
 // ─────────────────────────────────────────────
-//  LEADERBOARD  (localStorage, top 10)
+//  SUPABASE CONFIG
+//  ── SETUP (one-time, ~5 minutes) ────────────
+//  1. Create a free account at https://supabase.com
+//  2. Create a new project (any name/region)
+//  3. Go to SQL Editor and run this:
+//
+//     create table leaderboard (
+//       id    bigint generated always as identity primary key,
+//       name  text   not null,
+//       score int    not null,
+//       created_at timestamptz default now()
+//     );
+//     alter table leaderboard enable row level security;
+//     create policy "public read"   on leaderboard for select using (true);
+//     create policy "public insert" on leaderboard for insert with check (true);
+//
+//  4. Go to Project Settings → API
+//     Copy "Project URL" → paste below as SUPABASE_URL
+//     Copy "anon public" key → paste below as SUPABASE_ANON_KEY
 // ─────────────────────────────────────────────
-const LB_KEY = 'poo_catcher_lb_v1';
+const SUPABASE_URL      = 'https://itambawedmpcxafjxznf.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_irXIIBBpSgm_3E1o-YKi8A_6g_ljE3p';
+const CONFIGURED = SUPABASE_URL !== 'YOUR_SUPABASE_URL';
+
 const MAX_ENTRIES = 10;
 
-function loadLB() {
-  try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; }
-  catch { return []; }
+// In-memory cache of the fetched leaderboard
+let lbCache = [];
+
+async function fetchLB() {
+  if (!CONFIGURED) return [];
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/leaderboard?select=name,score&order=score.desc&limit=${MAX_ENTRIES}`,
+      { headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` } }
+    );
+    if (!res.ok) throw new Error(res.statusText);
+    return await res.json();
+  } catch (e) {
+    console.warn('Leaderboard fetch failed:', e);
+    return [];
+  }
 }
-function saveLB(lb) {
-  localStorage.setItem(LB_KEY, JSON.stringify(lb));
+
+async function postEntry(name, score) {
+  if (!CONFIGURED) return;
+  try {
+    await fetch(
+      `${SUPABASE_URL}/rest/v1/leaderboard`,
+      {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ name, score }),
+      }
+    );
+  } catch (e) {
+    console.warn('Score save failed:', e);
+  }
 }
+
 function isHighScore(score) {
   if (score === 0) return false;
-  const lb = loadLB();
-  if (lb.length < MAX_ENTRIES) return true;
-  return score > lb[lb.length - 1].score;
+  if (!CONFIGURED) return false;
+  if (lbCache.length < MAX_ENTRIES) return true;
+  return score > lbCache[lbCache.length - 1].score;
 }
-function addEntry(name, score) {
-  const lb = loadLB();
-  lb.push({ name: name.trim() || 'Anonymous', score });
-  lb.sort((a, b) => b.score - a.score);
-  if (lb.length > MAX_ENTRIES) lb.length = MAX_ENTRIES;
-  saveLB(lb);
-}
-function renderLB(containerId) {
+
+async function renderLB(containerId) {
   const el = document.getElementById(containerId);
-  const lb = loadLB();
+  el.innerHTML = `<div class="lb-title">🏆 Leaderboard</div><div class="lb-empty">Loading…</div>`;
+
+  if (!CONFIGURED) {
+    el.innerHTML = `<div class="lb-title">🏆 Leaderboard</div><div class="lb-empty">⚙️ Add your Supabase keys to enable the global leaderboard.</div>`;
+    return;
+  }
+
+  lbCache = await fetchLB();
   const medals = ['🥇','🥈','🥉'];
-  if (lb.length === 0) {
+  if (lbCache.length === 0) {
     el.innerHTML = `<div class="lb-title">🏆 Leaderboard</div><div class="lb-empty">No scores yet — be the first!</div>`;
     return;
   }
-  const rows = lb.slice(0, MAX_ENTRIES).map((e, i) => `
+  const rows = lbCache.map((e, i) => `
     <div class="lb-row">
       <span class="lb-rank">${medals[i] || (i+1)}</span>
       <span class="lb-name">${escHtml(e.name)}</span>
@@ -294,6 +348,7 @@ function renderLB(containerId) {
     </div>`).join('');
   el.innerHTML = `<div class="lb-title">🏆 Leaderboard</div>${rows}`;
 }
+
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -558,12 +613,15 @@ function flashMiss() {
 // ─────────────────────────────────────────────
 //  GAME OVER
 // ─────────────────────────────────────────────
-function endGame() {
+async function endGame() {
   gameRunning = false;
   document.getElementById('gameoverMsg').textContent =
     `You caught 💩 ${score} poos before missing ${MAX_MISS}. Speed reached ${speed.toFixed(1)}x!`;
 
-  renderLB('gameoverLeaderboard');
+  show('gameoverScreen');
+  hide('newHighScoreEntry');
+
+  await renderLB('gameoverLeaderboard');
 
   const entry = document.getElementById('newHighScoreEntry');
   if (isHighScore(score)) {
@@ -573,15 +631,16 @@ function endGame() {
   } else {
     hide(entry);
   }
-
-  show('gameoverScreen');
 }
 
-function saveHighScore() {
+async function saveHighScore() {
+  const btn  = document.querySelector('#newHighScoreEntry .btn');
   const name = document.getElementById('playerNameInput').value.trim() || 'Anonymous';
-  addEntry(name, score);
+  btn.textContent = 'Saving…';
+  btn.disabled = true;
+  await postEntry(name, score);
   hide('newHighScoreEntry');
-  renderLB('gameoverLeaderboard');
+  await renderLB('gameoverLeaderboard');
 }
 
 // allow Enter key in name field
@@ -592,11 +651,11 @@ document.getElementById('playerNameInput').addEventListener('keydown', e => {
 // ─────────────────────────────────────────────
 //  SCREENS
 // ─────────────────────────────────────────────
-function showStart() {
+async function showStart() {
   gameRunning = false;
-  renderLB('startLeaderboard');
   show('startScreen');
   hide('gameoverScreen');
+  await renderLB('startLeaderboard');
 }
 
 function show(id) {
