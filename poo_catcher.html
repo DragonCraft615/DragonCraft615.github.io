@@ -282,6 +282,7 @@
   <div id="newHighScoreEntry" class="name-entry hidden">
     <p>🏆 New High Score! Enter your name:</p>
     <input type="text" id="playerNameInput" maxlength="20" placeholder="Your name..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <p id="scoreSaveError" style="color:#e74c3c;font-size:13px;margin-top:6px;display:none;"></p>
     <button class="btn" onclick="saveHighScore()" style="width:100%;">Save Score</button>
   </div>
 
@@ -341,7 +342,7 @@ async function fetchLB() {
 }
 
 async function postEntry(name, score) {
-  if (!CONFIGURED) return;
+  if (!CONFIGURED) return { ok: true };
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/leaderboard`,
@@ -358,10 +359,11 @@ async function postEntry(name, score) {
     );
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      console.error('Score save failed:', body.message || res.statusText);
+      return { ok: false, msg: body.message || `Server error ${res.status}` };
     }
+    return { ok: true };
   } catch (e) {
-    console.error('Score save failed:', e.message);
+    return { ok: false, msg: 'Network error — check your connection' };
   }
 }
 
@@ -774,11 +776,20 @@ async function endGame() {
 }
 
 async function saveHighScore() {
-  const btn  = document.querySelector('#newHighScoreEntry .btn');
-  const name = document.getElementById('playerNameInput').value.trim() || 'Anonymous';
+  const btn    = document.querySelector('#newHighScoreEntry .btn');
+  const errEl  = document.getElementById('scoreSaveError');
+  const name   = document.getElementById('playerNameInput').value.trim() || 'Anonymous';
   btn.textContent = 'Saving…';
   btn.disabled = true;
-  await postEntry(name, score);
+  errEl.style.display = 'none';
+  const result = await postEntry(name, score);
+  if (!result.ok) {
+    errEl.textContent = '⚠️ ' + result.msg + ' — please try again';
+    errEl.style.display = 'block';
+    btn.textContent = 'Save Score';
+    btn.disabled = false;
+    return;
+  }
   hide('newHighScoreEntry');
   await renderLB('gameoverLeaderboard');
 }
