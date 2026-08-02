@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MgSiO₃ Lattice-Dynamics Engine — after Jackson (2009)</title>
+<link rel="stylesheet" href="/ui/style.css">
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">After Jackson (2009) · Durham MPhys · Modernised 2026</div>
+  <h1>MgSiO₃ <b>Lattice-Dynamics Engine</b></h1>
+  <p>The downstream half of the thesis pipeline, running live: dynamical matrix → phonons →
+     quantum-harmonic thermodynamics → seismic velocities → lower-mantle depth profile.
+     Force constants calibrated so the model reproduces the thesis results at ambient conditions.</p>
+</header>
+
+<div id="cond">
+  <label>Pressure
+    <input type="range" id="P" min="0" max="120" step="1" value="0">
+    <span class="val mono" id="Pv">0 GPa</span></label>
+  <label>Temperature
+    <input type="range" id="T" min="10" max="3000" step="10" value="300">
+    <span class="val mono" id="Tv">300 K</span></label>
+  <div class="derived mono">
+    <span>a = <b id="aV">–</b></span>
+    <span>V = <b id="vV">–</b></span>
+    <span>ρ = <b id="rV">–</b></span>
+  </div>
+  <div class="progress mono" id="progress">computing…</div>
+</div>
+
+<div class="wrap">
+<nav id="nav"></nav>
+<main id="main">
+
+  <section class="stage" id="st0">
+    <h2>Unit cell &amp; compression</h2>
+    <div class="sub">Idealised Phase-1 cell: Mg on corners, Si centred in its O₆ octahedron.
+      Pressure enters through the lattice parameter — the quadratic compression model fitted
+      in thesis §4.5 — and everything downstream inherits it.</div>
+    <div style="display:flex; gap:0; border:1px solid var(--line); background:#fff">
+      <div id="cell3d" style="width:640px; height:380px; flex:none"></div>
+      <canvas id="compCv" class="plot" width="320" height="380" style="border:0; border-left:1px solid var(--line)"></canvas>
+    </div>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">Lattice parameter</div><div class="v mono" id="c_a">–</div><div class="u">Å (cubic)</div></div>
+      <div class="card"><div class="k eyebrow">Cell volume</div><div class="v mono" id="c_v">–</div><div class="u">Å³ · thesis fig 4.8 fit</div></div>
+      <div class="card"><div class="k eyebrow">Density</div><div class="v mono" id="c_r">–</div><div class="u">g/cm³ · thesis fig 4.10 ≈ 4.15→5.4</div></div>
+      <div class="card"><div class="k eyebrow">Force-constant scaling</div><div class="v mono" id="c_s">–</div><div class="u">(V₀/V)<sup>2γ</sup>, mode-Grüneisen γ below</div></div>
+    </div>
+    <div class="ctl">Grüneisen γ
+      <input type="range" id="gam" min="0.6" max="2.2" step="0.05" value="1.4">
+      <span class="mono" id="gamv">1.40</span>
+      <span style="color:var(--ink-soft)">— how stiffly the springs respond to compression</span>
+    </div>
+  </section>
+
+  <section class="stage" id="st1">
+    <h2>Phonon dispersion</h2>
+    <div class="sub">Fifteen branches of the dynamical matrix along Γ–X–M–Γ–R. Drag the
+      octahedral shear stiffness below zero and watch branches dive imaginary at X — the exact
+      saddle-point signature that told the thesis Phase 1 was not the ground state. Click a
+      branch to animate its ion motion below.</div>
+    <canvas id="dispCv" class="plot" width="960" height="440"></canvas>
+    <div class="ctl">Octahedral shear stiffness B(O–O)
+      <input type="range" id="boo" min="-20" max="8" step="0.25" value="3">
+      <span class="mono" id="boov">3.00 N/m</span>
+    </div>
+    <div class="warn" id="saddle">Imaginary frequencies detected — this structure sits on a
+      saddle point. Thesis prescription (§3.5.2): perturb the ions along the unstable mode
+      and re-optimise the geometry.</div>
+    <div class="warn ok show" id="stable">All frequencies real — structure is dynamically stable
+      at these conditions.</div>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">ν max</div><div class="v mono" id="d_max">–</div><div class="u">cm⁻¹</div></div>
+      <div class="card"><div class="k eyebrow">Imaginary fraction</div><div class="v mono" id="d_im">–</div><div class="u">of sampled modes (thesis §4.4: &lt; 1/5000 for Phase 4)</div></div>
+    </div>
+    <div class="note" id="modeHint">Click a branch above to animate its ion motion.</div>
+    <div id="modePanel" style="display:none; border:1px solid var(--line); background:#fff; margin-top:8px">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid var(--line)">
+        <div class="mono" id="modeInfo" style="font-size:12.5px">–</div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <button id="modePlay" class="mono" style="font:inherit; padding:3px 10px; cursor:pointer">⏸</button>
+          <label class="mono" style="font-size:11.5px; display:flex; align-items:center; gap:6px">amplitude
+            <input type="range" id="modeAmp" min="0.1" max="1.2" step="0.05" value="0.5" style="width:110px; accent-color:var(--amber)">
+          </label>
+        </div>
+      </div>
+      <div id="mode3d" style="width:100%; height:360px"></div>
+    </div>
+  </section>
+
+  <section class="stage" id="st2">
+    <h2>Phonon density of states</h2>
+    <div class="sub">Frequencies gathered over a shifted Monkhorst–Pack grid, Gaussian-smeared.
+      Imaginary modes plot at negative ν and shade red — the convention of thesis fig 4.2(a).</div>
+    <canvas id="dosCv" class="plot" width="960" height="400"></canvas>
+    <div class="ctl">MP grid
+      <select id="mp"><option>4</option><option selected>6</option><option>8</option><option>10</option><option>12</option></select>
+      <span class="mono" id="mpN">–</span>
+      <span style="color:var(--ink-soft)">q-points · convergence vs cost, thesis §3.1</span>
+    </div>
+  </section>
+
+  <section class="stage" id="st3">
+    <h2>Thermodynamics</h2>
+    <div class="sub">The modernised physics: full quantum-harmonic partition function per mode,
+      analytic derivatives — no finite differences, no saturating z. Heat capacity now climbs
+      to the Dulong–Petit limit exactly as §5.4 promised.</div>
+    <canvas id="thCv" class="plot" width="960" height="430"></canvas>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">F (Helmholtz)</div><div class="v mono" id="t_f">–</div><div class="u">kJ/mol, incl. zero-point</div></div>
+      <div class="card"><div class="k eyebrow">H = U + PV</div><div class="v mono" id="t_h">–</div><div class="u">kJ/mol</div></div>
+      <div class="card"><div class="k eyebrow">S</div><div class="v mono" id="t_s">–</div><div class="u">J/K/mol · thesis @300 K: 56</div></div>
+      <div class="card"><div class="k eyebrow">C<sub>V</sub></div><div class="v mono" id="t_c">–</div><div class="u">J/K/mol · thesis @300 K: 78 · 3Nk<sub>B</sub> = 124.7</div></div>
+    </div>
+  </section>
+
+  <section class="stage" id="st4">
+    <h2>Seismic velocities &amp; impedance</h2>
+    <div class="sub">Acoustic-branch slopes at Γ, orientation-averaged over [100], [110], [111]
+      (thesis §3.5.3–3.5.4), with the semi-empirical temperature softening of eqs 3.10–3.11.
+      Diamonds mark the thesis Table 8.1 values at 0 GPa, 300 K.</div>
+    <canvas id="seiCv" class="plot" width="960" height="430"></canvas>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">V<sub>P</sub></div><div class="v mono" id="s_p">–</div><div class="u">km/s · thesis 10.1 ± 0.3</div></div>
+      <div class="card"><div class="k eyebrow">V<sub>S</sub></div><div class="v mono" id="s_s">–</div><div class="u">km/s · thesis 6.32 ± 0.2</div></div>
+      <div class="card"><div class="k eyebrow">Z₀ = ρV<sub>P</sub></div><div class="v mono" id="s_z">–</div><div class="u">thesis units · thesis 44 ± 1</div></div>
+    </div>
+  </section>
+
+  <section class="stage" id="st5">
+    <h2>Lower-mantle depth profile</h2>
+    <div class="sub">Depth below mud line mapped to (P, T) with the linearised Burns (1993) /
+      Matas et al. (2005) conversions of thesis fig 4.9: 670 km → 24 GPa, 1900 K;
+      2891 km → 136 GPa, 2900 K. The thesis's headline predictions, recomputed live.</div>
+    <canvas id="depCv" class="plot" width="960" height="460"></canvas>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">ΔV<sub>P</sub> through mantle</div><div class="v mono" id="dp_p">–</div><div class="u">thesis: +21%</div></div>
+      <div class="card"><div class="k eyebrow">ΔV<sub>S</sub></div><div class="v mono" id="dp_s">–</div><div class="u">thesis: +11%</div></div>
+      <div class="card"><div class="k eyebrow">ΔZ₀</div><div class="v mono" id="dp_z">–</div><div class="u">thesis: +52%</div></div>
+      <div class="card"><div class="k eyebrow">Δρ</div><div class="v mono" id="dp_r">–</div><div class="u">thesis: +26%</div></div>
+    </div>
+    <div class="note">Model, not measurement: an axially-symmetric force-constant model sits where
+      CASTEP's DFPT force constants would in the full pipeline. Everything downstream — the
+      eigenproblem, the statistical mechanics, the seismic extraction, the depth mapping — is the
+      thesis method, modernised.</div>
+  </section>
+
+</main>
+</div>
+
+<footer>
+  Engine: real-space force constants → complex Hermitian D(q) (2N real embedding, Jacobi) →
+  signed ω → QHO ensemble. v2: Vite + TypeScript, engine off the main thread in a Web Worker,
+  polarisation vectors returned alongside eigenvalues. Z₀ shown in the thesis's own unit
+  convention (ρ[g/cm³]·V<sub>P</sub>[km/s]) for direct comparison with Table 8.1.
+</footer>
+
+<script type="module" src="/ui/main.ts"></script>
+</body>
+</html>
