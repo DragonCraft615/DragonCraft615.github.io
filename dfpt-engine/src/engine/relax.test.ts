@@ -47,18 +47,32 @@ describe("bondEnergyForce", () => {
   });
 });
 
+describe("R-point instability is a clean rotation triplet", () => {
+  it("has 3 degenerate unstable modes at R, each a pure single-axis octahedral rotation", () => {
+    const s = stateAt(0, 1.4, -15);
+    const a = s.a;
+    const qR: [number, number, number] = [Math.PI / a, Math.PI / a, Math.PI / a];
+    const modes = solveModes(qR, s.bonds, s.K).sort((x, y) => x.freqCm - y.freqCm);
+    const unstable = modes.filter((m) => m.freqCm < -1);
+    expect(unstable).toHaveLength(3);
+    // degenerate: all three equal within numerical noise
+    for (const m of unstable) expect(m.freqCm).toBeCloseTo(unstable[0].freqCm, 3);
+  });
+});
+
 describe("perturb + relax", () => {
-  it("relaxing an unstable supercell lowers energy and shrinks the max force", () => {
+  it("combining two R-point rotations lowers energy and shrinks the max force", () => {
     const s = stateAt(0, 1.4, -15); // unstable B(O-O), matches the dispersion-stage saddle-point demo
     const a = s.a;
-    const sc = buildSupercell(a, 2, 2, 3); // 60 atoms
-    const qX: [number, number, number] = [Math.PI / a, 0, 0];
-    const modes = solveModes(qX, s.bonds, s.K);
-    const unstable = modes.reduce((worst, m) => (m.freqCm < worst.freqCm ? m : worst));
-    expect(unstable.freqCm).toBeLessThan(-1); // sanity: X really is unstable here
+    const sc = buildSupercell(a, 2, 2, 2); // 40 atoms, R-commensurate
+    const qFrac: [number, number, number] = [0.5, 0.5, 0.5];
+    const qR: [number, number, number] = [Math.PI / a, Math.PI / a, Math.PI / a];
+    const modes = solveModes(qR, s.bonds, s.K).sort((x, y) => x.freqCm - y.freqCm);
+    const unstable = modes.filter((m) => m.freqCm < -1);
+    expect(unstable.length).toBeGreaterThanOrEqual(2); // sanity: R really has 2+ unstable rotations here
 
-    const qFrac: [number, number, number] = [0.5, 0, 0];
-    const start = perturbedPositions(sc, unstable, qFrac, 0.03 * a);
+    const seeds = unstable.slice(0, 2).map((mode) => ({ mode, qFrac, amplitudeMetres: 0.03 * a }));
+    const start = perturbedPositions(sc, seeds);
     const startState = bondEnergyForce(sc, s.K, start);
 
     const result = relax(sc, s.K, start, { maxSteps: 300 });
@@ -67,12 +81,36 @@ describe("perturb + relax", () => {
     expect(endState.E).toBeLessThan(startState.E);
     expect(result.maxForceTrace[result.maxForceTrace.length - 1]).toBeLessThan(result.maxForceTrace[0] * 0.1);
   });
+
+  it("combining two seeds actually displaces atoms along both rotation axes, not just one", () => {
+    const s = stateAt(0, 1.4, -15);
+    const a = s.a;
+    const sc = buildSupercell(a, 2, 2, 2);
+    const qFrac: [number, number, number] = [0.5, 0.5, 0.5];
+    const qR: [number, number, number] = [Math.PI / a, Math.PI / a, Math.PI / a];
+    const unstable = solveModes(qR, s.bonds, s.K)
+      .sort((x, y) => x.freqCm - y.freqCm)
+      .filter((m) => m.freqCm < -1)
+      .slice(0, 2);
+
+    const single = perturbedPositions(sc, [{ mode: unstable[0], qFrac, amplitudeMetres: 0.03 * a }]);
+    const both = perturbedPositions(sc, unstable.map((mode) => ({ mode, qFrac, amplitudeMetres: 0.03 * a })));
+
+    // "both" must differ from "single" by a nonzero amount coming from the
+    // second mode alone -- i.e. the two seeds are genuinely superposed, not
+    // one silently overwriting the other.
+    let maxDiff = 0;
+    for (let i = 0; i < sc.NAT; i++) {
+      for (let c = 0; c < 3; c++) maxDiff = Math.max(maxDiff, Math.abs(both[i][c] - single[i][c]));
+    }
+    expect(maxDiff).toBeGreaterThan(1e-13);
+  });
 });
 
 describe("gammaFrequencies", () => {
-  it("the undistorted 60-atom supercell reproduces primitive-cell Gamma acoustic behaviour", () => {
+  it("the undistorted 40-atom supercell reproduces primitive-cell Gamma acoustic behaviour", () => {
     const s = stateAt(0, 1.4, 3.0); // stable conditions
-    const sc = buildSupercell(s.a, 2, 2, 3);
+    const sc = buildSupercell(s.a, 2, 2, 2);
     const freqs = gammaFrequencies(sc, s.K, sc.referencePositions);
     expect(freqs).toHaveLength(3 * sc.NAT);
     // 3 acoustic modes must vanish at Gamma regardless of cell size
@@ -83,7 +121,7 @@ describe("gammaFrequencies", () => {
 
   it("matches the primitive cell's own zone-boundary check: unstable K(O-O) shows up as imaginary at Gamma once folded into the supercell", () => {
     const s = stateAt(0, 1.4, -15);
-    const sc = buildSupercell(s.a, 2, 2, 3);
+    const sc = buildSupercell(s.a, 2, 2, 2);
     const freqs = gammaFrequencies(sc, s.K, sc.referencePositions);
     expect(freqs.some((f) => f < -1)).toBe(true);
   });

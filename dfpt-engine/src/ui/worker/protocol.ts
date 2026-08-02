@@ -151,7 +151,8 @@ export interface RelaxSupercellResponse {
   maxForceTrace: number[];
   converged: boolean;
   steps: number;
-  seedFreqCm: number;
+  /** Frequency of each seed mode combined into the perturbation (cm^-1). */
+  seedFreqsCm: number[];
   qUsed: [number, number, number];
 }
 
