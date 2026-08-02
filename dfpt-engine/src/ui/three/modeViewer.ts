@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { createViewer } from "./scene.ts";
 import { buildCellGroup, ANGSTROM_TO_UNIT, type CellGroup } from "./cellGeometry.ts";
-import { normalisedDisplacements, displacementAt, type ComplexVec3 } from "./displacement.ts";
+import { normalisedDisplacements, displacementAt, type ComplexVec3 } from "../../engine/displacement.ts";
 import type { Mode } from "../../engine/dynamicalMatrix.ts";
 
 const NCELLS = 4;

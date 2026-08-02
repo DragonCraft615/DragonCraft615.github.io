@@ -113,6 +113,61 @@ export interface ModesAtResponse {
   modes: { freqCm: number; vector: { re: number; im: number }[] }[];
 }
 
+export interface Phase4Atom {
+  basisIndex: number;
+  x: number;
+  y: number;
+  z: number;
+}
+export interface BuildSupercellRequest extends Conditions {
+  type: "buildSupercell";
+  nx: number;
+  ny: number;
+  nz: number;
+}
+export interface BuildSupercellResponse {
+  atoms: Phase4Atom[];
+  box: [number, number, number];
+  aAngstrom: number;
+}
+
+export interface RelaxSupercellRequest extends Conditions {
+  type: "relaxSupercell";
+  nx: number;
+  ny: number;
+  nz: number;
+  /** Perturbation amplitude as a fraction of the lattice parameter. */
+  amplitudeFrac: number;
+  maxSteps: number;
+}
+export interface RelaxSupercellResponse {
+  box: [number, number, number];
+  basisIndex: number[];
+  /** Reference (undistorted) atom positions, Angstrom. */
+  referenceAtoms: { x: number; y: number; z: number }[];
+  /** Sampled keyframes of the relaxation trajectory, Angstrom. */
+  keyframes: { x: number; y: number; z: number }[][];
+  energyTrace: number[];
+  maxForceTrace: number[];
+  converged: boolean;
+  steps: number;
+  seedFreqCm: number;
+  qUsed: [number, number, number];
+}
+
+export interface GammaStabilityRequest extends Conditions {
+  type: "gammaStability";
+  nx: number;
+  ny: number;
+  nz: number;
+  /** Positions to check, Angstrom — normally the relaxed result. */
+  positions: { x: number; y: number; z: number }[];
+}
+export interface GammaStabilityResponse {
+  freqs: number[];
+  imFraction: number;
+}
+
 export type WorkerRequestBody =
   | CellRequest
   | DispersionRequest
@@ -122,7 +177,10 @@ export type WorkerRequestBody =
   | SeismicCurveRequest
   | SeismicAtRequest
   | DepthProfileRequest
-  | ModesAtRequest;
+  | ModesAtRequest
+  | BuildSupercellRequest
+  | RelaxSupercellRequest
+  | GammaStabilityRequest;
 
 export type ResponseFor<T extends WorkerRequestBody["type"]> = T extends "cell"
   ? CellResponse
@@ -142,7 +200,13 @@ export type ResponseFor<T extends WorkerRequestBody["type"]> = T extends "cell"
                 ? DepthProfileResponse
                 : T extends "modesAt"
                   ? ModesAtResponse
-                  : never;
+                  : T extends "buildSupercell"
+                    ? BuildSupercellResponse
+                    : T extends "relaxSupercell"
+                      ? RelaxSupercellResponse
+                      : T extends "gammaStability"
+                        ? GammaStabilityResponse
+                        : never;
 
 export interface WorkerRequest {
   id: number;

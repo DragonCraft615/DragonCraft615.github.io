@@ -1,5 +1,5 @@
-import { MASS, AMU } from "../../engine/constants.ts";
-import type { Mode } from "../../engine/dynamicalMatrix.ts";
+import { MASS, AMU } from "./constants.ts";
+import type { Mode } from "./dynamicalMatrix.ts";
 
 export interface ComplexVec3 {
   re: [number, number, number];
@@ -9,8 +9,7 @@ export interface ComplexVec3 {
 /**
  * Un-mass-weight a mode's polarisation vector into per-atom complex
  * displacement directions, then normalise so the most-displaced atom moves
- * by exactly 1 unit — callers scale by a visual amplitude. Purely
- * illustrative (real amplitude depends on temperature/occupation, not shown).
+ * by exactly 1 unit — callers scale by a visual or physical amplitude.
  */
 export function normalisedDisplacements(mode: Mode): ComplexVec3[] {
   const raw: ComplexVec3[] = [];

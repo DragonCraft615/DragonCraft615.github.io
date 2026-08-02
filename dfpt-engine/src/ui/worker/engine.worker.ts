@@ -4,6 +4,10 @@ import { freqs, solveModes } from "../../engine/dynamicalMatrix.ts";
 import { gridFreqs } from "../../engine/grid.ts";
 import { thermo } from "../../engine/thermo.ts";
 import { seismic } from "../../engine/seismic.ts";
+import { buildSupercell, type Supercell, type Vec3 } from "../../engine/supercell.ts";
+import { relax } from "../../engine/relax.ts";
+import { perturbedPositions } from "../../engine/perturb.ts";
+import { gammaFrequencies } from "../../engine/gammaStability.ts";
 import type {
   WorkerRequest,
   WorkerMessage,
@@ -17,6 +21,10 @@ import type {
   SeismicAtResponse,
   DepthProfileResponse,
   ModesAtResponse,
+  BuildSupercellResponse,
+  RelaxSupercellResponse,
+  GammaStabilityResponse,
+  Phase4Atom,
 } from "./protocol.ts";
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -45,6 +53,22 @@ function getGrid(c: Conditions, mp: number): number[] {
     gridCache.set(k, g);
   }
   return g;
+}
+
+const supercellCache = new Map<string, Supercell>();
+function getSupercell(c: Conditions, nx: number, ny: number, nz: number): Supercell {
+  const k = `${key(c)}|${nx}x${ny}x${nz}`;
+  let sc = supercellCache.get(k);
+  if (!sc) {
+    const s = getState(c);
+    sc = buildSupercell(s.a, nx, ny, nz);
+    supercellCache.set(k, sc);
+  }
+  return sc;
+}
+
+function toAngstromAtoms(positions: readonly Vec3[]): { x: number; y: number; z: number }[] {
+  return positions.map((p) => ({ x: p[0] * 1e10, y: p[1] * 1e10, z: p[2] * 1e10 }));
 }
 
 const PATH: { to: [number, number, number]; lab: string }[] = [
@@ -206,6 +230,73 @@ ctx.onmessage = (ev: MessageEvent<WorkerRequest>) => {
         ];
         const modes = solveModes(q, s.bonds, s.K);
         const res: ModesAtResponse = { modes };
+        post(id, res);
+        break;
+      }
+      case "buildSupercell": {
+        const s = getState(body);
+        const sc = getSupercell(body, body.nx, body.ny, body.nz);
+        const atoms: Phase4Atom[] = sc.referencePositions.map((p, i) => ({
+          basisIndex: sc.basisIndex[i],
+          x: p[0] * 1e10,
+          y: p[1] * 1e10,
+          z: p[2] * 1e10,
+        }));
+        const res: BuildSupercellResponse = {
+          atoms,
+          box: [sc.box[0] * 1e10, sc.box[1] * 1e10, sc.box[2] * 1e10],
+          aAngstrom: s.a * 1e10,
+        };
+        post(id, res);
+        break;
+      }
+      case "relaxSupercell": {
+        const s = getState(body);
+        const sc = getSupercell(body, body.nx, body.ny, body.nz);
+        // Condense the most-unstable mode at X — the documented saddle-point
+        // signature (B(O-O) below ~-10 N/m). If nothing's unstable, this just
+        // nudges along X's softest branch and relaxation settles straight back.
+        const qFrac: [number, number, number] = [0.5, 0, 0];
+        const qX: [number, number, number] = [(qFrac[0] * 2 * Math.PI) / s.a, 0, 0];
+        const modes = solveModes(qX, s.bonds, s.K);
+        const seed = modes.reduce((worst, m) => (m.freqCm < worst.freqCm ? m : worst));
+
+        const start = perturbedPositions(sc, seed, qFrac, body.amplitudeFrac * s.a);
+        const KEYFRAME_STRIDE = 8;
+        const keyframes: { x: number; y: number; z: number }[][] = [toAngstromAtoms(start)];
+        const result = relax(sc, s.K, start, {
+          maxSteps: body.maxSteps,
+          onStep: (st) => {
+            if (st.step % KEYFRAME_STRIDE === 0) keyframes.push(toAngstromAtoms(st.positions));
+            if (st.step % 4 === 0) {
+              ctx.postMessage({ kind: "progress", id, done: st.step, total: body.maxSteps } satisfies WorkerMessage);
+            }
+          },
+        });
+        keyframes.push(toAngstromAtoms(result.positions));
+
+        const res: RelaxSupercellResponse = {
+          box: [sc.box[0] * 1e10, sc.box[1] * 1e10, sc.box[2] * 1e10],
+          basisIndex: sc.basisIndex,
+          referenceAtoms: toAngstromAtoms(sc.referencePositions),
+          keyframes,
+          energyTrace: result.energyTrace,
+          maxForceTrace: result.maxForceTrace,
+          converged: result.converged,
+          steps: result.steps,
+          seedFreqCm: seed.freqCm,
+          qUsed: qFrac,
+        };
+        post(id, res);
+        break;
+      }
+      case "gammaStability": {
+        const s = getState(body);
+        const sc = getSupercell(body, body.nx, body.ny, body.nz);
+        const positions: Vec3[] = body.positions.map((p) => [p.x * 1e-10, p.y * 1e-10, p.z * 1e-10]);
+        const freqsGamma = gammaFrequencies(sc, s.K, positions);
+        const nim = freqsGamma.filter((f) => f < -1).length;
+        const res: GammaStabilityResponse = { freqs: freqsGamma, imFraction: nim / freqsGamma.length };
         post(id, res);
         break;
       }
