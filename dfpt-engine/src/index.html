@@ -150,12 +150,14 @@
   </section>
 
   <section class="stage" id="st6">
-    <h2>Phase 1 → Phase 4: supercell relaxation</h2>
-    <div class="sub">A 60-atom supercell (2×2×3 replication of the cubic cell). "Perturb" freezes
-      the unstable X-point mode from the Dispersion stage into it as a real displacement pattern
-      (the standard frozen-phonon trick); "relax" runs steepest descent on a genuinely nonlinear
-      bond energy — bonds resist stretching, not just bending, which is exactly what stabilises a
-      large-amplitude tilt. Watch the octahedra rotate as the saddle point falls to a real minimum.</div>
+    <h2>Phase 2 + Phase 3 → Phase 4: combining two octahedral rotations</h2>
+    <div class="sub">A 40-atom supercell (2×2×2 replication of the cubic cell — the minimal cell
+      commensurate with R). At R = (½,½,½) this model has a clean triple-degenerate instability:
+      three pure single-axis octahedral rotations, each equally unstable. "Perturb" freezes two of
+      them in together as real displacements (the standard frozen-phonon trick — this is Phase 2 +
+      Phase 3); "relax" runs steepest descent on a genuinely nonlinear bond energy — bonds resist
+      stretching, not just bending, which is exactly what stabilises a large-amplitude combined
+      tilt. Watch both rotations settle in together as the saddle point falls to a real minimum.</div>
     <div id="phase4-3d" style="width:100%; height:420px; border:1px solid var(--line); background:#fff"></div>
     <div class="ctl">Perturbation amplitude
       <input type="range" id="p4amp" min="0.01" max="0.08" step="0.005" value="0.03">
@@ -164,7 +166,7 @@
     </div>
     <canvas id="p4Cv" class="plot" width="960" height="260"></canvas>
     <div class="row">
-      <div class="card"><div class="k eyebrow">Seed mode at X</div><div class="v mono" id="p4_seed">–</div><div class="u">cm⁻¹ · negative = unstable</div></div>
+      <div class="card"><div class="k eyebrow">Seed modes at R</div><div class="v mono" id="p4_seed">–</div><div class="u">cm⁻¹ · negative = unstable</div></div>
       <div class="card"><div class="k eyebrow">Steps</div><div class="v mono" id="p4_steps">–</div><div class="u" id="p4_converged">–</div></div>
       <div class="card"><div class="k eyebrow">Energy change</div><div class="v mono" id="p4_denergy">–</div><div class="u">× the initial kick energy, signed</div></div>
     </div>
@@ -173,10 +175,11 @@
       <span class="mono" id="p4gammaStatus" style="color:var(--ink-soft)"></span>
     </div>
     <div class="note">Model, not measurement — twice over: this is a plain axis-aligned
-      replication of the toy cubic cell, not your thesis's literal Pbnm tilt system (that needs
-      the original chapter 4 geometry, which wasn't available to build from). But the relaxation
-      itself is real: a genuine nonlinear energy, a real unstable-mode perturbation, real steepest
-      descent, and a real post-hoc stability check — not scripted or faked.</div>
+      replication of the toy cubic cell, not your thesis's literal Pbnm lattice (the exact tilt
+      angles need the original chapter 4 geometry, which wasn't available to build from). But
+      combining two of R's three degenerate rotations is the real mechanism behind fig 4.6, not an
+      approximation of it — and the relaxation itself is real: a genuine nonlinear energy, a real
+      two-mode perturbation, real steepest descent, and a real post-hoc stability check.</div>
   </section>
 
 </main>

@@ -6,7 +6,11 @@ import { showProgress, hideProgress } from "../progress.ts";
 import type { RelaxSupercellResponse } from "../worker/protocol.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
-const NX = 2, NY = 2, NZ = 3;
+// 2x2x2: the minimal cell commensurate with R = (1/2,1/2,1/2), needed to
+// combine two of R's three degenerate single-axis rotation modes (see
+// worker's relaxSupercell handler). 40 atoms, not 60 -- 60 has no
+// all-even factorisation, so it can't host an R-point distortion cleanly.
+const NX = 2, NY = 2, NZ = 2;
 
 let viewer: Phase4ViewerHandle | null = null;
 let built = false;
@@ -55,7 +59,7 @@ async function runRelaxation(client: EngineClient, ui: UIState): Promise<void> {
 
     drawConvergencePlot(res);
 
-    $("p4_seed").textContent = res.seedFreqCm.toFixed(1);
+    $("p4_seed").textContent = res.seedFreqsCm.map((f) => f.toFixed(1)).join(" + ");
     $("p4_steps").textContent = String(res.steps);
     $("p4_converged").textContent = res.converged ? "converged" : "stopped (max steps)";
     const startE = res.energyTrace[0], endE = res.energyTrace[res.energyTrace.length - 1];
@@ -101,7 +105,8 @@ async function runGammaCheck(client: EngineClient, ui: UIState): Promise<void> {
   if (!lastResult) return;
   const btn = $<HTMLButtonElement>("p4gamma");
   btn.disabled = true;
-  $("p4gammaStatus").textContent = "diagonalising 180×180 Hessian…";
+  const dof = 3 * (NX * NY * NZ * 5);
+  $("p4gammaStatus").textContent = `diagonalising ${dof}×${dof} Hessian…`;
 
   try {
     const finalPositions = lastResult.keyframes[lastResult.keyframes.length - 1];

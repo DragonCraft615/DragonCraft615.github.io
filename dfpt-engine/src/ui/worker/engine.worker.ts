@@ -253,15 +253,25 @@ ctx.onmessage = (ev: MessageEvent<WorkerRequest>) => {
       case "relaxSupercell": {
         const s = getState(body);
         const sc = getSupercell(body, body.nx, body.ny, body.nz);
-        // Condense the most-unstable mode at X — the documented saddle-point
-        // signature (B(O-O) below ~-10 N/m). If nothing's unstable, this just
-        // nudges along X's softest branch and relaxation settles straight back.
-        const qFrac: [number, number, number] = [0.5, 0, 0];
-        const qX: [number, number, number] = [(qFrac[0] * 2 * Math.PI) / s.a, 0, 0];
-        const modes = solveModes(qX, s.bonds, s.K);
-        const seed = modes.reduce((worst, m) => (m.freqCm < worst.freqCm ? m : worst));
+        // Condense two of R's three degenerate rotation modes (rotations
+        // about two different cubic axes) — this model's own R-point
+        // instability is a clean triplet of pure single-axis octahedral
+        // rotations, and combining two of them is exactly how the thesis's
+        // Phase 2 + Phase 3 -> Phase 4 combination works (fig 4.6): two
+        // independent tilt axes condensed together, not one mode alone.
+        const qFrac: [number, number, number] = [0.5, 0.5, 0.5];
+        const qR: [number, number, number] = [
+          (qFrac[0] * 2 * Math.PI) / s.a,
+          (qFrac[1] * 2 * Math.PI) / s.a,
+          (qFrac[2] * 2 * Math.PI) / s.a,
+        ];
+        const modesAtR = solveModes(qR, s.bonds, s.K).sort((a, b) => a.freqCm - b.freqCm);
+        const unstable = modesAtR.filter((m) => m.freqCm < -1);
+        const chosen = unstable.length >= 2 ? unstable.slice(0, 2) : modesAtR.slice(0, 1);
+        const amplitude = body.amplitudeFrac * s.a;
+        const seeds = chosen.map((mode) => ({ mode, qFrac, amplitudeMetres: amplitude }));
 
-        const start = perturbedPositions(sc, seed, qFrac, body.amplitudeFrac * s.a);
+        const start = perturbedPositions(sc, seeds);
         const KEYFRAME_STRIDE = 8;
         const keyframes: { x: number; y: number; z: number }[][] = [toAngstromAtoms(start)];
         const result = relax(sc, s.K, start, {
@@ -284,7 +294,7 @@ ctx.onmessage = (ev: MessageEvent<WorkerRequest>) => {
           maxForceTrace: result.maxForceTrace,
           converged: result.converged,
           steps: result.steps,
-          seedFreqCm: seed.freqCm,
+          seedFreqsCm: chosen.map((m) => m.freqCm),
           qUsed: qFrac,
         };
         post(id, res);
