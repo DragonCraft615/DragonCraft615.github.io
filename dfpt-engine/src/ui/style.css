@@ -50,7 +50,12 @@ main{flex:1; padding:26px 34px 60px; min-width:0}
 .stage h2{font-size:21px; font-weight:normal; margin-bottom:2px}
 .stage .sub{color:var(--ink-soft); font-size:13.5px; margin-bottom:16px; max-width:56em}
 canvas.plot{background:#fff; border:1px solid var(--line); width:100%; height:auto; display:block}
-#cell3d canvas, #mode3d canvas{width:100% !important; height:100% !important; display:block}
+#cell3d canvas, #mode3d canvas, #phase4-3d canvas, #p4Mode3d canvas
+  {width:100% !important; height:100% !important; display:block}
+/* belt-and-braces: even if a canvas somehow ignores the rule above (a raw
+   backing-store-sized canvas with no CSS applied renders at its attribute
+   dimensions, which can be enormous), never let it blow out the layout. */
+#cell3d, #mode3d, #phase4-3d, #p4Mode3d{overflow:hidden}
 .row{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px}
 .card{background:var(--panel); border:1px solid var(--line); padding:12px 16px; flex:1;
       min-width:160px}
