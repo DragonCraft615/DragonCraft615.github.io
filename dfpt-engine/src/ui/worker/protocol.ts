@@ -169,6 +169,38 @@ export interface GammaStabilityResponse {
   imFraction: number;
 }
 
+export interface Phase4DispersionRequest extends Conditions {
+  type: "phase4Dispersion";
+  nx: number;
+  ny: number;
+  nz: number;
+  /** Geometry to compute the dispersion of, Angstrom — normally the relaxed result. */
+  positions: { x: number; y: number; z: number }[];
+}
+export interface Phase4DispersionResponse {
+  xs: number[];
+  /** Fractional q (supercell's own reduced coordinates) at each xs sample. */
+  qs: [number, number, number][];
+  branches: number[][];
+  marks: [number, string][];
+  vmax: number;
+  vmin: number;
+  imFraction: number;
+}
+
+export interface Phase4ModesAtRequest extends Conditions {
+  type: "phase4ModesAt";
+  nx: number;
+  ny: number;
+  nz: number;
+  positions: { x: number; y: number; z: number }[];
+  /** Fractional q, supercell's own reduced coordinates. */
+  q: [number, number, number];
+}
+export interface Phase4ModesAtResponse {
+  modes: { freqCm: number; vector: { re: number; im: number }[] }[];
+}
+
 export type WorkerRequestBody =
   | CellRequest
   | DispersionRequest
@@ -181,7 +213,9 @@ export type WorkerRequestBody =
   | ModesAtRequest
   | BuildSupercellRequest
   | RelaxSupercellRequest
-  | GammaStabilityRequest;
+  | GammaStabilityRequest
+  | Phase4DispersionRequest
+  | Phase4ModesAtRequest;
 
 export type ResponseFor<T extends WorkerRequestBody["type"]> = T extends "cell"
   ? CellResponse
@@ -207,7 +241,11 @@ export type ResponseFor<T extends WorkerRequestBody["type"]> = T extends "cell"
                       ? RelaxSupercellResponse
                       : T extends "gammaStability"
                         ? GammaStabilityResponse
-                        : never;
+                        : T extends "phase4Dispersion"
+                          ? Phase4DispersionResponse
+                          : T extends "phase4ModesAt"
+                            ? Phase4ModesAtResponse
+                            : never;
 
 export interface WorkerRequest {
   id: number;

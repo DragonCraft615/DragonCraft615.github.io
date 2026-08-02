@@ -1,9 +1,10 @@
-import { plotter, ticks, niceTicks } from "../plot.ts";
+import { plotter, ticks, niceTicks, type Plotter } from "../plot.ts";
 import type { EngineClient } from "../worker/client.ts";
 import type { UIState } from "../state.ts";
 import { mountPhase4Viewer, type Phase4ViewerHandle } from "../three/phase4Viewer.ts";
 import { showProgress, hideProgress } from "../progress.ts";
-import type { RelaxSupercellResponse } from "../worker/protocol.ts";
+import { MASS } from "../../engine/constants.ts";
+import type { RelaxSupercellResponse, Phase4DispersionResponse } from "../worker/protocol.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 // 2x2x2: the minimal cell commensurate with R = (1/2,1/2,1/2), needed to
@@ -17,6 +18,8 @@ let built = false;
 let wired = false;
 let lastResult: RelaxSupercellResponse | null = null;
 let amplitude = 0.03;
+let lastDispersion: Phase4DispersionResponse | null = null;
+let dispPlot: Plotter | null = null;
 
 export async function drawPhase4(client: EngineClient, ui: UIState): Promise<void> {
   wireControls(client, ui);
@@ -39,6 +42,11 @@ function wireControls(client: EngineClient, ui: UIState): void {
 
   $("p4run").addEventListener("click", () => void runRelaxation(client, ui));
   $("p4gamma").addEventListener("click", () => void runGammaCheck(client, ui));
+  $("p4disp").addEventListener("click", () => void runPhase4Dispersion(client, ui));
+
+  const cv = $<HTMLCanvasElement>("p4DispCv");
+  cv.style.cursor = "crosshair";
+  cv.addEventListener("click", (ev) => void onDispersionClick(client, ui, ev, cv));
 }
 
 async function runRelaxation(client: EngineClient, ui: UIState): Promise<void> {
@@ -71,6 +79,10 @@ async function runRelaxation(client: EngineClient, ui: UIState): Promise<void> {
 
     $<HTMLButtonElement>("p4gamma").disabled = false;
     $("p4gammaStatus").textContent = "";
+    $<HTMLButtonElement>("p4disp").disabled = false;
+    lastDispersion = null;
+    $("p4d_hint").textContent = 'Run "Compute dispersion" above to see the relaxed structure\'s own band structure.';
+    $("p4d_hint").style.display = "block";
   } finally {
     hideProgress();
     btn.disabled = false;
@@ -121,4 +133,100 @@ async function runGammaCheck(client: EngineClient, ui: UIState): Promise<void> {
   } finally {
     btn.disabled = false;
   }
+}
+
+async function runPhase4Dispersion(client: EngineClient, ui: UIState): Promise<void> {
+  if (!lastResult) return;
+  const btn = $<HTMLButtonElement>("p4disp");
+  btn.disabled = true;
+  showProgress("computing relaxed-structure dispersion…");
+
+  try {
+    const finalPositions = lastResult.keyframes[lastResult.keyframes.length - 1];
+    const res = await client.request(
+      { type: "phase4Dispersion", P: ui.P, gamma: ui.gam, bOO: ui.boo, nx: NX, ny: NY, nz: NZ, positions: finalPositions },
+      (done, total) => showProgress(`computing dispersion… ${Math.round((100 * done) / total)}%`),
+    );
+    lastDispersion = res;
+    drawPhase4DispersionPlot(res);
+    $("p4d_max").textContent = res.vmax.toFixed(0);
+    $("p4d_im").textContent = (100 * res.imFraction).toFixed(1) + " %";
+    $("p4d_hint").style.display = "none";
+  } finally {
+    hideProgress();
+    btn.disabled = false;
+  }
+}
+
+function drawPhase4DispersionPlot(res: Phase4DispersionResponse): void {
+  const cv = $<HTMLCanvasElement>("p4DispCv");
+  const pl = plotter(cv);
+  dispPlot = pl;
+
+  const ylo = Math.min(res.vmin * 1.1, -40);
+  const yhi = res.vmax * 1.08;
+  pl.setRange([0, 4], [ylo, yhi]);
+  pl.frame(
+    "wavevector path (supercell's own zone)",
+    "ν (cm⁻¹) — imaginary shown negative",
+    res.marks.map((m) => m[0]),
+    niceTicks([ylo, yhi]),
+    (t) => res.marks.find((m) => m[0] === t)?.[1] ?? "",
+    (t) => t.toFixed(0),
+  );
+  if (ylo < 0) pl.band(ylo, 0, "rgba(192,57,46,0.08)");
+  pl.line([0, 4], [0, 0], "#8A9096", 1, [3, 4]);
+  res.branches.forEach((br) => {
+    const anyIm = br.some((v) => v < -1);
+    pl.line(res.xs, br, anyIm ? "rgba(192,57,46,0.55)" : "rgba(74,85,104,0.35)", 1);
+  });
+}
+
+async function onDispersionClick(client: EngineClient, ui: UIState, ev: MouseEvent, cv: HTMLCanvasElement): Promise<void> {
+  if (!dispPlot || !lastDispersion || !lastResult) return;
+  const rect = cv.getBoundingClientRect();
+  const scaleX = cv.width / rect.width, scaleY = cv.height / rect.height;
+  const px = (ev.clientX - rect.left) * scaleX;
+  const py = (ev.clientY - rect.top) * scaleY;
+  const dataX = dispPlot.invX(px);
+  const dataY = dispPlot.invY(py);
+
+  const { xs, branches, qs } = lastDispersion;
+  let sample = 0, bestDx = Infinity;
+  xs.forEach((x, i) => { const dx = Math.abs(x - dataX); if (dx < bestDx) { bestDx = dx; sample = i; } });
+  let branch = 0, bestDy = Infinity;
+  branches.forEach((br, b) => { const dy = Math.abs(br[sample] - dataY); if (dy < bestDy) { bestDy = dy; branch = b; } });
+
+  dispPlot.diamond(xs[sample], branches[branch][sample], "#16233F", 4.5);
+  await selectPhase4Mode(client, ui, qs[sample], branch, branches[branch][sample]);
+}
+
+async function selectPhase4Mode(
+  client: EngineClient,
+  ui: UIState,
+  q: [number, number, number],
+  branchGuess: number,
+  freqGuess: number,
+): Promise<void> {
+  if (!lastResult) return;
+  const finalPositions = lastResult.keyframes[lastResult.keyframes.length - 1];
+  const res = await client.request({
+    type: "phase4ModesAt", P: ui.P, gamma: ui.gam, bOO: ui.boo, nx: NX, ny: NY, nz: NZ, positions: finalPositions, q,
+  });
+
+  let branch = branchGuess;
+  if (Math.abs(res.modes[branchGuess]?.freqCm - freqGuess) > 5) {
+    let best = Infinity;
+    res.modes.forEach((m, i) => { const d = Math.abs(m.freqCm - freqGuess); if (d < best) { best = d; branch = i; } });
+  }
+  const mode = res.modes[branch];
+  const masses = lastResult.basisIndex.map((bi) => MASS[bi]);
+
+  if (!viewer) viewer = mountPhase4Viewer($("phase4-3d"));
+  viewer.playMode(finalPositions, mode, masses, 0.35);
+
+  const stability = mode.freqCm < -1 ? "imaginary — still unstable" : "stable";
+  $("p4d_hint").style.display = "block";
+  $("p4d_hint").textContent =
+    `branch ${branch + 1}/${res.modes.length} · ν = ${mode.freqCm.toFixed(1)} cm⁻¹ · q = (${q.map((v) => v.toFixed(2)).join(", ")}) · ${stability} — animating on the structure above.`;
 }

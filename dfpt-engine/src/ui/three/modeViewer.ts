@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { createViewer } from "./scene.ts";
 import { buildCellGroup, ANGSTROM_TO_UNIT, type CellGroup } from "./cellGeometry.ts";
 import { normalisedDisplacements, displacementAt, type ComplexVec3 } from "../../engine/displacement.ts";
+import { MASS } from "../../engine/constants.ts";
 import type { Mode } from "../../engine/dynamicalMatrix.ts";
 
 const NCELLS = 4;
@@ -69,7 +70,7 @@ export function mountModeViewer(container: HTMLElement): ModeViewerHandle {
         ? 1
         : 2) as 0 | 1 | 2;
     qComp = qFrac[axis];
-    disp = normalisedDisplacements(mode);
+    disp = normalisedDisplacements(mode, MASS);
     omega = 0.6 + 2.5 * Math.min(1, Math.abs(mode.freqCm) / 1000);
     t = 0;
     rebuildCells(aAngstrom);

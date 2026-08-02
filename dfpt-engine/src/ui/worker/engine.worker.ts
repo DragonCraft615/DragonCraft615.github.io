@@ -8,6 +8,7 @@ import { buildSupercell, type Supercell, type Vec3 } from "../../engine/supercel
 import { relax } from "../../engine/relax.ts";
 import { perturbedPositions } from "../../engine/perturb.ts";
 import { gammaFrequencies } from "../../engine/gammaStability.ts";
+import { supercellFreqs, supercellSolveModes } from "../../engine/supercellDynamics.ts";
 import type {
   WorkerRequest,
   WorkerMessage,
@@ -25,6 +26,8 @@ import type {
   RelaxSupercellResponse,
   GammaStabilityResponse,
   Phase4Atom,
+  Phase4DispersionResponse,
+  Phase4ModesAtResponse,
 } from "./protocol.ts";
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -307,6 +310,71 @@ ctx.onmessage = (ev: MessageEvent<WorkerRequest>) => {
         const freqsGamma = gammaFrequencies(sc, s.K, positions);
         const nim = freqsGamma.filter((f) => f < -1).length;
         const res: GammaStabilityResponse = { freqs: freqsGamma, imFraction: nim / freqsGamma.length };
+        post(id, res);
+        break;
+      }
+      case "phase4Dispersion": {
+        const sc = getSupercell(body, body.nx, body.ny, body.nz);
+        const s = getState(body);
+        const positions: Vec3[] = body.positions.map((p) => [p.x * 1e-10, p.y * 1e-10, p.z * 1e-10]);
+        const [Lx, Ly, Lz] = sc.box;
+        const NPT = 8;
+        const total = PATH.length * NPT;
+        const xs: number[] = [];
+        const qs: [number, number, number][] = [];
+        const branches: number[][] = Array.from({ length: 3 * sc.NAT }, () => []);
+        let from: [number, number, number] = [0, 0, 0];
+        let x = 0;
+        let done = 0;
+        const marks: [number, string][] = [[0, "Γ"]];
+        for (const seg of PATH) {
+          for (let k = 1; k <= NPT; k++) {
+            const f: [number, number, number] = [
+              from[0] + (seg.to[0] - from[0]) * (k / NPT),
+              from[1] + (seg.to[1] - from[1]) * (k / NPT),
+              from[2] + (seg.to[2] - from[2]) * (k / NPT),
+            ];
+            const q: [number, number, number] = [
+              (f[0] * 2 * Math.PI) / Lx,
+              (f[1] * 2 * Math.PI) / Ly,
+              (f[2] * 2 * Math.PI) / Lz,
+            ];
+            const w = supercellFreqs(q, sc, s.K, positions);
+            xs.push(x + k / NPT);
+            qs.push(f);
+            w.forEach((val, b) => branches[b].push(val));
+            done++;
+            ctx.postMessage({ kind: "progress", id, done, total } satisfies WorkerMessage);
+          }
+          x += 1;
+          marks.push([x, seg.lab]);
+          from = seg.to;
+        }
+        let vmax = 0, vmin = 0, nim = 0, ntot = 0;
+        for (const br of branches) {
+          for (const v of br) {
+            vmax = Math.max(vmax, v);
+            vmin = Math.min(vmin, v);
+            ntot++;
+            if (v < -1) nim++;
+          }
+        }
+        const res: Phase4DispersionResponse = { xs, qs, branches, marks, vmax, vmin, imFraction: ntot ? nim / ntot : 0 };
+        post(id, res);
+        break;
+      }
+      case "phase4ModesAt": {
+        const sc = getSupercell(body, body.nx, body.ny, body.nz);
+        const s = getState(body);
+        const positions: Vec3[] = body.positions.map((p) => [p.x * 1e-10, p.y * 1e-10, p.z * 1e-10]);
+        const [Lx, Ly, Lz] = sc.box;
+        const q: [number, number, number] = [
+          (body.q[0] * 2 * Math.PI) / Lx,
+          (body.q[1] * 2 * Math.PI) / Ly,
+          (body.q[2] * 2 * Math.PI) / Lz,
+        ];
+        const modes = supercellSolveModes(q, sc, s.K, positions);
+        const res: Phase4ModesAtResponse = { modes };
         post(id, res);
         break;
       }
