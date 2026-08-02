@@ -1,4 +1,5 @@
 import { normalisedDisplacements, displacementAt } from "./displacement.ts";
+import { MASS } from "./constants.ts";
 import type { Mode } from "./dynamicalMatrix.ts";
 import type { Supercell, Vec3 } from "./supercell.ts";
 
@@ -22,7 +23,7 @@ export interface Seed {
  * real Pbnm-type ground state (thesis fig 4.6: Phase 2 + Phase 3 -> Phase 4).
  */
 export function perturbedPositions(sc: Supercell, seeds: Seed[]): Vec3[] {
-  const dispBySeed = seeds.map((s) => normalisedDisplacements(s.mode));
+  const dispBySeed = seeds.map((s) => normalisedDisplacements(s.mode, MASS));
   return sc.referencePositions.map((pos, idx) => {
     const basis = sc.basisIndex[idx];
     const R = sc.cellOffsets[idx];

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MgSiO₃ Lattice-Dynamics Engine — after Jackson (2009)</title>
-  <script type="module" crossorigin src="./assets/index-DSqC1kLv.js"></script>
+  <script type="module" crossorigin src="./assets/index-Bm2EWn8g.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-BY84ahws.css">
 </head>
 <body>
@@ -175,6 +175,38 @@
       <button id="p4gamma" class="mono" style="font:inherit; padding:4px 12px; cursor:pointer" disabled>Check Γ-point stability (slow, ~5–15s)</button>
       <span class="mono" id="p4gammaStatus" style="color:var(--ink-soft)"></span>
     </div>
+
+    <h2 style="margin-top:28px; font-size:17px">Dispersion of the relaxed structure — the real test</h2>
+    <div class="sub">The relaxed 40-atom geometry is now treated as its <em>own</em> equilibrium
+      lattice — this computes its actual phonons across its own (folded) Brillouin zone, the same
+      X–M–Γ–R path as the Dispersion stage, just in the supercell's own smaller reciprocal-space
+      units. If the relaxation genuinely found a more stable structure, the imaginary (red) bands
+      that dominated Phase 1's dispersion should mostly disappear here. 120 branches, so expect a
+      denser plot than stage 2 — that's the real, physically-expected result of zone-folding, not
+      clutter. Click a branch to animate it below.</div>
+    <div class="ctl">
+      <button id="p4disp" class="mono" style="font:inherit; padding:4px 12px; cursor:pointer" disabled>Compute dispersion (slow, ~15s)</button>
+      <span class="mono" id="p4dispStatus" style="color:var(--ink-soft)"></span>
+    </div>
+    <canvas id="p4DispCv" class="plot" width="960" height="380"></canvas>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">ν max</div><div class="v mono" id="p4d_max">–</div><div class="u">cm⁻¹</div></div>
+      <div class="card"><div class="k eyebrow">Imaginary fraction</div><div class="v mono" id="p4d_im">–</div><div class="u">of all 120 branches sampled</div></div>
+    </div>
+    <div class="note" id="p4d_hint">Run "Compute dispersion" above to see the relaxed structure's own band structure.</div>
+    <div id="p4ModePanel" style="display:none; border:1px solid var(--line); background:#fff; margin-top:8px">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 14px; border-bottom:1px solid var(--line)">
+        <div class="mono" id="p4ModeInfo" style="font-size:12.5px">–</div>
+        <div style="display:flex; align-items:center; gap:10px">
+          <button id="p4ModePlay" class="mono" style="font:inherit; padding:3px 10px; cursor:pointer">⏸</button>
+          <label class="mono" style="font-size:11.5px; display:flex; align-items:center; gap:6px">amplitude
+            <input type="range" id="p4ModeAmp" min="0.1" max="1.2" step="0.05" value="0.35" style="width:110px; accent-color:var(--amber)">
+          </label>
+        </div>
+      </div>
+      <div id="p4Mode3d" style="width:100%; height:360px"></div>
+    </div>
+
     <div class="note">Model, not measurement — twice over: this is a plain axis-aligned
       replication of the toy cubic cell, not your thesis's literal Pbnm lattice (the exact tilt
       angles need the original chapter 4 geometry, which wasn't available to build from). But

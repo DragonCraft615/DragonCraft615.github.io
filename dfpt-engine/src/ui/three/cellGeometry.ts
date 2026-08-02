@@ -47,12 +47,37 @@ export function buildCellGroup(aAngstrom: number): CellGroup {
 
   const mgGeo = new THREE.SphereGeometry(0.16, 20, 16);
   const mgMat = new THREE.MeshStandardMaterial({ color: COLORS.mg, roughness: 0.5 });
+  const cornerMeshes: THREE.Mesh[] = [];
   for (const frac of MG_CORNERS) {
     const mesh = new THREE.Mesh(mgGeo, mgMat);
     mesh.position.set(frac[0] * scale, frac[1] * scale, frac[2] * scale);
     group.add(mesh);
+    cornerMeshes.push(mesh);
     atoms.push({ mesh, basisIndex: 0, frac });
   }
+
+  // Cube-edge guide lines between Mg corners, thesis-figure style.
+  const edgePairs: [number, number][] = [];
+  for (let i = 0; i < 8; i++) {
+    for (let j = i + 1; j < 8; j++) {
+      const d = MG_CORNERS[i].reduce((acc, c, k) => acc + Math.abs(c - MG_CORNERS[j][k]), 0);
+      if (d === 1) edgePairs.push([i, j]);
+    }
+  }
+  const edgeGeo = new THREE.BufferGeometry();
+  edgeGeo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(edgePairs.length * 2 * 3), 3));
+  const edgeLines = new THREE.LineSegments(edgeGeo, new THREE.LineBasicMaterial({ color: 0xb9bfc7 }));
+  group.add(edgeLines);
+  function updateEdges() {
+    const pos = edgeGeo.attributes.position as THREE.BufferAttribute;
+    edgePairs.forEach(([i, j], e) => {
+      const a = cornerMeshes[i].position, b = cornerMeshes[j].position;
+      pos.setXYZ(e * 2 + 0, a.x, a.y, a.z);
+      pos.setXYZ(e * 2 + 1, b.x, b.y, b.z);
+    });
+    pos.needsUpdate = true;
+  }
+  updateEdges();
 
   const siGeo = new THREE.SphereGeometry(0.11, 20, 16);
   const siMat = new THREE.MeshStandardMaterial({ color: COLORS.si, roughness: 0.5 });
@@ -109,6 +134,7 @@ export function buildCellGroup(aAngstrom: number): CellGroup {
     });
     pos.needsUpdate = true;
     faceGeo.computeVertexNormals();
+    updateEdges();
   }
   updateFaces();
 
