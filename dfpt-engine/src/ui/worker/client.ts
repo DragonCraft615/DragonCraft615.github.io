@@ -17,7 +17,15 @@ export class EngineClient {
   private pending = new Map<number, Pending>();
 
   constructor() {
-    this.worker = new Worker(new URL("./engine.worker.ts", import.meta.url), { type: "module" });
+    // Production build: classic (IIFE) worker per vite.config.ts's worker.format
+    // -- no `type: "module"` needed, for reliable cross-browser support (see
+    // the Safari/WebKit note there). Vite's *dev* server, unlike the build,
+    // always serves the worker as raw ESM regardless of that setting, so
+    // dev mode still needs `type: "module"` here or it won't load at all.
+    this.worker = new Worker(
+      new URL("./engine.worker.ts", import.meta.url),
+      import.meta.env.DEV ? { type: "module" } : undefined,
+    );
     this.worker.onmessage = (ev: MessageEvent<WorkerMessage>) => {
       const msg = ev.data;
       const p = this.pending.get(msg.id);
