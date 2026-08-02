@@ -14,10 +14,13 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 const NX = 2, NY = 2, NZ = 2;
 
 let viewer: Phase4ViewerHandle | null = null;
+let dispModeViewer: Phase4ViewerHandle | null = null;
 let built = false;
 let wired = false;
 let lastResult: RelaxSupercellResponse | null = null;
 let amplitude = 0.03;
+let modeAmplitude = 0.35;
+let modePlaying = true;
 let lastDispersion: Phase4DispersionResponse | null = null;
 let dispPlot: Plotter | null = null;
 
@@ -47,6 +50,16 @@ function wireControls(client: EngineClient, ui: UIState): void {
   const cv = $<HTMLCanvasElement>("p4DispCv");
   cv.style.cursor = "crosshair";
   cv.addEventListener("click", (ev) => void onDispersionClick(client, ui, ev, cv));
+
+  $<HTMLInputElement>("p4ModeAmp").addEventListener("input", (e) => {
+    modeAmplitude = +(e.target as HTMLInputElement).value;
+    dispModeViewer?.setAmplitude(modeAmplitude);
+  });
+  $("p4ModePlay").addEventListener("click", () => {
+    modePlaying = !modePlaying;
+    dispModeViewer?.setPlaying(modePlaying);
+    $("p4ModePlay").textContent = modePlaying ? "⏸" : "▶";
+  });
 }
 
 async function runRelaxation(client: EngineClient, ui: UIState): Promise<void> {
@@ -222,11 +235,16 @@ async function selectPhase4Mode(
   const mode = res.modes[branch];
   const masses = lastResult.basisIndex.map((bi) => MASS[bi]);
 
-  if (!viewer) viewer = mountPhase4Viewer($("phase4-3d"));
-  viewer.playMode(finalPositions, mode, masses, 0.35);
+  if (!dispModeViewer) dispModeViewer = mountPhase4Viewer($("p4Mode3d"));
+  const refAtoms = lastResult.basisIndex.map((basisIndex, i) => ({ basisIndex, ...finalPositions[i] }));
+  dispModeViewer.setReference(refAtoms, lastResult.box);
+  modePlaying = true;
+  dispModeViewer.playMode(finalPositions, mode, masses, modeAmplitude);
+  $("p4ModePlay").textContent = "⏸";
 
+  $("p4ModePanel").style.display = "block";
+  $("p4d_hint").style.display = "none";
   const stability = mode.freqCm < -1 ? "imaginary — still unstable" : "stable";
-  $("p4d_hint").style.display = "block";
-  $("p4d_hint").textContent =
-    `branch ${branch + 1}/${res.modes.length} · ν = ${mode.freqCm.toFixed(1)} cm⁻¹ · q = (${q.map((v) => v.toFixed(2)).join(", ")}) · ${stability} — animating on the structure above.`;
+  $("p4ModeInfo").textContent =
+    `branch ${branch + 1}/${res.modes.length} · ν = ${mode.freqCm.toFixed(1)} cm⁻¹ · q = (${q.map((v) => v.toFixed(2)).join(", ")}) · ${stability}`;
 }

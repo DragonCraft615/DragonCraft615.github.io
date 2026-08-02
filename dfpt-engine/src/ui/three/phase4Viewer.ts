@@ -14,6 +14,7 @@ export interface Phase4ViewerHandle {
   playTrajectory(keyframes: { x: number; y: number; z: number }[][]): void;
   /** Continuously oscillate `basePositions` (Angstrom) along a solved mode's eigenvector. */
   playMode(basePositions: { x: number; y: number; z: number }[], mode: SupercellModeLike, masses: number[], amplitudeAngstrom: number): void;
+  setAmplitude(angstrom: number): void;
   setPlaying(playing: boolean): void;
   dispose(): void;
 }
@@ -101,6 +102,9 @@ export function mountPhase4Viewer(container: HTMLElement): Phase4ViewerHandle {
     setReference,
     playTrajectory,
     playMode,
+    setAmplitude(angstrom: number) {
+      if (modeState) modeState.amplitude = angstrom;
+    },
     setPlaying(p: boolean) { playing = p; },
     dispose() {
       stop();
