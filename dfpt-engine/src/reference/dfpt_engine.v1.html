@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MgSiO₃ Lattice-Dynamics Engine — after Jackson (2009)</title>
+<style>
+  :root{
+    --navy:#16233F; --navy-deep:#0E1729; --paper:#EEF0EE; --panel:#FAFBF9;
+    --ink:#1B1F26; --ink-soft:#5A616C; --amber:#DD9530; --amber-deep:#B67318;
+    --imag:#C0392B; --mg:#3E8E5A; --blue:#2E5FA3; --line:#D5D9D4;
+  }
+  *{box-sizing:border-box; margin:0}
+  html,body{height:100%}
+  body{background:var(--paper); color:var(--ink);
+       font:15px/1.55 Georgia,'Times New Roman',serif}
+  .mono{font-family:ui-monospace,'Cascadia Mono','SF Mono',Menlo,monospace}
+  .eyebrow{font-family:ui-monospace,Menlo,monospace; font-size:10.5px;
+           letter-spacing:.22em; text-transform:uppercase; color:var(--ink-soft)}
+
+  header{background:var(--navy); color:#EDEFF3; padding:26px 30px 22px;
+         border-bottom:4px solid var(--amber)}
+  header .eyebrow{color:#9FB0CB}
+  header h1{font-size:27px; font-weight:normal; letter-spacing:.01em; margin-top:6px}
+  header h1 b{color:var(--amber); font-weight:normal}
+  header p{color:#B9C3D4; font-size:13.5px; margin-top:6px; max-width:64em}
+
+  /* conditions bar */
+  #cond{position:sticky; top:0; z-index:5; background:var(--navy-deep); color:#DfE4EC;
+        display:flex; flex-wrap:wrap; gap:22px 34px; align-items:center;
+        padding:12px 30px; border-bottom:1px solid #2A3A5C}
+  #cond label{display:flex; align-items:center; gap:10px; font-size:12.5px}
+  #cond input[type=range]{width:170px; accent-color:var(--amber)}
+  #cond .val{min-width:88px; color:var(--amber); font-size:13px}
+  #cond .derived{margin-left:auto; display:flex; gap:22px; font-size:12px; color:#9FB0CB}
+  #cond .derived b{color:#EDEFF3; font-weight:normal}
+
+  .wrap{display:flex; min-height:calc(100vh - 170px)}
+  nav{width:225px; flex:none; background:var(--panel); border-right:1px solid var(--line);
+      padding:20px 0}
+  nav button{display:block; width:100%; text-align:left; background:none; border:0;
+             padding:11px 20px 11px 24px; cursor:pointer; font:inherit; color:var(--ink);
+             border-left:4px solid transparent}
+  nav button .ph{font-family:ui-monospace,monospace; font-size:10px; letter-spacing:.18em;
+                 color:var(--ink-soft); display:block}
+  nav button .nm{font-size:15.5px}
+  nav button:hover{background:#F1F3EF}
+  nav button.on{border-left-color:var(--amber); background:#F6F2E8}
+  nav button.on .ph{color:var(--amber-deep)}
+  nav button:focus-visible{outline:2px solid var(--blue); outline-offset:-2px}
+  nav .flow{margin:6px 0 6px 33px; color:var(--line); font-size:11px}
+
+  main{flex:1; padding:26px 34px 60px; min-width:0}
+  .stage{display:none; max-width:980px}
+  .stage.on{display:block}
+  .stage h2{font-size:21px; font-weight:normal; margin-bottom:2px}
+  .stage .sub{color:var(--ink-soft); font-size:13.5px; margin-bottom:16px; max-width:56em}
+  canvas{background:#fff; border:1px solid var(--line); width:100%; height:auto; display:block}
+  .row{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px}
+  .card{background:var(--panel); border:1px solid var(--line); padding:12px 16px; flex:1;
+        min-width:160px}
+  .card .k{font-size:11px} .card .v{font-size:19px; margin-top:2px}
+  .card .u{font-size:11.5px; color:var(--ink-soft)}
+  .ctl{display:flex; align-items:center; gap:12px; margin:14px 0 4px; font-size:13px}
+  .ctl input[type=range]{width:230px; accent-color:var(--amber)}
+  .ctl select{font:inherit; padding:2px 6px}
+  .warn{margin-top:10px; padding:10px 14px; border-left:4px solid var(--imag);
+        background:#F8ECEA; color:#7A241B; font-size:13.5px; display:none}
+  .warn.show{display:block}
+  .ok{border-left-color:var(--mg); background:#EBF3EE; color:#24523A}
+  .note{margin-top:16px; font-size:12.5px; color:var(--ink-soft); border-top:1px solid var(--line);
+        padding-top:10px; max-width:60em}
+  footer{padding:18px 30px 30px; color:var(--ink-soft); font-size:12px;
+         border-top:1px solid var(--line); background:var(--panel)}
+  @media (max-width:900px){
+    .wrap{flex-direction:column} nav{width:100%; display:flex; overflow-x:auto; padding:0}
+    nav button{border-left:0; border-bottom:4px solid transparent; white-space:nowrap}
+    nav button.on{border-bottom-color:var(--amber)} nav .flow{display:none}
+    #cond .derived{margin-left:0}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">After Jackson (2009) · Durham MPhys · Modernised 2026</div>
+  <h1>MgSiO₃ <b>Lattice-Dynamics Engine</b></h1>
+  <p>The downstream half of the thesis pipeline, running live: dynamical matrix → phonons →
+     quantum-harmonic thermodynamics → seismic velocities → lower-mantle depth profile.
+     Force constants calibrated so the model reproduces the thesis results at ambient conditions.</p>
+</header>
+
+<div id="cond">
+  <label>Pressure
+    <input type="range" id="P" min="0" max="120" step="1" value="0">
+    <span class="val mono" id="Pv">0 GPa</span></label>
+  <label>Temperature
+    <input type="range" id="T" min="10" max="3000" step="10" value="300">
+    <span class="val mono" id="Tv">300 K</span></label>
+  <div class="derived mono">
+    <span>a = <b id="aV">–</b></span>
+    <span>V = <b id="vV">–</b></span>
+    <span>ρ = <b id="rV">–</b></span>
+  </div>
+</div>
+
+<div class="wrap">
+<nav id="nav"></nav>
+<main id="main">
+
+  <section class="stage" id="st0">
+    <h2>Unit cell &amp; compression</h2>
+    <div class="sub">Idealised Phase-1 cell: Mg on corners, Si centred in its O₆ octahedron.
+      Pressure enters through the lattice parameter — the quadratic compression model fitted
+      in thesis §4.5 — and everything downstream inherits it.</div>
+    <canvas id="cellCv" width="960" height="380"></canvas>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">Lattice parameter</div><div class="v mono" id="c_a">–</div><div class="u">Å (cubic)</div></div>
+      <div class="card"><div class="k eyebrow">Cell volume</div><div class="v mono" id="c_v">–</div><div class="u">Å³ · thesis fig 4.8 fit</div></div>
+      <div class="card"><div class="k eyebrow">Density</div><div class="v mono" id="c_r">–</div><div class="u">g/cm³ · thesis fig 4.10 ≈ 4.15→5.4</div></div>
+      <div class="card"><div class="k eyebrow">Force-constant scaling</div><div class="v mono" id="c_s">–</div><div class="u">(V₀/V)<sup>2γ</sup>, mode-Grüneisen γ below</div></div>
+    </div>
+    <div class="ctl">Grüneisen γ
+      <input type="range" id="gam" min="0.6" max="2.2" step="0.05" value="1.4">
+      <span class="mono" id="gamv">1.40</span>
+      <span style="color:var(--ink-soft)">— how stiffly the springs respond to compression</span>
+    </div>
+  </section>
+
+  <section class="stage" id="st1">
+    <h2>Phonon dispersion</h2>
+    <div class="sub">Fifteen branches of the dynamical matrix along Γ–X–M–Γ–R. Drag the
+      octahedral shear stiffness below zero and watch branches dive imaginary at X — the exact
+      saddle-point signature that told the thesis Phase 1 was not the ground state.</div>
+    <canvas id="dispCv" width="960" height="440"></canvas>
+    <div class="ctl">Octahedral shear stiffness B(O–O)
+      <input type="range" id="boo" min="-20" max="8" step="0.25" value="3">
+      <span class="mono" id="boov">3.00 N/m</span>
+    </div>
+    <div class="warn" id="saddle">Imaginary frequencies detected — this structure sits on a
+      saddle point. Thesis prescription (§3.5.2): perturb the ions along the unstable mode
+      and re-optimise the geometry.</div>
+    <div class="warn ok show" id="stable">All frequencies real — structure is dynamically stable
+      at these conditions.</div>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">ν max</div><div class="v mono" id="d_max">–</div><div class="u">cm⁻¹</div></div>
+      <div class="card"><div class="k eyebrow">Imaginary fraction</div><div class="v mono" id="d_im">–</div><div class="u">of sampled modes (thesis §4.4: &lt; 1/5000 for Phase 4)</div></div>
+    </div>
+  </section>
+
+  <section class="stage" id="st2">
+    <h2>Phonon density of states</h2>
+    <div class="sub">Frequencies gathered over a shifted Monkhorst–Pack grid, Gaussian-smeared.
+      Imaginary modes plot at negative ν and shade red — the convention of thesis fig 4.2(a).</div>
+    <canvas id="dosCv" width="960" height="400"></canvas>
+    <div class="ctl">MP grid
+      <select id="mp"><option>4</option><option selected>6</option><option>8</option></select>
+      <span class="mono" id="mpN">–</span>
+      <span style="color:var(--ink-soft)">q-points · convergence vs cost, thesis §3.1</span>
+    </div>
+  </section>
+
+  <section class="stage" id="st3">
+    <h2>Thermodynamics</h2>
+    <div class="sub">The modernised physics: full quantum-harmonic partition function per mode,
+      analytic derivatives — no finite differences, no saturating z. Heat capacity now climbs
+      to the Dulong–Petit limit exactly as §5.4 promised.</div>
+    <canvas id="thCv" width="960" height="430"></canvas>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">F (Helmholtz)</div><div class="v mono" id="t_f">–</div><div class="u">kJ/mol, incl. zero-point</div></div>
+      <div class="card"><div class="k eyebrow">H = U + PV</div><div class="v mono" id="t_h">–</div><div class="u">kJ/mol</div></div>
+      <div class="card"><div class="k eyebrow">S</div><div class="v mono" id="t_s">–</div><div class="u">J/K/mol · thesis @300 K: 56</div></div>
+      <div class="card"><div class="k eyebrow">C<sub>V</sub></div><div class="v mono" id="t_c">–</div><div class="u">J/K/mol · thesis @300 K: 78 · 3Nk<sub>B</sub> = 124.7</div></div>
+    </div>
+  </section>
+
+  <section class="stage" id="st4">
+    <h2>Seismic velocities &amp; impedance</h2>
+    <div class="sub">Acoustic-branch slopes at Γ, orientation-averaged over [100], [110], [111]
+      (thesis §3.5.3–3.5.4), with the semi-empirical temperature softening of eqs 3.10–3.11.
+      Diamonds mark the thesis Table 8.1 values at 0 GPa, 300 K.</div>
+    <canvas id="seiCv" width="960" height="430"></canvas>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">V<sub>P</sub></div><div class="v mono" id="s_p">–</div><div class="u">km/s · thesis 10.1 ± 0.3</div></div>
+      <div class="card"><div class="k eyebrow">V<sub>S</sub></div><div class="v mono" id="s_s">–</div><div class="u">km/s · thesis 6.32 ± 0.2</div></div>
+      <div class="card"><div class="k eyebrow">Z₀ = ρV<sub>P</sub></div><div class="v mono" id="s_z">–</div><div class="u">thesis units · thesis 44 ± 1</div></div>
+    </div>
+  </section>
+
+  <section class="stage" id="st5">
+    <h2>Lower-mantle depth profile</h2>
+    <div class="sub">Depth below mud line mapped to (P, T) with the linearised Burns (1993) /
+      Matas et al. (2005) conversions of thesis fig 4.9: 670 km → 24 GPa, 1900 K;
+      2891 km → 136 GPa, 2900 K. The thesis's headline predictions, recomputed live.</div>
+    <canvas id="depCv" width="960" height="460"></canvas>
+    <div class="row">
+      <div class="card"><div class="k eyebrow">ΔV<sub>P</sub> through mantle</div><div class="v mono" id="dp_p">–</div><div class="u">thesis: +21%</div></div>
+      <div class="card"><div class="k eyebrow">ΔV<sub>S</sub></div><div class="v mono" id="dp_s">–</div><div class="u">thesis: +11%</div></div>
+      <div class="card"><div class="k eyebrow">ΔZ₀</div><div class="v mono" id="dp_z">–</div><div class="u">thesis: +52%</div></div>
+      <div class="card"><div class="k eyebrow">Δρ</div><div class="v mono" id="dp_r">–</div><div class="u">thesis: +26%</div></div>
+    </div>
+    <div class="note">Model, not measurement: an axially-symmetric force-constant model sits where
+      CASTEP's DFPT force constants would in the full pipeline. Everything downstream — the
+      eigenproblem, the statistical mechanics, the seismic extraction, the depth mapping — is the
+      thesis method, modernised.</div>
+  </section>
+
+</main>
+</div>
+
+<footer>
+  Engine: real-space force constants → complex Hermitian D(q) (2N real embedding, Jacobi) →
+  signed ω → QHO ensemble. Modernised vs 2009: exact per-mode partition function, analytic
+  C<sub>V</sub>/S, no uninitialised Simpson strides, and both name-clash bugs left in the past.
+  Z₀ shown in the thesis's own unit convention (ρ[g/cm³]·V<sub>P</sub>[km/s]) for direct
+  comparison with Table 8.1.
+</footer>
+
+<script>
+/* ============================ PHYSICS ENGINE ============================ */
+const ENGINE = (() => {
+  const FRAC = [[0,0,0],[.5,.5,.5],[.5,.5,0],[.5,0,.5],[0,.5,.5]];
+  const AMU = 1.66054e-27;
+  const MASS = [24.305, 28.086, 15.999, 15.999, 15.999].map(m => m*AMU);
+  const NAT = 5, N3 = 15;
+  const HBAR = 1.0546e-34, KB = 1.3807e-23, NAv = 6.022e23, CLIGHT = 2.998e10;
+  const MCELL = MASS.reduce((a,b)=>a+b, 0);
+  const V0 = 41.67e-30;
+  const K0 = { SiO: [320, 12.8], MgO: [25, 3.75], OO: [10, 3.0] };
+
+  const volume = P => (41.67 - 0.155*P + 0.00045*P*P) * 1e-30;
+
+  function buildBonds(a){
+    const bonds = [], cut = { SiO:a*0.55, MgO:a*0.75, OO:a*0.75 };
+    const pos = FRAC.map(f => f.map(x => x*a));
+    for (let i=0;i<NAT;i++) for (let j=0;j<NAT;j++)
+      for (let rx=-1;rx<=1;rx++) for (let ry=-1;ry<=1;ry++) for (let rz=-1;rz<=1;rz++){
+        const d=[pos[j][0]+rx*a-pos[i][0], pos[j][1]+ry*a-pos[i][1], pos[j][2]+rz*a-pos[i][2]];
+        const r=Math.hypot(d[0],d[1],d[2]);
+        if (r < a*1e-3) continue;
+        const si=i===1, sj=j===1, oi=i>=2, oj=j>=2;
+        if ((si&&oj || oi&&sj) && r<cut.SiO) bonds.push([i,j,d,"SiO"]);
+        else if ((i===0&&oj || oi&&j===0) && r<cut.MgO) bonds.push([i,j,d,"MgO"]);
+        else if (oi && oj && r<cut.OO) bonds.push([i,j,d,"OO"]);
+      }
+    return bonds;
+  }
+
+  function jacobiEigen(A, n){
+    for (let sweep=0; sweep<60; sweep++){
+      let off=0;
+      for (let p=0;p<n-1;p++) for (let q=p+1;q<n;q++) off += A[p][q]*A[p][q];
+      if (off < 1e-14*n) break;
+      for (let p=0;p<n-1;p++) for (let q=p+1;q<n;q++){
+        if (Math.abs(A[p][q]) < 1e-30) continue;
+        const th=(A[q][q]-A[p][p])/(2*A[p][q]);
+        const t=Math.sign(th||1)/(Math.abs(th)+Math.sqrt(th*th+1));
+        const c=1/Math.sqrt(t*t+1), s=t*c;
+        for (let k=0;k<n;k++){ const kp=A[k][p], kq=A[k][q];
+          A[k][p]=c*kp-s*kq; A[k][q]=s*kp+c*kq; }
+        for (let k=0;k<n;k++){ const pk=A[p][k], qk=A[q][k];
+          A[p][k]=c*pk-s*qk; A[q][k]=s*pk+c*qk; }
+      }
+    }
+    const ev=[]; for (let k=0;k<n;k++) ev.push(A[k][k]);
+    return ev.sort((a,b)=>a-b);
+  }
+
+  function freqs(q, bonds, K){
+    const Re = Array.from({length:N3}, () => new Float64Array(N3));
+    const Im = Array.from({length:N3}, () => new Float64Array(N3));
+    for (const [i,j,d,kind] of bonds){
+      const [A,B]=K[kind];
+      const r=Math.hypot(d[0],d[1],d[2]), n=[d[0]/r,d[1]/r,d[2]/r];
+      const ph=q[0]*d[0]+q[1]*d[1]+q[2]*d[2];
+      const cp=Math.cos(ph), sp=Math.sin(ph), invm=1/Math.sqrt(MASS[i]*MASS[j]);
+      for (let a=0;a<3;a++) for (let b=0;b<3;b++){
+        const Kab = A*n[a]*n[b] + B*((a===b?1:0)-n[a]*n[b]);
+        Re[3*i+a][3*j+b] -= Kab*cp*invm;
+        Im[3*i+a][3*j+b] -= Kab*sp*invm;
+        Re[3*i+a][3*i+b] += Kab/MASS[i];
+      }
+    }
+    const n2=2*N3, M=Array.from({length:n2}, () => new Float64Array(n2));
+    for (let a=0;a<N3;a++) for (let b=0;b<N3;b++){
+      M[a][b]=Re[a][b]; M[a][b+N3]=-Im[a][b]; M[a+N3][b]=Im[a][b]; M[a+N3][b+N3]=Re[a][b];
+    }
+    const ev=jacobiEigen(M, n2), out=[];
+    for (let k=0;k<n2;k+=2){
+      const w2=ev[k];
+      out.push(Math.sign(w2)*Math.sqrt(Math.abs(w2))/(2*Math.PI*CLIGHT));
+    }
+    return out;
+  }
+
+  function gridFreqs(bonds, K, a, n){
+    const all=[];
+    for (let ix=0;ix<n;ix++) for (let iy=0;iy<n;iy++) for (let iz=0;iz<n;iz++){
+      const q=[(ix+.5)/n,(iy+.5)/n,(iz+.5)/n].map(f=>f*2*Math.PI/a);
+      for (const w of freqs(q,bonds,K)) all.push(w);
+    }
+    return all;
+  }
+
+  function thermo(gridW, nq, T){
+    let F=0,U=0,Cv=0;
+    for (const wcm of gridW){
+      if (wcm<=1) continue;
+      const w=wcm*2*Math.PI*CLIGHT, x=HBAR*w/(KB*T), em=Math.expm1(x);
+      F += HBAR*w/2 + KB*T*Math.log(-Math.expm1(-x));
+      U += HBAR*w/2 + HBAR*w/em;
+      Cv += KB*x*x*Math.exp(x)/(em*em);
+    }
+    const per=NAv/nq;
+    return { F:F*per, U:U*per, S:(U-F)*per/T, Cv:Cv*per };
+  }
+
+  function seismic(bonds, K, a){
+    const dirs=[[1,0,0],[1,1,0],[1,1,1]], acc=[0,0,0];
+    for (const d of dirs){
+      const nr=Math.hypot(...d), qm=0.02*2*Math.PI/a;
+      const q=d.map(x=>x/nr*qm);
+      const w=freqs(q,bonds,K).sort((x,y)=>x-y).slice(0,3).map(w=>w*2*Math.PI*CLIGHT/qm);
+      for (let k=0;k<3;k++) acc[k]+=w[k]/dirs.length;
+    }
+    return { vP:acc[2], vS:(acc[0]+acc[1])/2 };
+  }
+
+  function stateAt(P, gamma, bOO){
+    const V=volume(P), a=Math.cbrt(V), sc=Math.pow(V0/V, 2*gamma);
+    const K={};
+    for (const k in K0) K[k]=[K0[k][0]*sc, K0[k][1]*sc];
+    if (bOO!==null && bOO!==undefined) K.OO=[K.OO[0], bOO*sc];
+    return { a, V, rho:MCELL/V, bonds:buildBonds(a), K, sc };
+  }
+
+  return { volume, freqs, gridFreqs, thermo, seismic, stateAt, MCELL, V0, NAv:NAv };
+})();
+
+/* ============================ PLOT HELPER ============================ */
+function plotter(cv){
+  const ctx = cv.getContext("2d"), W=cv.width, H=cv.height;
+  const P = { L:62, R:20, T:18, B:44 };
+  let xr=[0,1], yr=[0,1];
+  const X = x => P.L + (x-xr[0])/(xr[1]-xr[0])*(W-P.L-P.R);
+  const Y = y => H-P.B - (y-yr[0])/(yr[1]-yr[0])*(H-P.T-P.B);
+  function frame(xlab, ylab, xticks, yticks, fmtx, fmty){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle="#fff"; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle="#D5D9D4"; ctx.fillStyle="#5A616C";
+    ctx.font="11px ui-monospace,monospace"; ctx.lineWidth=1;
+    for (const t of yticks){
+      ctx.beginPath(); ctx.moveTo(P.L, Y(t)+.5); ctx.lineTo(W-P.R, Y(t)+.5); ctx.stroke();
+      ctx.textAlign="right"; ctx.fillText(fmty?fmty(t):t, P.L-7, Y(t)+4);
+    }
+    for (const t of xticks){
+      ctx.beginPath(); ctx.moveTo(X(t)+.5, P.T); ctx.lineTo(X(t)+.5, H-P.B); ctx.stroke();
+      ctx.textAlign="center"; ctx.fillText(fmtx?fmtx(t):t, X(t), H-P.B+16);
+    }
+    ctx.strokeStyle="#1B1F26"; ctx.strokeRect(P.L+.5, P.T+.5, W-P.L-P.R-1, H-P.T-P.B-1);
+    ctx.textAlign="center"; ctx.fillStyle="#1B1F26";
+    ctx.fillText(xlab, (P.L+W-P.R)/2, H-8);
+    ctx.save(); ctx.translate(14,(P.T+H-P.B)/2); ctx.rotate(-Math.PI/2);
+    ctx.fillText(ylab,0,0); ctx.restore();
+  }
+  function line(xs, ys, color, width=1.6, dash=[]){
+    ctx.strokeStyle=color; ctx.lineWidth=width; ctx.setLineDash(dash);
+    ctx.beginPath();
+    for (let i=0;i<xs.length;i++){ const px=X(xs[i]), py=Y(ys[i]);
+      i? ctx.lineTo(px,py) : ctx.moveTo(px,py); }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  function band(y0, y1, color){
+    ctx.fillStyle=color;
+    ctx.fillRect(P.L, Math.min(Y(y0),Y(y1)), W-P.L-P.R, Math.abs(Y(y1)-Y(y0)));
+  }
+  function diamond(x, y, color, s=6){
+    ctx.fillStyle=color; ctx.beginPath();
+    ctx.moveTo(X(x),Y(y)-s); ctx.lineTo(X(x)+s,Y(y)); ctx.lineTo(X(x),Y(y)+s);
+    ctx.lineTo(X(x)-s,Y(y)); ctx.closePath(); ctx.fill();
+  }
+  function label(x, y, txt, color){
+    ctx.fillStyle=color; ctx.font="11.5px ui-monospace,monospace";
+    ctx.textAlign="left"; ctx.fillText(txt, X(x)+8, Y(y)+4);
+  }
+  function vline(x, color, dash=[4,4]){
+    ctx.strokeStyle=color; ctx.setLineDash(dash); ctx.beginPath();
+    ctx.moveTo(X(x)+.5,P.T); ctx.lineTo(X(x)+.5,H-P.B); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function setRange(x, y){ xr=x; yr=y; }
+  return { setRange, frame, line, band, diamond, label, vline, X, Y, ctx, W, H, P,
+           get xr(){return xr}, get yr(){return yr} };
+}
+const ticks = (a,b,n) => Array.from({length:n+1},(_,i)=>a+(b-a)*i/n);
+
+/* ============================ STATE & UI ============================ */
+const $ = id => document.getElementById(id);
+const STAGES = [
+  ["PHASE 01","Structure"], ["PHASE 02","Dispersion"], ["PHASE 03","Density of states"],
+  ["PHASE 04","Thermodynamics"], ["PHASE 05","Seismic"], ["PHASE 06","Depth profile"]
+];
+let active = 1;
+const nav = $("nav");
+STAGES.forEach(([ph,nm],i) => {
+  const b = document.createElement("button");
+  b.innerHTML = `<span class="ph">${ph}</span><span class="nm">${nm}</span>`;
+  b.onclick = () => { active=i; syncNav(); render(); };
+  nav.appendChild(b);
+  if (i < 5){ const f=document.createElement("div"); f.className="flow"; f.textContent="↓"; nav.appendChild(f); }
+});
+function syncNav(){
+  [...nav.querySelectorAll("button")].forEach((b,i)=>b.classList.toggle("on", i===active));
+  [...document.querySelectorAll(".stage")].forEach((s,i)=>s.classList.toggle("on", i===active));
+}
+
+const ui = { P:0, T:300, gam:1.4, boo:3.0, mp:6 };
+const cache = {};
+function key(){ return `${ui.P}|${ui.gam}|${ui.boo}`; }
+function getState(){
+  const k = key();
+  if (!cache[k]) cache[k] = ENGINE.stateAt(ui.P, ui.gam, ui.boo);
+  return cache[k];
+}
+const gridCache = {};
+function getGrid(){
+  const k = key()+"|"+ui.mp;
+  if (!gridCache[k]){
+    const s = getState();
+    gridCache[k] = ENGINE.gridFreqs(s.bonds, s.K, s.a, ui.mp);
+  }
+  return gridCache[k];
+}
+
+function updateCond(){
+  const s = getState();
+  $("Pv").textContent = ui.P+" GPa"; $("Tv").textContent = ui.T+" K";
+  $("aV").textContent = (s.a*1e10).toFixed(3)+" Å";
+  $("vV").textContent = (s.V*1e30).toFixed(2)+" Å³";
+  $("rV").textContent = (s.rho/1000).toFixed(2)+" g/cm³";
+}
+
+/* ---------- Stage 0: structure ---------- */
+function drawCell(){
+  const s = getState();
+  const cv = $("cellCv"), ctx = cv.getContext("2d");
+  ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.fillStyle="#fff"; ctx.fillRect(0,0,cv.width,cv.height);
+  const cx=300, cy=205, sc=150*(s.a*1e10/3.467);
+  const iso = p => [cx + (p[0]-p[2])*sc*0.86, cy + (p[0]+p[2])*sc*0.5 - p[1]*sc*1.0];
+  const corners=[]; for (const x of [0,1]) for (const y of [0,1]) for (const z of [0,1]) corners.push([x,y,z]);
+  ctx.strokeStyle="#B9BFC7"; ctx.lineWidth=1;
+  for (let i=0;i<8;i++) for (let j=i+1;j<8;j++){
+    const d=corners[i].map((c,k)=>Math.abs(c-corners[j][k])).reduce((a,b)=>a+b);
+    if (d===1){ const A=iso(corners[i]), B=iso(corners[j]);
+      ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B); ctx.stroke(); }
+  }
+  const O = [[.5,.5,0],[.5,0,.5],[0,.5,.5],[.5,.5,1],[.5,1,.5],[1,.5,.5]];
+  const Si=[.5,.5,.5];
+  // octahedron faces (sorted crudely back-to-front by z+x)
+  const faces=[];
+  const ax=[0,3], ay=[4,1], az=[5,2]; // +y,-y etc indices pairing
+  const eq=[0,2,3,5]; // not used; draw all triangles Si-less: faces between adjacent O
+  for (const i of [1,4]) for (const j of [2,5]) for (const k of [0,3])
+    faces.push([O[i],O[j],O[k]]);
+  faces.sort((f,g)=> (f[0][0]+f[0][2]+f[1][0]+f[1][2]) - (g[0][0]+g[0][2]+g[1][0]+g[1][2]));
+  faces.forEach((f,i)=>{
+    ctx.beginPath(); ctx.moveTo(...iso(f[0])); ctx.lineTo(...iso(f[1])); ctx.lineTo(...iso(f[2]));
+    ctx.closePath();
+    ctx.fillStyle = i%2 ? "rgba(221,149,48,0.85)" : "rgba(182,115,24,0.85)";
+    ctx.fill(); ctx.strokeStyle="#8A5A14"; ctx.lineWidth=.7; ctx.stroke();
+  });
+  const dot=(p,r,fill)=>{ const q=iso(p); ctx.beginPath(); ctx.arc(q[0],q[1],r,0,7);
+    ctx.fillStyle=fill; ctx.fill(); ctx.strokeStyle="#2A2E33"; ctx.lineWidth=.8; ctx.stroke(); };
+  for (const c of corners) dot(c, 9, "#3E8E5A");
+  for (const o of O) dot(o, 6.5, "#C0392B");
+  dot(Si, 5, "#7A5A2E");
+  ctx.font="12px ui-monospace,monospace"; ctx.fillStyle="#5A616C"; ctx.textAlign="left";
+  ctx.fillText("Mg", cx-215, 84); ctx.fillStyle="#3E8E5A"; ctx.fillRect(cx-238,74,12,12);
+  ctx.fillStyle="#5A616C"; ctx.fillText("O", cx-215, 104); ctx.fillStyle="#C0392B"; ctx.fillRect(cx-238,94,12,12);
+  ctx.fillStyle="#5A616C"; ctx.fillText("SiO₆ octahedron", cx-215, 124);
+  ctx.fillStyle="#DD9530"; ctx.fillRect(cx-238,114,12,12);
+
+  // compression curve V(P)
+  const sub = { L:640, R:24, T:30, B:60 };
+  ctx.strokeStyle="#D5D9D4";
+  const XX=p=>sub.L+(p/120)*(cv.width-sub.L-sub.R);
+  const YY=v=>cv.height-sub.B-((v-29)/13)*(cv.height-sub.T-sub.B);
+  ctx.font="11px ui-monospace,monospace"; ctx.fillStyle="#5A616C";
+  for (const t of [30,34,38,42]){ ctx.beginPath(); ctx.moveTo(sub.L,YY(t)+.5);
+    ctx.lineTo(cv.width-sub.R,YY(t)+.5); ctx.stroke();
+    ctx.textAlign="right"; ctx.fillText(t, sub.L-6, YY(t)+4); }
+  for (const t of [0,40,80,120]){ ctx.textAlign="center"; ctx.fillText(t, XX(t), cv.height-sub.B+16); }
+  ctx.strokeStyle="#1B1F26"; ctx.strokeRect(sub.L+.5,sub.T+.5,cv.width-sub.L-sub.R-1,cv.height-sub.T-sub.B-1);
+  ctx.fillStyle="#1B1F26"; ctx.textAlign="center";
+  ctx.fillText("Pressure (GPa)", (sub.L+cv.width-sub.R)/2, cv.height-16);
+  ctx.fillText("V (Å³) — thesis fig 4.8", (sub.L+cv.width-sub.R)/2, 18);
+  ctx.strokeStyle="#2E5FA3"; ctx.lineWidth=1.8; ctx.beginPath();
+  for (let p=0;p<=120;p+=2){ const v=ENGINE.volume(p)*1e30;
+    p?ctx.lineTo(XX(p),YY(v)):ctx.moveTo(XX(p),YY(v)); }
+  ctx.stroke();
+  ctx.fillStyle="#DD9530"; ctx.beginPath();
+  ctx.arc(XX(ui.P), YY(ENGINE.volume(ui.P)*1e30), 5, 0, 7); ctx.fill();
+
+  $("c_a").textContent=(s.a*1e10).toFixed(3);
+  $("c_v").textContent=(s.V*1e30).toFixed(2);
+  $("c_r").textContent=(s.rho/1000).toFixed(2);
+  $("c_s").textContent="×"+s.sc.toFixed(2);
+}
+
+/* ---------- Stage 1: dispersion ---------- */
+const PATH = [
+  { to:[.5,0,0],  lab:"X" }, { to:[.5,.5,0], lab:"M" },
+  { to:[0,0,0],   lab:"Γ" }, { to:[.5,.5,.5],lab:"R" }
+];
+function drawDisp(){
+  const s = getState();
+  const cv = $("dispCv"), pl = plotter(cv);
+  const NPT = 24;
+  const xs=[], branches=Array.from({length:15},()=>[]);
+  let from=[0,0,0], x=0; const marks=[[0,"Γ"]];
+  for (const seg of PATH){
+    for (let k=1;k<=NPT;k++){
+      const f = from.map((c,i)=> c + (seg.to[i]-c)*k/NPT);
+      const q = f.map(c => c*2*Math.PI/s.a);
+      const w = ENGINE.freqs(q, s.bonds, s.K).sort((a,b)=>a-b);
+      xs.push(x + k/NPT);
+      w.forEach((v,b)=>branches[b].push(v));
+    }
+    x += 1; marks.push([x, seg.lab]); from = seg.to;
+  }
+  let vmax=0, vmin=0, nim=0, ntot=0;
+  for (const br of branches) for (const v of br){
+    vmax=Math.max(vmax,v); vmin=Math.min(vmin,v); ntot++; if (v<-1) nim++;
+  }
+  const ylo = Math.min(vmin*1.1, -40), yhi = vmax*1.08;
+  pl.setRange([0,4], [ylo, yhi]);
+  pl.frame("wavevector path", "ν (cm⁻¹)  —  imaginary shown negative",
+           marks.map(m=>m[0]), niceTicks([ylo, yhi]),
+           t=>marks.find(m=>m[0]===t)[1], t=>t.toFixed(0));
+  if (ylo < 0) pl.band(ylo, 0, "rgba(192,57,46,0.08)");
+  pl.line([0,4],[0,0],"#8A9096",1,[3,4]);
+  branches.forEach((br,i)=>{
+    const anyIm = br.some(v=>v<-1);
+    pl.line(xs, br, anyIm ? "#C0392B" : (i<3 ? "#2E5FA3" : "#4A5568"), i<3?1.8:1.1);
+  });
+  $("d_max").textContent = vmax.toFixed(0);
+  $("d_im").textContent = ntot ? (100*nim/ntot).toFixed(1)+" %" : "–";
+  const bad = nim>0;
+  $("saddle").classList.toggle("show", bad);
+  $("stable").classList.toggle("show", !bad);
+}
+function niceTicks([a,b]){
+  const span=b-a, step=Math.pow(10,Math.floor(Math.log10(span/5)));
+  const st=[1,2,2.5,5,10].map(m=>m*step).find(s=>span/s<=7)||step*10;
+  const out=[]; for (let t=Math.ceil(a/st)*st; t<=b; t+=st) out.push(Math.round(t*100)/100);
+  return out;
+}
+
+/* ---------- Stage 2: DoS ---------- */
+function drawDos(){
+  const gw = getGrid();
+  const cv = $("dosCv"), pl = plotter(cv);
+  const lo = Math.min(-60, Math.min(...gw)*1.1), hi = Math.max(...gw)*1.08;
+  const NB = 160, dw = (hi-lo)/NB, sm = dw*1.4;
+  const g = new Float64Array(NB), xsv=[];
+  for (let b=0;b<NB;b++) xsv.push(lo + (b+.5)*dw);
+  for (const w of gw) for (let b=0;b<NB;b++){
+    const d=(xsv[b]-w)/sm; g[b] += Math.exp(-d*d)/ (sm*Math.sqrt(Math.PI));
+  }
+  const gmax = Math.max(...g);
+  pl.setRange([lo,hi], [0, gmax*1.1]);
+  pl.frame("ν (cm⁻¹)", "g(ν) (arb.)", niceTicks([lo,hi]), [], t=>t.toFixed(0));
+  // red imaginary shading
+  const c = pl.ctx;
+  c.save(); c.beginPath();
+  c.rect(pl.P.L, pl.P.T, pl.X(0)-pl.P.L, cv.height-pl.P.T-pl.P.B); c.clip();
+  c.fillStyle="rgba(192,57,46,0.10)";
+  c.fillRect(pl.P.L, pl.P.T, pl.X(0)-pl.P.L, cv.height-pl.P.T-pl.P.B);
+  pl.line(xsv, [...g], "#C0392B", 1.8); c.restore();
+  c.save(); c.beginPath();
+  c.rect(pl.X(0), pl.P.T, cv.width-pl.P.R-pl.X(0), cv.height-pl.P.T-pl.P.B); c.clip();
+  pl.line(xsv, [...g], "#1B1F26", 1.8); c.restore();
+  pl.vline(0, "#8A9096");
+  $("mpN").textContent = ui.mp+"³ = "+(ui.mp**3);
+}
+
+/* ---------- Stage 3: thermodynamics ---------- */
+function drawThermo(){
+  const gw = getGrid(), nq = ui.mp**3, s = getState();
+  const cv = $("thCv"), pl = plotter(cv);
+  const Ts=[], Cvs=[], Ss=[], DP = 15*8.314;
+  for (let T=20; T<=3000; T+=40){
+    const t = ENGINE.thermo(gw, nq, T);
+    Ts.push(T); Cvs.push(t.Cv); Ss.push(t.S);
+  }
+  const ymax = Math.max(DP*1.12, Math.max(...Ss)*1.05);
+  pl.setRange([0,3000], [0, ymax]);
+  pl.frame("Temperature (K)", "J K⁻¹ mol⁻¹", ticks(0,3000,6),
+           niceTicks([0, ymax]), t=>t, t=>t);
+  pl.line([0,3000],[DP,DP], "#8A9096", 1.2, [6,4]);
+  pl.label(2100, DP, "Dulong–Petit 3NkB = 124.7", "#5A616C");
+  pl.line(Ts, Cvs, "#1B1F26", 2);
+  pl.line(Ts, Ss, "#2E5FA3", 2);
+  pl.diamond(300, 78.3, "#DD9530"); pl.label(300, 78.3, "thesis CV", "#B67318");
+  pl.diamond(300, 56.2, "#DD9530"); pl.label(300, 56.2, "thesis S", "#B67318");
+  pl.label(2500, Cvs[Cvs.length-1]-9, "CV", "#1B1F26");
+  pl.label(2500, Ss[Ss.length-1]+9, "S", "#2E5FA3");
+  pl.vline(ui.T, "#DD9530");
+  const t = ENGINE.thermo(gw, nq, ui.T);
+  const Hm = t.U + ui.P*1e9*s.V*ENGINE.NAv;
+  $("t_f").textContent=(t.F/1000).toFixed(1);
+  $("t_h").textContent=(Hm/1000).toFixed(1);
+  $("t_s").textContent=t.S.toFixed(1);
+  $("t_c").textContent=t.Cv.toFixed(1);
+}
+
+/* ---------- Stage 4: seismic ---------- */
+function seismicAt(P, T){
+  const st = ENGINE.stateAt(P, ui.gam, ui.boo);
+  const v = ENGINE.seismic(st.bonds, st.K, st.a);
+  const fP = Math.exp(-2.0e-5*T/2*(1)), fS = Math.exp(-0.8e-5*T/2*(1));
+  return { vP:v.vP*fP, vS:v.vS*fS, rho:st.rho };
+}
+function drawSeismic(){
+  const cv = $("seiCv"), pl = plotter(cv);
+  const Ps=[], vps=[], vss=[], zs=[];
+  for (let p=0;p<=120;p+=6){
+    const r = seismicAt(p, ui.T);
+    Ps.push(p); vps.push(r.vP/1000); vss.push(r.vS/1000);
+    zs.push((r.rho/1000)*(r.vP/1000));
+  }
+  const ymax = Math.max(...zs, ...vps)*1.15;
+  pl.setRange([0,120], [0, ymax]);
+  pl.frame("Pressure (GPa) — at current T", "km/s   ·   Z₀ (thesis units)",
+           ticks(0,120,6), niceTicks([0, ymax]), t=>t, t=>t);
+  pl.line(Ps, vps, "#2E5FA3", 2);   pl.label(100, vps[17]+2, "VP", "#2E5FA3");
+  pl.line(Ps, vss, "#C0392B", 2);   pl.label(100, vss[17]+2, "VS", "#C0392B");
+  pl.line(Ps, zs,  "#1B1F26", 2);   pl.label(100, zs[17]+3,  "Z0", "#1B1F26");
+  pl.diamond(0, 10.1, "#DD9530"); pl.diamond(0, 6.32, "#DD9530"); pl.diamond(0, 44, "#DD9530");
+  pl.label(2, 44, "thesis Table 8.1", "#B67318");
+  pl.vline(ui.P, "#DD9530");
+  const r = seismicAt(ui.P, ui.T);
+  $("s_p").textContent=(r.vP/1000).toFixed(2);
+  $("s_s").textContent=(r.vS/1000).toFixed(2);
+  $("s_z").textContent=((r.rho/1000)*(r.vP/1000)).toFixed(1);
+}
+
+/* ---------- Stage 5: depth ---------- */
+function drawDepth(){
+  const cv = $("depCv"), pl = plotter(cv);
+  const ds=[], vps=[], vss=[], zs=[], rs=[];
+  for (let d=670; d<=2891; d+=90){
+    const P = 24 + (136-24)*(d-670)/2221;
+    const T = 1900 + 1000*(d-670)/2221;
+    const r = seismicAt(P, T);
+    ds.push(d); vps.push(r.vP/1000); vss.push(r.vS/1000);
+    rs.push(r.rho/1000); zs.push((r.rho/1000)*(r.vP/1000));
+  }
+  const ymax = Math.max(...zs)*1.12;
+  pl.setRange([670,2891], [0, ymax]);
+  pl.frame("Depth BML (km)", "km/s · g/cm³ · Z₀ (thesis units)",
+           [670,1200,1700,2200,2700], niceTicks([0, ymax]), t=>t, t=>t);
+  pl.line(ds, vps, "#2E5FA3", 2);  pl.label(2650, vps[24]+2, "VP", "#2E5FA3");
+  pl.line(ds, vss, "#C0392B", 2);  pl.label(2650, vss[24]+2, "VS", "#C0392B");
+  pl.line(ds, rs,  "#3E8E5A", 2);  pl.label(2650, rs[24]+2,  "ρ",  "#3E8E5A");
+  pl.line(ds, zs,  "#1B1F26", 2);  pl.label(2650, zs[24]+3,  "Z0", "#1B1F26");
+  const pct = a => (100*(a[a.length-1]-a[0])/a[0]).toFixed(0)+" %";
+  $("dp_p").textContent="+"+pct(vps); $("dp_s").textContent="+"+pct(vss);
+  $("dp_z").textContent="+"+pct(zs);  $("dp_r").textContent="+"+pct(rs);
+}
+
+/* ---------- render dispatch ---------- */
+const DRAW = [drawCell, drawDisp, drawDos, drawThermo, drawSeismic, drawDepth];
+let pend = null;
+function render(){
+  updateCond();
+  if (pend) cancelAnimationFrame(pend);
+  pend = requestAnimationFrame(() => { DRAW[active](); pend=null; });
+}
+$("P").addEventListener("input", e => { ui.P=+e.target.value; render(); });
+$("T").addEventListener("input", e => { ui.T=+e.target.value; render(); });
+$("gam").addEventListener("input", e => { ui.gam=+e.target.value; $("gamv").textContent=ui.gam.toFixed(2); render(); });
+$("boo").addEventListener("input", e => { ui.boo=+e.target.value; $("boov").textContent=ui.boo.toFixed(2)+" N/m"; render(); });
+$("mp").addEventListener("change", e => { ui.mp=+e.target.value; render(); });
+
+syncNav(); render();
+</script>
+</body>
+</html>
