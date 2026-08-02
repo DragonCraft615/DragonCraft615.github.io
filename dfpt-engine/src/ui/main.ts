@@ -6,6 +6,7 @@ import { drawDos } from "./stages/dos.ts";
 import { drawThermo } from "./stages/thermodynamics.ts";
 import { drawSeismic } from "./stages/seismic.ts";
 import { drawDepth } from "./stages/depth.ts";
+import { drawPhase4 } from "./stages/phase4.ts";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
@@ -18,6 +19,7 @@ const STAGES: [string, string][] = [
   ["PHASE 04", "Thermodynamics"],
   ["PHASE 05", "Seismic"],
   ["PHASE 06", "Depth profile"],
+  ["PHASE 07", "Phase 4 supercell"],
 ];
 let active = 1;
 const nav = $("nav");
@@ -30,7 +32,7 @@ STAGES.forEach(([ph, nm], i) => {
     render();
   };
   nav.appendChild(b);
-  if (i < 5) {
+  if (i < STAGES.length - 1) {
     const f = document.createElement("div");
     f.className = "flow";
     f.textContent = "↓";
@@ -51,7 +53,7 @@ async function updateCond() {
   $("rV").textContent = (res.rho / 1000).toFixed(2) + " g/cm³";
 }
 
-const DRAW = [drawCell, drawDisp, drawDos, drawThermo, drawSeismic, drawDepth];
+const DRAW = [drawCell, drawDisp, drawDos, drawThermo, drawSeismic, drawDepth, drawPhase4];
 let renderToken = 0;
 function render() {
   const token = ++renderToken;
