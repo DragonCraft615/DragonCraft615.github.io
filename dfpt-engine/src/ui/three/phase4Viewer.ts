@@ -40,7 +40,7 @@ export function mountPhase4Viewer(container: HTMLElement): Phase4ViewerHandle {
 
   function setReference(atoms: Phase4AtomInput[], box: [number, number, number]) {
     if (phase4) viewer.scene.remove(phase4.group);
-    phase4 = buildPhase4Group(atoms);
+    phase4 = buildPhase4Group(atoms, box);
     viewer.scene.add(phase4.group);
     const center = box.map((L) => (L * ANGSTROM_TO_UNIT) / 2) as [number, number, number];
     viewer.controls.target.set(center[0], center[1], center[2]);
