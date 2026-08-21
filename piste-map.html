@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Interactive lift map of Tignes and Val d'Isère (Espace Killy) — every lift ranked by capacity and speed, showing which parts of the resort are best and worst served.">
+<title>🏔️ Tignes &amp; Val d'Isère Lift Map — Dragonia</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0a0a14; --surface: #0f0f1e; --card: #131325;
+  --border: #1e1a2e; --text: #f0ede6; --sub: #a89880; --muted: #5c5248;
+  --gold: #f5a623; --green: #2ecc71; --red: #e74c3c; --blue: #3498db;
+  --fast: #2ecc71; --medium: #f5a623; --slow: #e74c3c;
+}
+
+html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+body { min-height: 100vh; padding-bottom: 60px; }
+
+/* ── HEADER ── */
+.site-header {
+  background: linear-gradient(135deg, #0d1a3e 0%, #16213e 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 16px 16px;
+  text-align: center;
+  position: sticky; top: 0; z-index: 200;
+}
+.header-emblem { font-size: 30px; margin-bottom: 4px; }
+.header-title {
+  font-size: clamp(22px, 5vw, 34px); font-weight: 900; letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #7dd3fc, #38bdf8, #2ecc71);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.header-sub { font-size: 12.5px; color: var(--sub); margin-top: 4px; max-width: 560px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+.back-link {
+  display: inline-block; margin-top: 12px; color: var(--gold); text-decoration: none; font-weight: 700;
+  font-size: 13px; border: 1px solid rgba(245,166,35,.3); padding: 6px 12px; border-radius: 10px; background: rgba(245,166,35,.08);
+}
+
+/* ── STATS STRIP ── */
+.stats-strip {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;
+  max-width: 1100px; margin: 18px auto 0; padding: 0 16px;
+}
+.stat-chip {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 8px 14px; text-align: center; min-width: 92px;
+}
+.stat-chip b { display: block; font-size: 17px; color: var(--gold); font-weight: 800; }
+.stat-chip span { font-size: 10.5px; color: var(--sub); text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── LAYOUT ── */
+.layout {
+  max-width: 1400px; margin: 20px auto 0; padding: 0 16px;
+  display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 16px;
+}
+@media (max-width: 940px) { .layout { grid-template-columns: 1fr; } }
+
+/* ── MAP PANEL ── */
+.map-panel {
+  background: radial-gradient(ellipse 90% 60% at 50% 20%, #16213e 0%, #0d1526 55%, #060912 100%);
+  border: 1px solid var(--border); border-radius: 18px; overflow: hidden; position: relative;
+  min-height: 420px;
+}
+.map-toolbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,.06); flex-wrap: wrap;
+}
+.map-toolbar .search-wrap { flex: 1; min-width: 140px; }
+.search-input {
+  width: 100%; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); color: var(--text);
+  padding: 7px 10px; border-radius: 9px; font-size: 13px;
+}
+.search-input::placeholder { color: var(--sub); }
+.zoom-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.zoom-btns button, .reset-btn {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: var(--text);
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 700; flex-shrink: 0;
+}
+.reset-btn { width: auto; padding: 0 10px; font-size: 12px; white-space: nowrap; }
+@media (max-width: 480px) {
+  .map-toolbar .search-wrap { min-width: 0; flex-basis: 100%; }
+}
+.zoom-btns button:hover, .reset-btn:hover { background: rgba(255,255,255,.12); }
+
+.svg-wrap { width: 100%; height: 560px; cursor: grab; touch-action: none; }
+.svg-wrap.dragging { cursor: grabbing; }
+svg { width: 100%; height: 100%; display: block; }
+
+.sector-blob { fill: rgba(180,205,235,.05); stroke: rgba(180,205,235,.16); stroke-width: 1.2; }
+.sector-blob.dim { opacity: .12; }
+.sector-label { fill: #cfe3fa; font-size: 13px; font-weight: 700; text-anchor: middle; pointer-events: none; }
+.sector-label.dim { opacity: .15; }
+.sector-sub { fill: #8aa3c4; font-size: 9px; text-anchor: middle; pointer-events: none; }
+.sector-sub.dim { opacity: .15; }
+.contour { fill: none; stroke: rgba(255,255,255,.035); stroke-width: 1; }
+
+.lift-line { fill: none; stroke-linecap: round; pointer-events: none; transition: opacity .15s, filter .15s; }
+.lift-line.hidden-filter { display: none; }
+.lift-line.dimmed { opacity: .08; }
+.lift-line.selected { filter: drop-shadow(0 0 5px currentColor); stroke-width: calc(var(--w) + 2.5px) !important; }
+.lift-line.hovering { filter: drop-shadow(0 0 4px currentColor); }
+.lift-hit { stroke: transparent !important; pointer-events: stroke; cursor: pointer; }
+.hub-dot { fill: #cfe3fa; stroke: #060912; stroke-width: 1.5; }
+.hub-dot.dim { opacity: .15; }
+
+.map-caption {
+  position: absolute; left: 12px; bottom: 10px; font-size: 10.5px; color: rgba(207,227,250,.5);
+  background: rgba(6,9,18,.55); padding: 4px 8px; border-radius: 6px; pointer-events: none; max-width: 70%;
+}
+
+/* ── TOOLTIP ── */
+.tooltip {
+  position: fixed; z-index: 500; background: #0f0f1e; border: 1px solid rgba(255,255,255,.15);
+  border-radius: 10px; padding: 8px 11px; font-size: 12px; color: var(--text); pointer-events: none;
+  box-shadow: 0 8px 24px rgba(0,0,0,.5); display: none; max-width: 220px;
+}
+.tooltip b { color: var(--gold); }
+
+/* ── SIDEBAR ── */
+.sidebar { display: flex; flex-direction: column; gap: 14px; }
+.panel {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px;
+}
+.panel h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--gold); margin-bottom: 10px; }
+
+.legend-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; margin-bottom: 7px; }
+.legend-swatch { width: 26px; height: 4px; border-radius: 3px; flex-shrink: 0; }
+.legend-note { font-size: 11px; color: var(--sub); margin-top: 6px; line-height: 1.5; }
+.thickness-demo { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.thickness-demo .bar { background: #cfe3fa; border-radius: 3px; }
+
+.filter-group { margin-bottom: 12px; }
+.filter-group h3 { font-size: 11px; color: var(--sub); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 6px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font-size: 11.5px; padding: 5px 10px; border-radius: 20px; border: 1px solid var(--border);
+  background: rgba(255,255,255,.04); color: var(--sub); cursor: pointer; user-select: none; font-weight: 600;
+}
+.chip.active { color: #0a0a14; font-weight: 700; }
+.chip[data-speed="fast"].active { background: var(--fast); border-color: var(--fast); }
+.chip[data-speed="medium"].active { background: var(--medium); border-color: var(--medium); }
+.chip[data-speed="slow"].active { background: var(--slow); border-color: var(--slow); }
+.chip[data-type].active { background: var(--blue); border-color: var(--blue); }
+.range-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--sub); }
+input[type=range] { flex: 1; accent-color: var(--gold); }
+
+.sector-card {
+  border: 1px solid var(--border); border-radius: 11px; padding: 9px 11px; margin-bottom: 7px; cursor: pointer;
+  background: rgba(255,255,255,.02); transition: border-color .15s, background .15s;
+}
+.sector-card:hover { border-color: rgba(245,166,35,.4); }
+.sector-card.active { border-color: var(--gold); background: rgba(245,166,35,.06); }
+.sector-card .row1 { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.sector-card .name { font-size: 12.5px; font-weight: 700; }
+.sector-card .badge { font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 20px; white-space: nowrap; }
+.badge.high { background: rgba(46,204,113,.18); color: var(--fast); }
+.badge.good { background: rgba(245,166,35,.18); color: var(--medium); }
+.badge.limited { background: rgba(231,76,60,.18); color: var(--slow); }
+.sector-card .meta { font-size: 10.5px; color: var(--sub); margin-top: 3px; }
+.sector-card .barbg { height: 5px; background: rgba(255,255,255,.06); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+.sector-card .barfg { height: 100%; border-radius: 3px; }
+
+#showAllBtn {
+  width: 100%; margin-top: 4px; padding: 7px; font-size: 11.5px; font-weight: 700; color: var(--gold);
+  background: rgba(245,166,35,.08); border: 1px solid rgba(245,166,35,.25); border-radius: 9px; cursor: pointer;
+}
+
+.detail-empty { font-size: 12px; color: var(--sub); line-height: 1.6; }
+.detail-name { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+.detail-type { font-size: 11.5px; color: var(--sub); margin-bottom: 10px; }
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.detail-item { background: rgba(255,255,255,.03); border-radius: 9px; padding: 7px 9px; }
+.detail-item .k { font-size: 9.5px; text-transform: uppercase; color: var(--sub); letter-spacing: .04em; }
+.detail-item .v { font-size: 14px; font-weight: 800; margin-top: 2px; }
+.detail-speedtag { display: inline-block; font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 20px; }
+
+.takeaway { font-size: 12px; color: var(--sub); line-height: 1.65; }
+.takeaway b { color: var(--text); }
+.takeaway .tag { color: var(--fast); font-weight: 700; }
+.takeaway .tag2 { color: var(--slow); font-weight: 700; }
+
+footer { text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; padding: 20px 16px 0; }
+footer a { color: var(--gold); text-decoration: none; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-emblem">🏔️🚡</div>
+  <h1 class="header-title">Espace Killy Lift Map</h1>
+  <p class="header-sub">Every lift in Tignes &amp; Val d'Isère, drawn by capacity (thickness) and speed (colour) — see which parts of the resort move you fastest, and which ones bottleneck.</p>
+  <a class="back-link" href="index.html">← Back to Dragonia</a>
+</header>
+
+<div class="stats-strip">
+  <div class="stat-chip"><b>80</b><span>Lifts total</span></div>
+  <div class="stat-chip"><b>153,857</b><span>Uphill p/h</span></div>
+  <div class="stat-chip"><b>300 km</b><span>Piste</span></div>
+  <div class="stat-chip"><b>81.7 km</b><span>Lift line</span></div>
+  <div class="stat-chip"><b>1,550–3,456 m</b><span>Altitude</span></div>
+</div>
+
+<div class="layout">
+  <!-- MAP -->
+  <div class="map-panel">
+    <div class="map-toolbar">
+      <div class="search-wrap"><input class="search-input" id="searchInput" placeholder="🔍 Search a lift name…"></div>
+      <div class="zoom-btns">
+        <button id="zoomOut" title="Zoom out">−</button>
+        <button id="zoomIn" title="Zoom in">+</button>
+        <button class="reset-btn" id="resetView">Reset view</button>
+      </div>
+    </div>
+    <div class="svg-wrap" id="svgWrap">
+      <svg id="mapSvg" viewBox="0 0 1500 1150"></svg>
+    </div>
+    <div class="map-caption">Schematic diagram, not to geographic scale · drag to pan, scroll/buttons to zoom · click a lift for details</div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="panel">
+      <h2>Legend</h2>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast)"></span> Fast — high-speed detachable, funicular, tramway, modern gondola (~5–10 m/s)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--medium)"></span> Standard — fixed-grip chairlift (~2.5 m/s)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--slow)"></span> Slow — drag lift, carpet, rope tow (~1–3 m/s)</div>
+      <div class="thickness-demo">
+        <div class="bar" style="width:26px;height:2px"></div>
+        <div class="bar" style="width:26px;height:6px"></div>
+        <div class="bar" style="width:26px;height:11px"></div>
+        <span style="font-size:11px;color:var(--sub)">line thickness = capacity</span>
+      </div>
+      <div class="legend-note">Thicker = more people/hour. A thick red/gold line still means a bottleneck even if the lift itself is quick, because capacity — not speed — is what actually limits queueing.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Filters</h2>
+      <div class="filter-group">
+        <h3>Speed</h3>
+        <div class="chip-row">
+          <span class="chip active" data-speed="fast">Fast</span>
+          <span class="chip active" data-speed="medium">Standard</span>
+          <span class="chip active" data-speed="slow">Slow</span>
+        </div>
+      </div>
+      <div class="filter-group">
+        <h3>Lift type</h3>
+        <div class="chip-row">
+          <span class="chip active" data-type="chair">Chairlifts</span>
+          <span class="chip active" data-type="gondola">Gondola/Cable/Funicular</span>
+          <span class="chip active" data-type="drag">Drag lifts</span>
+          <span class="chip active" data-type="carpet">Carpets/other</span>
+        </div>
+      </div>
+      <div class="filter-group">
+        <h3>Minimum capacity: <span id="capLabel">0</span> p/h</h3>
+        <div class="range-row">
+          <span>0</span>
+          <input type="range" id="capRange" min="0" max="4000" step="250" value="0">
+          <span>4000+</span>
+        </div>
+      </div>
+      <div class="filter-group">
+        <h3><label style="cursor:pointer"><input type="checkbox" id="connectorOnly"> Only inter-area link lifts</label></h3>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Selected lift</h2>
+      <div id="detailPanel"><p class="detail-empty">Click any line on the map to see its type, capacity, speed and vertical stats here.</p></div>
+    </div>
+
+    <div class="panel">
+      <h2>Area accessibility ranking</h2>
+      <div id="sectorList"></div>
+      <button id="showAllBtn">Show whole resort</button>
+    </div>
+
+    <div class="panel">
+      <h2>Key takeaways</h2>
+      <div class="takeaway">
+        <p style="margin-bottom:8px"><span class="tag">Best served:</span> <b>Tignes Val Claret</b> — home to <b>Tommeuses</b> (4,090 p/h, the single highest-capacity lift in the resort) plus five more 3,000+ p/h high-speed chairs and the Grande Motte funicular.</p>
+        <p style="margin-bottom:8px"><span class="tag2">Bottlenecks:</span> the <b>Grande Motte glacier</b> summit is only reached by a 1,010 p/h cable car — fast, but the lowest throughput of any major lift, so the top can queue hard on a powder morning. <b>Le Fornet</b> is similar: a 1973 cable car (1,000 p/h) plus a scatter of small drag lifts.</p>
+        <p>The <b>Tignes ⇄ Val d'Isère link</b> (Tovière, Funival, Col de Fresse) is comparatively thin relative to how much traffic crosses it daily — worth timing around if you're skiing both sides.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<footer>
+  Data referenced from <a href="https://www.skiresort.com/en/ski-resort/tignes-val-disere/ski-lifts/" target="_blank" rel="noopener">skiresort.com</a> (Espace Killy lift database, 2026 season) and resort references. Sector positions are schematic (topological, not surveyed geography); exact metres-per-second figures aren't publicly listed per-lift, so speed is classed by lift technology. Built for <a href="index.html">Dragonia</a>.
+</footer>
+
+<script>
+/* ───────────────────────── DATA ───────────────────────── */
+// Sectors: schematic hub positions on a 1500×1150 canvas (not geographically surveyed —
+// laid out to preserve real topology: two valleys joined by the Tovière ridge, with the
+// Grande Motte glacier spurring south off Val Claret and Aiguille Percée spurring north off Le Lac).
+const SECTORS = {
+  fornet:      { name: "Le Fornet",                              sub: "Val d'Isère · up-valley",     x: 1310, y: 480 },
+  laisinant:   { name: "Le Laisinant",                            sub: "Val d'Isère",                 x: 1150, y: 600 },
+  village:     { name: "Val d'Isère Village",                     sub: "Front de Neige",               x: 990,  y: 720 },
+  daille:      { name: "La Daille",                                sub: "Val d'Isère · Bellevarde face", x: 840,  y: 840 },
+  toviere:     { name: "Tovière",                                  sub: "Tignes ⇄ Val d'Isère link ridge", x: 700, y: 660 },
+  lac:         { name: "Tignes Le Lac",                            sub: "incl. Le Lavachet",           x: 480,  y: 560 },
+  valclaret:   { name: "Tignes Val Claret",                        sub: "resort core",                 x: 560,  y: 740 },
+  grandemotte: { name: "Grande Motte Glacier",                     sub: "3,456 m summit",              x: 640,  y: 940 },
+  percee:      { name: "Aiguille Percée",                          sub: "Col du Palet · → Paradiski",  x: 300,  y: 320 },
+  boisses:     { name: "Tignes 1800 / Boisses / Brévières",        sub: "down-valley",                 x: 230,  y: 640 },
+};
+
+// Lifts: [id, name, type, speedClass, capacity(pph), length(m), yearBuilt, sectorA, sectorB(connector)|null]
+// type: chair-hs | chair-fg | gondola | tramway | funicular | tricable | jbar | tbar | carpet | ropetow
+const RAW = [
+["fornet-tram","Le Fornet","tramway","fast",1000,1029,1973,"fornet",null],
+["vallon-iseran","Vallon de l'Iseran","gondola","fast",3000,2741,2024,"fornet",null],
+["signal1","Signal 1","jbar","slow",855,595,2007,"fornet",null],
+["signal2","Signal 2","jbar","slow",855,595,2006,"fornet",null],
+["mont-blanc","Mont Blanc","chair-fg","medium",1800,1108,1982,"fornet",null],
+["cema","Céma","chair-fg","medium",2200,492,2000,"fornet",null],
+["montet","Montet","tbar","slow",1200,813,2005,"fornet",null],
+["chardonnet","Chardonnet","jbar","slow",600,920,1953,"fornet",null],
+
+["laisinant-express","Laisinant Express","chair-hs","fast",2100,1849,2005,"laisinant",null],
+["borsat-express","Borsat Express","chair-hs","fast",2400,2097,1994,"laisinant",null],
+["manchet-express","Manchet Express","chair-hs","fast",2400,1921,1993,"laisinant",null],
+
+["olympique","L'Olympique","tricable","fast",3750,2148,2002,"village",null],
+["solaise","Solaise","gondola","fast",3600,2198,2016,"village",null],
+["bellevarde-express","Bellevarde Express","chair-hs","fast",2400,1041,1989,"village","toviere"],
+["rogoney","Rogoney","chair-fg","medium",2400,587,1997,"village",null],
+["village-chair","Village","chair-fg","medium",1800,369,1985,"village",null],
+["savonnette1","Savonnette 1","jbar","slow",600,212,1984,"village",null],
+["savonnette2","Savonnette 2","jbar","slow",600,212,1987,"village",null],
+["grand-huit","Grand Huit","chair-fg","medium",2400,853,1997,"village",null],
+["pim","Pim","carpet","slow",1500,236,2010,"village",null],
+["pam","Pam","carpet","slow",1500,236,2010,"village",null],
+
+["la-daille-gondola","La Daille","gondola","fast",2800,1664,2018,"daille","toviere"],
+["funival","Funival","funicular","fast",2200,2292,1986,"daille","toviere"],
+["grattalu","Grattalu","chair-hs","fast",2700,1387,2004,"daille",null],
+["merles","Merles","chair-hs","fast",2468,1314,2004,"daille",null],
+["vanoise","Vanoise","chair-hs","fast",2000,1186,2008,"daille",null],
+["pyramides","Pyramides","chair-hs","fast",2400,1283,2006,"daille",null],
+["cascade-express","Cascade Express","chair-hs","fast",2400,1741,2000,"daille",null],
+["loyes-express","Loyes Express","chair-hs","fast",2400,1443,1991,"daille",null],
+["almes","Almes","chair-fg","medium",2400,594,2016,"daille",null],
+["cugnai","Cugnaï","chair-fg","medium",1200,807,2006,"daille",null],
+["grand-pre","Grand Pré","chair-fg","medium",2400,905,1992,"daille",null],
+["combe-folle","Combe Folle","jbar","slow",600,851,1967,"daille",null],
+["legettaz","Légettaz","jbar","slow",550,466,1958,"daille",null],
+
+["la-toviere","La Tovière","gondola","fast",3000,1793,2013,"lac","toviere"],
+["leissieres-express","Leissières Express","chair-hs","fast",2400,1085,2003,"toviere","village"],
+
+["palafour","Palafour","chair-hs","fast",3600,1319,2006,"lac",null],
+["chaudannes","Chaudannes","chair-hs","fast",2400,1191,1999,"lac",null],
+["rosset","Rosset","chair-fg","medium",2400,320,1985,"lac",null],
+["paquis","Paquis","chair-hs","fast",1500,1610,1999,"lac",null],
+["lavachet1","Lavachet 1","carpet","slow",1500,150,2025,"lac",null],
+["lavachet2","Lavachet 2","carpet","slow",1500,150,2025,"lac",null],
+["madeleine-express","Madeleine Express","chair-hs","fast",3000,909,1998,"lac",null],
+["datcha","Datcha","chair-hs","fast",2400,870,2017,"lac",null],
+["lavachet-jbar","Lavachet","jbar","slow",800,267,1999,"lac",null],
+["carpe-diem","Carpe Diem","carpet","slow",1500,165,2010,"lac",null],
+["centre","Centre","carpet","slow",1500,80,2010,"lac",null],
+["poum","Poum","carpet","slow",1500,200,2010,"lac",null],
+["replat","Replat","ropetow","slow",350,274,2021,"lac",null],
+["slalom","Slalom (Snowpark)","jbar","slow",728,358,2001,"lac",null],
+
+["perce-neige","Perce Neige (Grande Motte Funicular)","funicular","fast",3600,3491,1989,"valclaret","grandemotte"],
+["lanches","Lanches","chair-hs","fast",1650,2555,1992,"valclaret",null],
+["bollin","Bollin","chair-hs","fast",3600,570,1997,"valclaret",null],
+["tichots","Tichots","chair-hs","fast",3600,1171,2005,"valclaret",null],
+["tufs","Tufs","chair-hs","fast",2800,1599,2008,"valclaret",null],
+["claret","Claret","carpet","slow",1500,193,2008,"valclaret",null],
+["tommeuses","Tommeuses","chair-hs","fast",4090,1716,2002,"valclaret",null],
+["marmottes-express","Marmottes-Express","chair-hs","fast",3600,1217,2008,"valclaret",null],
+["fontaine-froide","Fontaine Froide","chair-hs","fast",3000,1186,2012,"valclaret",null],
+["fresse","Fresse (Col de Fresse)","chair-hs","fast",1800,1886,1997,"valclaret","toviere"],
+["lanches1","Lanches 1","jbar","slow",600,210,1986,"valclaret",null],
+["lanches2","Lanches 2","jbar","slow",600,210,1986,"valclaret",null],
+["col-des-ves","Col des Ves","chair-fg","medium",1350,1855,1981,"valclaret",null],
+["pays-desert","Pays Désert","jbar","slow",700,411,1975,"valclaret",null],
+
+["grande-motte-tram","Grande Motte","tramway","fast",1010,1695,2018,"grandemotte",null],
+["panoramique","Panoramique (summer)","chair-fg","medium",1350,266,1976,"grandemotte",null],
+["termignon1","Termignon 1 · 3500 (summer)","tbar","slow",1200,1046,1990,"grandemotte",null],
+["termignon2","Termignon 2 · 3500 (summer)","tbar","slow",900,820,1967,"grandemotte",null],
+["troismille","3000","jbar","slow",433,431,1962,"grandemotte",null],
+["glacier-express","Glacier Express","chair-hs","fast",3000,1780,2001,"grandemotte",null],
+
+["aiguille-percee","Aiguille Percée","chair-hs","fast",2400,1052,2025,"lac","percee"],
+["aiguille-rouge","Aiguille Rouge","chair-hs","fast",3000,1153,2022,"lac","percee"],
+["marais","Marais","chair-hs","fast",2020,2070,2024,"lac","percee"],
+["col-du-palet","Col du Palet","jbar","slow",650,1444,1968,"percee",null],
+
+["brevieres","Brévières","gondola","fast",2400,902,2018,"lac","boisses"],
+["les-boisses","Les Boisses","gondola","fast",3000,1161,2010,"lac","boisses"],
+["tignes1800-1","Tignes 1800 · 1","carpet","slow",1500,115,2010,"boisses",null],
+["tignes1800-2","Tignes 1800 · 2","carpet","slow",1500,120,2010,"boisses",null],
+["parei","Parei","jbar","slow",720,360,2019,"boisses",null],
+];
+
+const TYPE_META = {
+  "chair-hs": { label: "High-speed detachable chair", icon: "🪑", group: "chair" },
+  "chair-fg": { label: "Fixed-grip chairlift", icon: "🪑", group: "chair" },
+  "gondola":  { label: "Gondola", icon: "🚠", group: "gondola" },
+  "tramway":  { label: "Aerial tramway / cable car", icon: "🚡", group: "gondola" },
+  "funicular":{ label: "Funicular", icon: "🚞", group: "gondola" },
+  "tricable": { label: "Tricable ropeway", icon: "🚠", group: "gondola" },
+  "jbar":     { label: "J-bar drag lift", icon: "⛓", group: "drag" },
+  "tbar":     { label: "T-bar drag lift", icon: "⛓", group: "drag" },
+  "carpet":   { label: "Magic carpet / people mover", icon: "➡", group: "carpet" },
+  "ropetow":  { label: "Rope tow (beginner)", icon: "➡", group: "carpet" },
+};
+const SPEED_META = {
+  fast:   { label: "Fast",     ms: "~5–10 m/s",  color: "var(--fast)" },
+  medium: { label: "Standard", ms: "~2.5 m/s",   color: "var(--medium)" },
+  slow:   { label: "Slow",     ms: "~1–3 m/s",   color: "var(--slow)" },
+};
+
+const LIFTS = RAW.map(r => ({
+  id:r[0], name:r[1], type:r[2], speed:r[3], cap:r[4], len:r[5], yoc:r[6], a:r[7], b:r[8],
+  connector: !!r[8]
+}));
+
+/* ───────────────────────── LAYOUT ───────────────────────── */
+const cx = Object.values(SECTORS).reduce((s,v)=>s+v.x,0)/Object.keys(SECTORS).length;
+const cy = Object.values(SECTORS).reduce((s,v)=>s+v.y,0)/Object.keys(SECTORS).length;
+
+function strokeWidth(cap){ return Math.max(2, Math.min(11, 1.4 + cap/430)); }
+
+// group intra-sector lifts per sector, for angular fan-out
+const intraBySector = {};
+LIFTS.filter(l=>!l.connector).forEach(l=>{ (intraBySector[l.a] = intraBySector[l.a] || []).push(l); });
+
+Object.entries(intraBySector).forEach(([sectorId, list])=>{
+  const hub = SECTORS[sectorId];
+  const outAngle = Math.atan2(hub.y-cy, hub.x-cx) * 180/Math.PI;
+  const n = list.length;
+  const spread = Math.min(150, Math.max(50, n*13));
+  list.forEach((l,i)=>{
+    const a = (outAngle - spread/2) + (n<=1 ? spread/2 : (spread*i/(n-1)));
+    const rad = a * Math.PI/180;
+    const r = Math.max(55, Math.min(165, 45 + l.len/22));
+    l.x1 = hub.x; l.y1 = hub.y;
+    l.x2 = hub.x + Math.cos(rad)*r;
+    l.y2 = hub.y + Math.sin(rad)*r;
+  });
+});
+
+// connector lifts: hub-to-hub, offset in parallel when sharing a pair
+const pairGroups = {};
+LIFTS.filter(l=>l.connector).forEach(l=>{
+  const key = [l.a,l.b].sort().join("|");
+  (pairGroups[key] = pairGroups[key] || []).push(l);
+});
+Object.values(pairGroups).forEach(list=>{
+  const n = list.length;
+  list.forEach((l,i)=>{
+    const A = SECTORS[l.a], B = SECTORS[l.b];
+    const dx = B.x-A.x, dy = B.y-A.y, len = Math.hypot(dx,dy);
+    const nx = -dy/len, ny = dx/len;
+    const off = (i - (n-1)/2) * 15;
+    l.x1 = A.x + nx*off; l.y1 = A.y + ny*off;
+    l.x2 = B.x + nx*off; l.y2 = B.y + ny*off;
+  });
+});
+
+/* ───────────────────────── RENDER ───────────────────────── */
+const svg = document.getElementById("mapSvg");
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs){ const e = document.createElementNS(NS, tag); for(const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+// contour rings for atmosphere
+for(let r=140; r<=520; r+=95){
+  svg.appendChild(el("circle",{cx:cx, cy:cy+40, r, class:"contour"}));
+}
+
+// sector blobs (behind lifts)
+Object.entries(SECTORS).forEach(([id, s])=>{
+  const g = el("g",{class:"sector-group", "data-sector":id});
+  g.appendChild(el("ellipse",{cx:s.x, cy:s.y, rx:95, ry:60, class:"sector-blob"}));
+  svg.appendChild(g);
+});
+
+// lift lines — a visible coloured line plus a wider invisible "hit" line on top,
+// so thin low-capacity lifts (down to 2px) stay easy to hover/click.
+LIFTS.forEach(l=>{
+  const w = strokeWidth(l.cap);
+  const common = {
+    x1:l.x1, y1:l.y1, x2:l.x2, y2:l.y2,
+    "data-id":l.id, "data-speed":l.speed, "data-group":TYPE_META[l.type].group,
+    "data-cap":l.cap, "data-sectors":[l.a,l.b].filter(Boolean).join(","), "data-name":l.name.toLowerCase()
+  };
+  const line = el("line",{...common,
+    class:"lift-line", stroke:SPEED_META[l.speed].color, "stroke-width":w,
+    style:`--w:${w}px; color:${SPEED_META[l.speed].color}`
+  });
+  svg.appendChild(line);
+  const hit = el("line",{...common,
+    class:"lift-line lift-hit", "stroke-width": Math.max(16, w+10)
+  });
+  svg.appendChild(hit);
+});
+
+// hub dots + labels (on top)
+Object.entries(SECTORS).forEach(([id,s])=>{
+  svg.appendChild(el("circle",{cx:s.x, cy:s.y, r:5, class:"hub-dot", "data-sector":id}));
+  const label = el("text",{x:s.x, y:s.y-70, class:"sector-label", "data-sector":id}); label.textContent = s.name;
+  svg.appendChild(label);
+  const sub = el("text",{x:s.x, y:s.y-58, class:"sector-sub", "data-sector":id}); sub.textContent = s.sub;
+  svg.appendChild(sub);
+});
+
+/* ───────────────────────── VIEWBOX / PAN / ZOOM ───────────────────────── */
+const wrap = document.getElementById("svgWrap");
+const BASE = {x:0,y:0,w:1500,h:1150};
+let vb = {...BASE};
+function applyVB(){ svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); }
+applyVB();
+
+function zoomAt(factor, clientX, clientY){
+  const rect = wrap.getBoundingClientRect();
+  const px = (clientX-rect.left)/rect.width, py = (clientY-rect.top)/rect.height;
+  const newW = Math.max(400, Math.min(3000, vb.w*factor));
+  const newH = newW * (vb.h/vb.w);
+  vb.x = vb.x + (vb.w-newW)*px;
+  vb.y = vb.y + (vb.h-newH)*py;
+  vb.w = newW; vb.h = newH;
+  applyVB();
+}
+document.getElementById("zoomIn").onclick = ()=> zoomAt(0.8, wrap.getBoundingClientRect().left+wrap.clientWidth/2, wrap.getBoundingClientRect().top+wrap.clientHeight/2);
+document.getElementById("zoomOut").onclick = ()=> zoomAt(1.25, wrap.getBoundingClientRect().left+wrap.clientWidth/2, wrap.getBoundingClientRect().top+wrap.clientHeight/2);
+document.getElementById("resetView").onclick = ()=> { vb = {...BASE}; applyVB(); };
+wrap.addEventListener("wheel", e=>{ e.preventDefault(); zoomAt(e.deltaY>0?1.1:0.9, e.clientX, e.clientY); }, {passive:false});
+
+// Pan without pointer-capture: capturing the pointer on the wrap div would redirect ALL
+// hit-testing there for the rest of the gesture, so a plain click on a lift line would never
+// reach it. Instead we only start "dragging" once real motion is detected, listening on
+// window so the drag still tracks even if the pointer leaves the wrap.
+let dragging=false, dragMoved=false, suppressClick=false, lastX=0, lastY=0, downX=0, downY=0;
+wrap.addEventListener("pointerdown", e=>{ dragging=true; dragMoved=false; lastX=e.clientX; lastY=e.clientY; downX=e.clientX; downY=e.clientY; });
+window.addEventListener("pointermove", e=>{
+  if(!dragging) return;
+  if(!dragMoved && (Math.abs(e.clientX-downX)>3 || Math.abs(e.clientY-downY)>3)){ dragMoved = true; suppressClick = true; wrap.classList.add("dragging"); }
+  if(dragMoved){
+    const rect = wrap.getBoundingClientRect();
+    const scale = vb.w/rect.width;
+    vb.x -= (e.clientX-lastX)*scale; vb.y -= (e.clientY-lastY)*scale;
+    applyVB();
+  }
+  lastX=e.clientX; lastY=e.clientY;
+});
+window.addEventListener("pointerup", ()=>{ dragging=false; wrap.classList.remove("dragging"); });
+
+/* ───────────────────────── TOOLTIP + DETAIL ───────────────────────── */
+const tooltip = document.getElementById("tooltip");
+const detailPanel = document.getElementById("detailPanel");
+let selectedId = null;
+
+function fmt(n){ return n.toLocaleString("en-GB"); }
+
+function showTooltip(l, x, y){
+  tooltip.innerHTML = `<b>${l.name}</b><br>${TYPE_META[l.type].icon} ${TYPE_META[l.type].label}<br>${fmt(l.cap)} p/h · ${SPEED_META[l.speed].label}`;
+  tooltip.style.left = (x+14)+"px"; tooltip.style.top = (y+14)+"px"; tooltip.style.display = "block";
+}
+function hideTooltip(){ tooltip.style.display = "none"; }
+
+function selectLift(l){
+  selectedId = l.id;
+  document.querySelectorAll(".lift-line").forEach(el=> el.classList.toggle("selected", el.dataset.id===l.id));
+  const sectorNames = [SECTORS[l.a]?.name, l.b?SECTORS[l.b]?.name:null].filter(Boolean).join(" ⇄ ");
+  detailPanel.innerHTML = `
+    <div class="detail-name">${TYPE_META[l.type].icon} ${l.name}</div>
+    <div class="detail-type">${TYPE_META[l.type].label} · built ${l.yoc}</div>
+    <span class="detail-speedtag" style="background:${SPEED_META[l.speed].color}22;color:${SPEED_META[l.speed].color}">${SPEED_META[l.speed].label} (${SPEED_META[l.speed].ms})</span>
+    <div class="detail-grid" style="margin-top:10px">
+      <div class="detail-item"><div class="k">Capacity</div><div class="v">${fmt(l.cap)}/h</div></div>
+      <div class="detail-item"><div class="k">Length</div><div class="v">${fmt(l.len)} m</div></div>
+    </div>
+    <div class="detail-item" style="margin-bottom:0"><div class="k">Serves</div><div class="v" style="font-size:12.5px">${sectorNames}</div></div>
+  `;
+}
+
+let hoveredId = null;
+function clearHover(){
+  if(hoveredId){ document.querySelectorAll(`.lift-line[data-id="${hoveredId}"]`).forEach(el2=>el2.classList.remove("hovering")); hoveredId = null; }
+}
+svg.addEventListener("pointermove", e=>{
+  if(e.target.classList && e.target.classList.contains("lift-hit")){
+    const id = e.target.dataset.id;
+    if(hoveredId !== id){ clearHover(); hoveredId = id; document.querySelectorAll(`.lift-line[data-id="${id}"]`).forEach(el2=>el2.classList.add("hovering")); }
+    const l = LIFTS.find(x=>x.id===id);
+    if(l) showTooltip(l, e.clientX, e.clientY);
+  } else { clearHover(); hideTooltip(); }
+});
+svg.addEventListener("pointerleave", ()=>{ clearHover(); hideTooltip(); });
+svg.addEventListener("click", e=>{
+  if(suppressClick){ suppressClick = false; return; }
+  if(e.target.classList && e.target.classList.contains("lift-hit")){
+    const l = LIFTS.find(x=>x.id===e.target.dataset.id);
+    if(l) selectLift(l);
+  }
+});
+
+/* ───────────────────────── FILTERS ───────────────────────── */
+const state = { speeds:new Set(["fast","medium","slow"]), groups:new Set(["chair","gondola","drag","carpet"]), minCap:0, search:"", connectorOnly:false };
+
+document.querySelectorAll(".chip[data-speed]").forEach(chip=>{
+  chip.onclick = ()=>{ chip.classList.toggle("active"); const s=chip.dataset.speed; chip.classList.contains("active")?state.speeds.add(s):state.speeds.delete(s); applyFilters(); };
+});
+document.querySelectorAll(".chip[data-type]").forEach(chip=>{
+  chip.onclick = ()=>{ chip.classList.toggle("active"); const s=chip.dataset.type; chip.classList.contains("active")?state.groups.add(s):state.groups.delete(s); applyFilters(); };
+});
+document.getElementById("capRange").oninput = e=>{ state.minCap = +e.target.value; document.getElementById("capLabel").textContent = fmt(state.minCap); applyFilters(); };
+document.getElementById("searchInput").oninput = e=>{ state.search = e.target.value.trim().toLowerCase(); applyFilters(); };
+document.getElementById("connectorOnly").onchange = e=>{ state.connectorOnly = e.target.checked; applyFilters(); };
+
+function applyFilters(){
+  document.querySelectorAll(".lift-line").forEach(line=>{
+    const l = LIFTS.find(x=>x.id===line.dataset.id);
+    let visible = state.speeds.has(l.speed) && state.groups.has(TYPE_META[l.type].group) && l.cap>=state.minCap;
+    if(state.connectorOnly && !l.connector) visible = false;
+    let matchesSearch = !state.search || l.name.toLowerCase().includes(state.search);
+    line.classList.toggle("hidden-filter", !visible);
+    line.classList.toggle("dimmed", visible && !matchesSearch && !!state.search);
+  });
+}
+
+/* ───────────────────────── SECTOR ACCESSIBILITY PANEL ───────────────────────── */
+const sectorStats = {};
+Object.keys(SECTORS).forEach(id=> sectorStats[id] = {cap:0, count:0});
+LIFTS.forEach(l=>{
+  sectorStats[l.a].cap += l.cap; sectorStats[l.a].count++;
+  if(l.b){ sectorStats[l.b].cap += l.cap; sectorStats[l.b].count++; }
+});
+const maxCap = Math.max(...Object.values(sectorStats).map(s=>s.cap));
+const sectorRanked = Object.entries(sectorStats).sort((a,b)=> b[1].cap-a[1].cap);
+
+const sectorListEl = document.getElementById("sectorList");
+let activeSector = null;
+sectorRanked.forEach(([id, stat])=>{
+  const tier = stat.cap>=20000 ? "high" : stat.cap>=10000 ? "good" : "limited";
+  const tierLabel = tier==="high" ? "High access" : tier==="good" ? "Good access" : "Limited";
+  const card = document.createElement("div");
+  card.className = "sector-card"; card.dataset.sector = id;
+  card.innerHTML = `
+    <div class="row1"><span class="name">${SECTORS[id].name}</span><span class="badge ${tier}">${tierLabel}</span></div>
+    <div class="meta">${fmt(stat.cap)} p/h combined · ${stat.count} lifts</div>
+    <div class="barbg"><div class="barfg" style="width:${(stat.cap/maxCap*100).toFixed(0)}%;background:${tier==="high"?"var(--fast)":tier==="good"?"var(--medium)":"var(--slow)"}"></div></div>
+  `;
+  card.onclick = ()=>{
+    if(activeSector===id){ clearSectorFocus(); return; }
+    activeSector = id;
+    document.querySelectorAll(".sector-card").forEach(c=>c.classList.toggle("active", c.dataset.sector===id));
+    document.querySelectorAll(".lift-line").forEach(line=>{
+      const sectors = line.dataset.sectors.split(",");
+      line.classList.toggle("dimmed", !sectors.includes(id));
+    });
+    document.querySelectorAll(".sector-label, .sector-sub, .sector-blob, .hub-dot").forEach(elm=>{
+      elm.classList.toggle("dim", elm.dataset.sector!==id);
+    });
+  };
+  sectorListEl.appendChild(card);
+});
+function clearSectorFocus(){
+  activeSector = null;
+  document.querySelectorAll(".sector-card").forEach(c=>c.classList.remove("active"));
+  document.querySelectorAll(".lift-line").forEach(line=> line.classList.remove("dimmed"));
+  document.querySelectorAll(".sector-label, .sector-sub, .sector-blob, .hub-dot").forEach(elm=> elm.classList.remove("dim"));
+}
+document.getElementById("showAllBtn").onclick = clearSectorFocus;
+</script>
+</body>
+</html>
