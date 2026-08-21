@@ -230,12 +230,12 @@ footer a { color: var(--gold); text-decoration: none; }
       <div class="legend-row"><span class="legend-swatch" style="background:var(--medium)"></span> Standard — fixed-grip chairlift / older gondola (~2.5–4 m/s)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--slow)"></span> Slow — drag lift, carpet, rope tow (~1–3 m/s)</div>
       <div class="thickness-demo">
-        <div class="bar" style="width:26px;height:2px"></div>
-        <div class="bar" style="width:26px;height:6px"></div>
-        <div class="bar" style="width:26px;height:11px"></div>
+        <div class="bar" style="width:26px;height:1.5px"></div>
+        <div class="bar" style="width:26px;height:7px"></div>
+        <div class="bar" style="width:26px;height:14px"></div>
         <span style="font-size:11px;color:var(--sub)">line thickness = capacity</span>
       </div>
-      <div class="legend-note">Thicker = more people/hour. A thick red/gold line still means a bottleneck even if the lift itself is quick, because capacity — not speed — is what actually limits queueing.</div>
+      <div class="legend-note">Thickness scales linearly across the resort's full range, 250 p/h (thinnest drag lift) to 4,500 p/h (Tommeuses). A thick red/gold line still means a bottleneck even if the lift itself is quick, because capacity — not speed — is what actually limits queueing.</div>
     </div>
 
     <div class="panel">
@@ -327,9 +327,9 @@ const RAW = [
 ["solaise","Solaise","gondola","fast",3600,2077,711,2016,"laisinant",0,1,949.7,739.0,1081.1,907.7],
 ["tsd6-marais","TSD6 Marais","chair_lift","fast",2000,2048,551,2024,"percee",0,0,445.0,260.0,240.5,312.0],
 ["olympique","Olympique","gondola","fast",3750,1974,863,2002,"village",0,0,939.7,740.8,761.1,779.3],
-["fresse","Fresse","chair_lift","medium",1800,1872,366,null,"toviere",0,0,372.1,689.7,534.5,793.4],
+["fresse","Fresse","chair_lift","fast",1800,1872,366,null,"toviere",0,0,372.1,689.7,534.5,793.4],
 ["manchet-express","Manchet Express","chair_lift","fast",2400,1792,673,1993,"laisinant",0,0,912.9,1014.1,1096.9,1002.8],
-["tsf3-col-des-vés","TSF3 Col des Vés","chair_lift","slow",1350,1785,343,null,"valclaret",0,0,186.8,684.2,36.0,789.2],
+["tsf3-col-des-vés","TSF3 Col des Vés","chair_lift","medium",1350,1785,343,null,"valclaret",0,0,186.8,684.2,36.0,789.2],
 ["glacier","Glacier","chair_lift","fast",3000,1735,316,2001,"laisinant",0,0,1136.9,944.8,1260.6,1073.7],
 ["tovière","Tovière","gondola","fast",3000,1687,599,2013,"toviere",0,0,393.0,504.8,485.3,636.8],
 ["laisinant","Laisinant","chair_lift","fast",2100,1668,713,2005,"laisinant",0,0,1085.1,736.4,1210.6,853.6],
@@ -348,8 +348,8 @@ const RAW = [
 ["marmottes-express","Marmottes Express","chair_lift","fast",3600,1169,308,2008,"daille",0,0,650.0,682.9,727.7,774.8],
 ["vanoise","Vanoise","chair_lift","fast",2000,1154,291,2008,"grandemotte",0,0,303.9,894.1,255.6,1002.6],
 ["tsd6-chaudannes","TSD6 Chaudannes","chair_lift","fast",2400,1137,373,1999,"lac",0,0,414.2,446.9,376.0,336.2],
-["ts-fontaine","TS Fontaine","chair_lift","medium",3000,1136,289,null,"village",0,0,752.0,902.3,737.0,786.2],
-["tsd6-tichot","TSD6 Tichot","chair_lift","medium",3600,1116,362,null,"valclaret",0,0,302.5,657.0,188.4,642.9],
+["ts-fontaine","TS Fontaine","chair_lift","fast",3000,1136,289,null,"village",0,0,752.0,902.3,737.0,786.2],
+["tsd6-tichot","TSD6 Tichot","chair_lift","fast",3600,1116,362,null,"valclaret",0,0,302.5,657.0,188.4,642.9],
 ["tsd6-aiguille-rouge","TSD6 Aiguille Rouge","chair_lift","fast",3000,1115,280,2022,"percee",0,0,446.5,262.2,360.0,337.7],
 ["mont-blanc","Mont Blanc","chair_lift","medium",1800,1114,244,1982,"toviere",0,0,663.5,617.1,590.5,705.6],
 ["tcd10-des-boisses","TCD10 des Boisses","gondola","fast",3000,1088,405,2010,"boisses",0,0,515.9,152.2,448.9,241.9],
@@ -424,7 +424,15 @@ const LIFTS = RAW.map(r => ({
   bubble: !!r[9], heating: !!r[10], x1:r[11], y1:r[12], x2:r[13], y2:r[14]
 }));
 
-function strokeWidth(cap){ return Math.max(2, Math.min(11, 1.4 + cap/430)); }
+// Full-range linear scale across the resort's actual capacity spread (250–4,500 p/h),
+// so the thinnest drag lift and the thickest chair are as visually distinct as possible.
+const CAP_MIN = Math.min(...LIFTS.map(l=>l.cap));
+const CAP_MAX = Math.max(...LIFTS.map(l=>l.cap));
+const W_MIN = 1.5, W_MAX = 14;
+function strokeWidth(cap){
+  const t = (cap - CAP_MIN) / (CAP_MAX - CAP_MIN);
+  return W_MIN + t * (W_MAX - W_MIN);
+}
 
 // A lift "connects two areas" if its base sits nearer one named place and its top nearer another.
 function nearestPlace(x,y){
