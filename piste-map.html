@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Geographically accurate lift map of Tignes and Val d'Isère (Espace Killy) — every lift ranked by capacity and speed, plotted at its real position from OpenStreetMap data.">
-<title>🏔️ Tignes &amp; Val d'Isère Lift Map — Dragonia</title>
+<title>🏔️ Tignes / Val Map — Dragonia</title>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -199,8 +199,8 @@ footer a { color: var(--gold); text-decoration: none; }
 
 <header class="site-header">
   <div class="header-emblem">🏔️🚡</div>
-  <h1 class="header-title">Espace Killy Lift Map</h1>
-  <p class="header-sub">Every lift in Tignes &amp; Val d'Isère, plotted at its real position and drawn by capacity (thickness) and speed (colour) — see which parts of the resort move you fastest, and which ones bottleneck.</p>
+  <h1 class="header-title">Tignes / Val Map</h1>
+  <p class="header-sub">The First Annual Scott Bailey Gondola Avoidance Navigation Tool</p>
   <a class="back-link" href="index.html">← Back to Dragonia</a>
 </header>
 
@@ -232,6 +232,18 @@ footer a { color: var(--gold); text-decoration: none; }
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="panel">
+      <h2>Layers</h2>
+      <div style="display:flex;gap:10px">
+        <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer">
+          <input type="checkbox" id="liftToggle" checked> Lifts
+        </label>
+        <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer">
+          <input type="checkbox" id="pisteToggle" checked> Pistes
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2>Legend</h2>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-chair)"></span> Fast chair — high-speed detachable chairlift (~5–6 m/s)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-gondola)"></span> Fast gondola/cable/funicular (~5–10 m/s)</div>
@@ -247,10 +259,7 @@ footer a { color: var(--gold); text-decoration: none; }
     </div>
 
     <div class="panel">
-      <h2>Pistes</h2>
-      <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;margin-bottom:10px">
-        <input type="checkbox" id="pisteToggle" checked> Show pistes (344 runs)
-      </label>
+      <h2>Piste difficulty</h2>
       <div class="legend-row"><span class="legend-swatch" style="background:#22c55e"></span> Green — easy</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#3b82f6"></span> Blue — intermediate</div>
       <div class="legend-row"><span class="legend-swatch" style="background:#e0393e"></span> Red — difficult</div>
@@ -886,6 +895,8 @@ PISTES.forEach(p=>{
 
 // lift lines — a visible coloured line plus a wider invisible "hit" line on top,
 // so thin low-capacity lifts (down to 2px) stay easy to hover/click.
+const liftGroup = el("g", {id:"liftGroup"});
+svg.appendChild(liftGroup);
 LIFTS.forEach(l=>{
   const w = strokeWidth(l.cap);
   const common = {
@@ -898,11 +909,11 @@ LIFTS.forEach(l=>{
     class:"lift-line", stroke:speedColor(l), "stroke-width":w,
     style:`--w:${w}px; color:${speedColor(l)}`
   });
-  svg.appendChild(line);
+  liftGroup.appendChild(line);
   const hit = el("line",{...common,
     class:"lift-line lift-hit", "stroke-width": Math.max(14, w+8)
   });
-  svg.appendChild(hit);
+  liftGroup.appendChild(hit);
 });
 
 // hub dots + labels (on top)
@@ -936,24 +947,65 @@ document.getElementById("zoomOut").onclick = ()=> zoomAt(1.25, wrap.getBoundingC
 document.getElementById("resetView").onclick = ()=> { vb = {...BASE}; applyVB(); };
 wrap.addEventListener("wheel", e=>{ e.preventDefault(); zoomAt(e.deltaY>0?1.1:0.9, e.clientX, e.clientY); }, {passive:false});
 
-// Pan without pointer-capture: capturing the pointer on the wrap div would redirect ALL
-// hit-testing there for the rest of the gesture, so a plain click on a lift line would never
-// reach it. Instead we only start "dragging" once real motion is detected, listening on
-// window so the drag still tracks even if the pointer leaves the wrap.
-let dragging=false, dragMoved=false, suppressClick=false, lastX=0, lastY=0, downX=0, downY=0;
-wrap.addEventListener("pointerdown", e=>{ dragging=true; dragMoved=false; lastX=e.clientX; lastY=e.clientY; downX=e.clientX; downY=e.clientY; });
-window.addEventListener("pointermove", e=>{
-  if(!dragging) return;
-  if(!dragMoved && (Math.abs(e.clientX-downX)>3 || Math.abs(e.clientY-downY)>3)){ dragMoved = true; suppressClick = true; wrap.classList.add("dragging"); }
-  if(dragMoved){
-    const rect = wrap.getBoundingClientRect();
-    const scale = vb.w/rect.width;
-    vb.x -= (e.clientX-lastX)*scale; vb.y -= (e.clientY-lastY)*scale;
-    applyVB();
+// Pan + pinch-zoom without pointer-capture: capturing the pointer on the wrap div would
+// redirect ALL hit-testing there for the rest of the gesture, so a plain tap on a lift line
+// would never reach it. Instead every active touch/pointer is tracked in a Map by its own
+// pointerId, listening on window so gestures keep tracking even off the wrap's edge:
+//  - 1 pointer down → pan once it moves past a small threshold (a clean tap stays a tap).
+//  - 2 pointers down → pinch-zoom, anchored to the live midpoint each frame via zoomAt().
+//  - dropping from 2 pointers to 1 re-anchors the remaining pointer so panning continues
+//    without a jump, and a pinch always suppresses the click that would otherwise follow.
+const activePointers = new Map(); // pointerId -> {x,y}
+let dragMoved=false, suppressClick=false, panLast=null, panDown=null, lastPinchDist=null;
+
+function pinchDist(pts){ return Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y); }
+function pinchMid(pts){ return {x:(pts[0].x+pts[1].x)/2, y:(pts[0].y+pts[1].y)/2}; }
+
+wrap.addEventListener("pointerdown", e=>{
+  activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(activePointers.size === 1){
+    dragMoved = false;
+    panDown = panLast = {x:e.clientX, y:e.clientY};
+  } else if(activePointers.size >= 2){
+    dragMoved = true; suppressClick = true; lastPinchDist = null;
+    wrap.classList.add("dragging");
   }
-  lastX=e.clientX; lastY=e.clientY;
 });
-window.addEventListener("pointerup", ()=>{ dragging=false; wrap.classList.remove("dragging"); });
+window.addEventListener("pointermove", e=>{
+  if(!activePointers.has(e.pointerId)) return;
+  activePointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+
+  if(activePointers.size >= 2){
+    const pts = [...activePointers.values()].slice(0,2);
+    const dist = pinchDist(pts), mid = pinchMid(pts);
+    if(lastPinchDist != null) zoomAt(lastPinchDist/dist, mid.x, mid.y);
+    lastPinchDist = dist;
+    return;
+  }
+  if(activePointers.size === 1){
+    const p = activePointers.get(e.pointerId);
+    if(!dragMoved && (Math.abs(p.x-panDown.x)>3 || Math.abs(p.y-panDown.y)>3)){ dragMoved = true; suppressClick = true; wrap.classList.add("dragging"); }
+    if(dragMoved){
+      const rect = wrap.getBoundingClientRect();
+      const scale = vb.w/rect.width;
+      vb.x -= (p.x-panLast.x)*scale; vb.y -= (p.y-panLast.y)*scale;
+      applyVB();
+    }
+    panLast = p;
+  }
+});
+function endPointer(e){
+  activePointers.delete(e.pointerId);
+  if(activePointers.size === 0){
+    wrap.classList.remove("dragging"); lastPinchDist = null;
+  } else if(activePointers.size === 1){
+    // one finger lifted mid-pinch — resume panning from here, no jump.
+    panDown = panLast = [...activePointers.values()][0];
+    dragMoved = true; suppressClick = true; lastPinchDist = null;
+  }
+}
+window.addEventListener("pointerup", endPointer);
+window.addEventListener("pointercancel", endPointer);
 
 /* ───────────────────────── TOOLTIP + DETAIL ───────────────────────── */
 const tooltip = document.getElementById("tooltip");
@@ -1048,6 +1100,7 @@ document.getElementById("capRange").oninput = e=>{ state.minCap = +e.target.valu
 document.getElementById("searchInput").oninput = e=>{ state.search = e.target.value.trim().toLowerCase(); applyFilters(); };
 document.getElementById("connectorOnly").onchange = e=>{ state.connectorOnly = e.target.checked; applyFilters(); };
 document.getElementById("pisteToggle").onchange = e=>{ pisteGroup.style.display = e.target.checked ? "" : "none"; };
+document.getElementById("liftToggle").onchange = e=>{ liftGroup.style.display = e.target.checked ? "" : "none"; };
 
 function applyFilters(){
   document.querySelectorAll(".lift-line").forEach(line=>{
