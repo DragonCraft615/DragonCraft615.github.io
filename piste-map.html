@@ -1604,6 +1604,8 @@ const EDGE_RAW = [
 ["st183","st34","W",null,"Walk (gap fill)",0,352,null],
 ["st6","st5","P",null,"Tovière top – Tommeuses base link",0,1730,"blue"],
 ["st6","st74","P",null,"Tovière top – Marmottes base link",0,1624,"blue"],
+["st152","st216","W",null,"Walk (gap fill)",0,528,null],
+["st216","st152","W",null,"Walk (gap fill)",0,528,null],
 ["st220","st1","W",null,"Walk (gap fill)",0,237,null],
 ["st221","st146","W",null,"Walk (gap fill)",0,179,null],
 ["st223","st173","W",null,"Walk (gap fill)",0,339,null],
@@ -1693,6 +1695,17 @@ const EDGE_RAW = [
 //  - Two direct blue links confirmed by the user from Tovière top (st6): to Tommeuses' base
 //    (st5) and to Marmottes Express's base (st74) — both dashed placeholders, no digitized
 //    geometry, distances from our own station coordinates.
+//
+// Grande Motte Glacier one-way trap, resolved (2026-08-22): user confirmed the real ski-down
+// route from the top of the cable car (st25) already matches our data exactly — Descente/Glacier
+// pistes wrapping round the side of the funicular's top station (st24) to rejoin the pistes below
+// — so st25 itself was never the problem. The actual dead end was the Termignon-side pocket
+// (st26/st27/st152/st201/st202, entered only via st25->st27 with no way back). st216 — part of
+// that same already-connected Descente piste — is only 528m from st152, so bridged the two.
+// Also checked, per the user, whether "Champagny" (a drag lift shown on the reference map) and
+// "Panoramic" (a chair the user described skiing but wasn't sure we had) are real/current: neither
+// turns up in a fresh OSM pull at all, not even under a disused tag — both are gone from OSM
+// entirely, consistent with the user's own suspicion that Champagny is dead. Left both out.
 //
 // Two more rules layered on top of the base lift/piste/walk graph, from the user's own knowledge
 // of how the resort actually operates:
