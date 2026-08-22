@@ -420,7 +420,8 @@ const SECTORS = {
   valclaret: { name: "Tignes Val Claret", sub: "resort core", x: 328.8, y: 630.3 },
   grandemotte: { name: "Grande Motte Glacier", sub: "3,456 m summit", x: 87.4, y: 1151.0 },
   percee: { name: "Aiguille Percée", sub: "Col du Palet · → Paradiski", x: 250.2, y: 319.3 },
-  boisses: { name: "Tignes 1800 / Boisses / Brévières", sub: "down-valley", x: 512.0, y: 176.8 }
+  tignes1800: { name: "Tignes 1800", sub: "mid-mountain village", x: 463.5, y: 192.5 },
+  brevieres: { name: "Tignes Brévières", sub: "down-valley base", x: 497.3, y: 61.9 }
 };
 
 // Lifts, plotted at their REAL base→top position (projected from OpenStreetMap "aerialway"/"railway=funicular"
@@ -461,12 +462,12 @@ const RAW = [
 ["tsd6-tichot","TSD6 Tichot","chair_lift","fast",3600,1116,362,null,"valclaret",0,0,303.8,656.3,189.9,642.3,3.65,2108,2470],
 ["tsd6-aiguille-rouge","TSD6 Aiguille Rouge","chair_lift","fast",3000,1115,280,2022,"percee",0,0,447.7,262.0,361.3,337.4,null,2170,2450],
 ["mont-blanc","Mont Blanc","chair_lift","medium",1800,1114,244,1982,"toviere",0,0,664.4,616.5,591.5,704.9,2.29,2266,2510],
-["tcd10-des-boisses","TCD10 des Boisses","gondola","fast",3000,1088,405,2010,"boisses",0,0,517.1,152.1,450.1,241.7,3.88,1770,2175],
+["tcd10-des-boisses","TCD10 des Boisses","gondola","fast",3000,1088,405,2010,"tignes1800",0,0,517.1,152.1,450.1,241.7,3.88,1770,2175],
 ["aiguille-percée","Aiguille Percée","chair_lift","fast",2400,1026,294,2025,"percee",0,0,216.9,411.1,238.6,307.9,2.37,2431,2725],
 ["fornet","Fornet","cable_car","fast",1000,973,368,1973,"fornet",0,0,1224.0,698.4,1272.4,786.0,8.11,1942,2310],
 ["leissières","Leissières","chair_lift","fast",2400,964,129,2003,"fornet",0,0,1335.1,1023.1,1293.0,1028.1,3.65,2689,2818],
 ["bellevarde-express","Bellevarde Express","chair_lift","fast",2400,964,375,1989,"village",0,0,942.8,732.7,845.0,749.0,3.35,1832,2207],
-["tcd8-des-brévières","TCD8 des Brévières","gondola","fast",2400,892,201,2018,"boisses",0,0,498.6,59.4,516.1,149.5,1.86,1563,1764],
+["tcd8-des-brévières","TCD8 des Brévières","gondola","fast",2400,892,201,2018,"brevieres",0,0,498.6,59.4,516.1,149.5,1.86,1563,1764],
 ["madeleine-express","Madeleine Express","chair_lift","fast",3000,879,155,1998,"laisinant",0,0,1094.4,937.6,1110.5,1026.6,3.96,2519,2674],
 ["grand-pré","Grand Pré","chair_lift","medium",2400,869,218,1992,"village",0,0,690.7,923.1,694.7,1007.7,2.07,2496,2714],
 ["tkd1-chardonnet","TKD1 Chardonnet","platter","slow",600,858,273,1953,"lac",0,0,346.8,497.1,261.7,478.2,3.58,2110,2383],
@@ -499,10 +500,10 @@ const RAW = [
 ["savonnette-2","Savonnette 2","t-bar","slow",600,209,47,1987,"village",0,0,974.9,739.9,978.3,761.2,1.59,1842,1889],
 ["carpe-diem","Carpe Diem","magic_carpet","slow",1500,166,14,2010,"toviere",0,0,648.4,688.2,642.2,704.1,0.69,2388,2402],
 ["poum","Poum","magic_carpet","slow",1500,152,10,2010,"laisinant",0,0,1073.8,890.4,1081.6,904.0,null,2535,2545],
-["brévières","Brévières","funicular","fast",2400,132,32,2018,"boisses",0,0,506.0,49.5,506.3,36.0,null,1567,1599],
-["tke-grande-parei","TKE Grande Parei","drag_lift","slow",800,123,14,null,"boisses",0,0,492.9,57.5,489.6,69.7,0.68,1563,1577],
-["tapis-1-tignes-1800","Tapis 1 Tignes 1800","magic_carpet","slow",1200,115,16,null,"boisses",0,0,519.2,153.6,525.0,163.9,null,1773,1789],
-["tapis-2-tignes-1800","Tapis 2 Tignes 1800","magic_carpet","slow",1200,115,9,null,"boisses",0,0,525.5,165.9,530.2,176.7,null,1792,1801],
+["brévières","Brévières","funicular","fast",2400,132,32,2018,"brevieres",0,0,506.0,49.5,506.3,36.0,null,1567,1599],
+["tke-grande-parei","TKE Grande Parei","drag_lift","slow",800,123,14,null,"brevieres",0,0,492.9,57.5,489.6,69.7,0.68,1563,1577],
+["tapis-1-tignes-1800","Tapis 1 Tignes 1800","magic_carpet","slow",1200,115,16,null,"tignes1800",0,0,519.2,153.6,525.0,163.9,null,1773,1789],
+["tapis-2-tignes-1800","Tapis 2 Tignes 1800","magic_carpet","slow",1200,115,9,null,"tignes1800",0,0,525.5,165.9,530.2,176.7,null,1792,1801],
 ["val-claret","Val Claret","magic_carpet","slow",1200,84,13,null,"valclaret",0,0,338.6,654.5,347.0,656.1,null,2140,2153],
 ["centre","Centre","magic_carpet","slow",1500,79,2,2010,"lac",0,0,391.5,495.6,386.7,489.1,1.01,2088,2090],
 ["snowtubing","Snowtubing","magic_carpet","slow",1200,51,5,null,"valclaret",0,0,312.0,603.2,309.1,598.9,null,2109,2114],
@@ -881,20 +882,20 @@ const PISTE_LABEL = {
 // graph) is dropped rather than creating a useless self-loop.
 // [id, label, sectorId, x, y, elev, hasLift(1/0)]
 const STATION_RAW = [
-["st80","Tignes 1800 / Boisses / Brévières (1565m)","boisses",496.9,58.6,1565,1],
-["st85","Tignes 1800 / Boisses / Brévières (1599m)","boisses",506.3,36.0,1599,1],
-["st122","Tignes 1800 / Boisses / Brévières (1625m)","boisses",488.6,91.0,1625,0],
-["st0","Tignes 1800 / Boisses / Brévières (1780m)","boisses",520.8,158.9,1780,1],
-["st87","Tignes 1800 / Boisses / Brévières (1817m)","boisses",493.9,157.6,1817,0],
-["st150","Tignes 1800 / Boisses / Brévières (1837m)","boisses",450.2,108.5,1837,0],
-["st102","Tignes 1800 / Boisses / Brévières (1872m)","boisses",486.5,170.0,1872,0],
-["st118","Tignes 1800 / Boisses / Brévières (1891m)","boisses",498.2,194.5,1891,0],
-["st86","Tignes 1800 / Boisses / Brévières (1958m)","boisses",454.0,142.6,1958,0],
-["st101","Tignes 1800 / Boisses / Brévières (2100m)","boisses",460.6,205.3,2100,0],
-["st192","Tignes 1800 / Boisses / Brévières (2117m)","boisses",438.9,161.2,2117,0],
-["st1","Tignes 1800 / Boisses / Brévières (2171m)","boisses",448.1,255.8,2171,1],
-["st220","Tignes 1800 / Boisses / Brévières (2207m)","boisses",427.9,269.4,2207,0],
-["st108","Tignes 1800 / Boisses / Brévières (2262m)","boisses",419.1,293.8,2262,0],
+["st80","Tignes Brévières (1565m)","brevieres",496.9,58.6,1565,1],
+["st85","Tignes Brévières (1599m)","brevieres",506.3,36.0,1599,1],
+["st122","Tignes Brévières (1625m)","brevieres",488.6,91.0,1625,0],
+["st0","Tignes 1800 (1780m)","tignes1800",520.8,158.9,1780,1],
+["st87","Tignes 1800 (1817m)","tignes1800",493.9,157.6,1817,0],
+["st150","Tignes 1800 (1837m)","tignes1800",450.2,108.5,1837,0],
+["st102","Tignes 1800 (1872m)","tignes1800",486.5,170.0,1872,0],
+["st118","Tignes 1800 (1891m)","tignes1800",498.2,194.5,1891,0],
+["st86","Tignes 1800 (1958m)","tignes1800",454.0,142.6,1958,0],
+["st101","Tignes 1800 (2100m)","tignes1800",460.6,205.3,2100,0],
+["st192","Tignes 1800 (2117m)","tignes1800",438.9,161.2,2117,0],
+["st1","Tignes 1800 (2171m)","tignes1800",448.1,255.8,2171,1],
+["st220","Tignes 1800 (2207m)","tignes1800",427.9,269.4,2207,0],
+["st108","Tignes 1800 (2262m)","tignes1800",419.1,293.8,2262,0],
 ["st4","La Daille (1801m)","daille",839.2,579.2,1801,1],
 ["st83","La Daille (1805m)","daille",844.5,598.1,1805,1],
 ["st84","La Daille (1839m)","daille",835.7,616.5,1839,1],
@@ -1606,6 +1607,8 @@ const EDGE_RAW = [
 ["st6","st74","P",null,"Tovière top – Marmottes base link",0,1624,"blue"],
 ["st152","st216","W",null,"Walk (gap fill)",0,528,null],
 ["st216","st152","W",null,"Walk (gap fill)",0,528,null],
+["st58","st29","W",null,"Walk (Bellevarde cluster)",0,284,null],
+["st29","st58","W",null,"Walk (Bellevarde cluster)",0,284,null],
 ["st220","st1","W",null,"Walk (gap fill)",0,237,null],
 ["st221","st146","W",null,"Walk (gap fill)",0,179,null],
 ["st223","st173","W",null,"Walk (gap fill)",0,339,null],
@@ -1706,6 +1709,11 @@ const EDGE_RAW = [
 // "Panoramic" (a chair the user described skiing but wasn't sure we had) are real/current: neither
 // turns up in a fresh OSM pull at all, not even under a disused tag — both are gone from OSM
 // entirely, consistent with the user's own suspicion that Champagny is dead. Left both out.
+//
+// Bellevarde cluster (2026-08-22): the route-planner's curated "Bellevarde" area is meant to cover
+// four lift tops the user considers the same real place — Funival, Marmottes Express and TS
+// Fontaine already share st29, but Olympique's top (st58) is a separate station 284m away.
+// Bridged the two so routing through either lands in the same connected cluster.
 //
 // Two more rules layered on top of the base lift/piste/walk graph, from the user's own knowledge
 // of how the resort actually operates:
@@ -2095,63 +2103,51 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
   const routeResult = document.getElementById("routeResult");
 
   // The full 224-station graph includes piste-to-piste junctions that only exist to route
-  // *through* — picking "where you are" among those would be meaningless. Restricting to
-  // lift base/top stations alone still left a dozen near-duplicate "Tignes Val Claret (2108m)",
-  // "(2144m)", "(2169m)"... entries per sector (every lift based a few dozen metres apart from
-  // the next stayed a separate station, since the 130m clustering threshold — picked to avoid
-  // merging real lifts into each other — is tighter than a whole village). So: group lift
-  // stations within each sector into Base/Mid/Top areas. A single big gap isn't a reliable
-  // splitter on its own — Val Claret has a dozen lift stations climbing steadily from 2120m to
-  // 2848m with no single jump over 180m, so gap-only clustering lumped the entire mountainside
-  // into one "area". Instead pick a target group count from the sector's total elevation range
-  // (a wide spread should never be "one area" even without an obvious gap), then split at
-  // whichever gaps are actually the biggest — so a genuine gap still wins the split when one
-  // exists, and a steady climb still gets divided sensibly when one doesn't.
-  // Name each area after the real lift(s) actually based/topped there (e.g. "Aiguille Rouge /
-  // Marais — Base") instead of a generic "Base"/"Top" — a skier thinks in lift names, not
-  // elevation bands. Scans the already-loaded LIFTS array for anything within ~130m (the same
-  // threshold the stations themselves were clustered at) of any station in the group.
-  function nearbyLiftNames(x, y){
-    const found = [];
-    LIFTS.forEach(l=>{
-      if(Math.hypot(l.x1-x,l.y1-y) < 14) found.push([l.name, l.cap]);
-      if(Math.hypot(l.x2-x,l.y2-y) < 14) found.push([l.name, l.cap]);
-    });
-    return found;
-  }
-  const AREAS = [];
-  Object.keys(SECTORS).forEach(secId=>{
-    const list = STATIONS.filter(s => s.hasLift && s.sector===secId).sort((a,b)=>a.elev-b.elev);
-    if(!list.length) return;
-    const range = list[list.length-1].elev - list[0].elev;
-    const k = Math.min(list.length, range<=300 ? 1 : range<=700 ? 2 : 3);
-    const gaps = [];
-    for(let i=1;i<list.length;i++) gaps.push({i, size: list[i].elev-list[i-1].elev});
-    const splitAt = new Set(gaps.sort((a,b)=>b.size-a.size).slice(0,k-1).map(g=>g.i));
-    const groups = [[list[0]]];
-    for(let i=1;i<list.length;i++){
-      if(splitAt.has(i)) groups.push([]);
-      groups[groups.length-1].push(list[i]);
-    }
-    groups.forEach((g,i)=>{
-      const rep = i===0 ? g[0] : i===groups.length-1 ? g[g.length-1] : g[Math.floor(g.length/2)];
-      const qualifier = groups.length===1 ? "" :
-        i===0 ? "Base" : i===groups.length-1 ? "Top" :
-        groups.length===3 ? "Mid" : `Mid ${i}`;
-      const bestCap = {};
-      g.forEach(s => nearbyLiftNames(s.x, s.y).forEach(([name,cap])=>{ if(!(name in bestCap) || cap>bestCap[name]) bestCap[name]=cap; }));
-      const names = Object.keys(bestCap).sort((a,b)=>bestCap[b]-bestCap[a]).slice(0,2);
-      const text = names.length ? (qualifier ? `${names.join(" / ")} — ${qualifier}` : names.join(" / ")) : (qualifier || "Main area");
-      AREAS.push({ id: rep.id, sector: secId, elev: rep.elev, x: rep.x, y: rep.y, label: text });
-    });
+  // *through* — picking "where you are" among those would be meaningless, and even restricted
+  // to lift base/top stations, an elevation-gap auto-clustering pass (the picker's original
+  // approach) produced areas nobody actually thinks in. Replaced with a curated list the user
+  // specified directly: one entry per named village plus one per key mountain area — see
+  // CURATED_AREAS below.
+  // Curated, not auto-generated: the user asked for exactly this set — one entry per named
+  // village (base level) plus one per key mountain area (almost always a specific lift's top
+  // station, picked to match how skiers actually refer to these places on the mountain, not
+  // the elevation-gap clustering the picker used to use). "Bellevarde" covers four lift tops
+  // that the user considers the same real place (Funival, Olympique, Marmottes Express, TS
+  // Fontaine) — Funival/Marmottes/Fontaine already share st29, and st58 (Olympique's top, 284m
+  // away) is bridged to it just below so routing through either lands you in the same cluster.
+  const CURATED_AREAS = [
+    ["st80", "Villages", "Tignes Brévières"],
+    ["st0", "Villages", "Tignes 1800"],
+    ["st17", "Villages", "Tignes Lac"],
+    ["st9", "Villages", "Tignes Val Claret"],
+    ["st4", "Villages", "Val La Daille"],
+    ["st50", "Villages", "Val Village"],
+    ["st45", "Villages", "Val Le Laisinant"],
+    ["st30", "Villages", "Val Le Fornet"],
+    ["st3", "Mountain Areas", "Aiguille Percée"],
+    ["st6", "Mountain Areas", "Tovière"],
+    ["st14", "Mountain Areas", "Grattalu"],
+    ["st61", "Mountain Areas", "Col du Vés"],
+    ["st25", "Mountain Areas", "Grande Motte"],
+    ["st29", "Mountain Areas", "Bellevarde"],
+    ["st77", "Mountain Areas", "Borsat"],
+    ["st57", "Mountain Areas", "Grand Pré"],
+    ["st79", "Mountain Areas", "Solaise"],
+    ["st48", "Mountain Areas", "Cugnaï"],
+    ["st32", "Mountain Areas", "Col de l'Iseran"],
+    ["st36", "Mountain Areas", "Val Glacier"],
+  ];
+  const AREAS = CURATED_AREAS.map(([id, group, label])=>{
+    const s = STATION_BY_ID[id];
+    return { id, group, elev: s.elev, x: s.x, y: s.y, label };
   });
 
   function fillSelect(sel){
-    Object.keys(SECTORS).forEach(secId=>{
-      const list = AREAS.filter(a => a.sector===secId).sort((a,b)=>a.elev-b.elev);
+    ["Villages", "Mountain Areas"].forEach(group=>{
+      const list = AREAS.filter(a => a.group===group);
       if(!list.length) return;
       const og = document.createElement("optgroup");
-      og.label = SECTORS[secId].name;
+      og.label = group;
       list.forEach(a=>{
         const opt = document.createElement("option");
         opt.value = a.id; opt.textContent = a.label;
