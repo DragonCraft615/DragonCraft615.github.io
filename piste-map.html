@@ -2209,13 +2209,33 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     ["st32", "Mountain Areas", "Col de l'Iseran"],
     ["st36", "Mountain Areas", "Val Glacier"],
   ];
-  const AREAS = CURATED_AREAS.map(([id, group, label])=>{
+  const curated = CURATED_AREAS.map(([id, group, label])=>{
     const s = STATION_BY_ID[id];
     return { id, group, elev: s.elev, x: s.x, y: s.y, label };
   });
 
+  // Every lift's own base and top, as a third picker group — for when a skier thinks in terms of
+  // a specific lift ("the base of TS Fontaine") rather than a village or named mountain area.
+  // Lift endpoints (x1,y1/x2,y2) were used to build the station graph in the first place but
+  // aren't stored as exact float matches to any one station's x,y, so match to the nearest real
+  // station rather than relying on equality.
+  function nearestStationTo(x, y){
+    let best = null, bestD = Infinity;
+    STATIONS.forEach(s=>{ const d = Math.hypot(s.x-x, s.y-y); if(d < bestD){ bestD = d; best = s; } });
+    return best;
+  }
+  const liftAreas = [];
+  LIFTS.forEach(l=>{
+    const base = nearestStationTo(l.x1, l.y1);
+    const top = nearestStationTo(l.x2, l.y2);
+    if(base) liftAreas.push({ id: base.id, group: "Lifts", elev: base.elev, x: base.x, y: base.y, label: `${l.name} — Base` });
+    if(top && top.id !== base?.id) liftAreas.push({ id: top.id, group: "Lifts", elev: top.elev, x: top.x, y: top.y, label: `${l.name} — Top` });
+  });
+
+  const AREAS = curated.concat(liftAreas);
+
   function fillSelect(sel){
-    ["Villages", "Mountain Areas"].forEach(group=>{
+    ["Villages", "Mountain Areas", "Lifts"].forEach(group=>{
       const list = AREAS.filter(a => a.group===group);
       if(!list.length) return;
       const og = document.createElement("optgroup");
