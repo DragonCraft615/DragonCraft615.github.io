@@ -1592,6 +1592,10 @@ const EDGE_RAW = [
 ["st211","st38","W",null,"Walk (Leissières col)",0,585,null],
 ["st145","st171","W",null,"Walk (gap fill)",0,290,null],
 ["st171","st145","W",null,"Walk (gap fill)",0,290,null],
+["st59","st42","P",null,"3000",0,375,"black"],
+["st59","st91","P",null,"Tunnel",0,952,"black"],
+["st47","st167","W",null,"Walk (Cugnaï/Saint-Jacques junction)",0,583,null],
+["st167","st47","W",null,"Walk (Cugnaï/Saint-Jacques junction)",0,583,null],
 ["st220","st1","W",null,"Walk (gap fill)",0,237,null],
 ["st221","st146","W",null,"Walk (gap fill)",0,179,null],
 ["st223","st173","W",null,"Walk (gap fill)",0,339,null],
@@ -1631,6 +1635,15 @@ const EDGE_RAW = [
 // piste) — a closed loop with no real exit, missed by the automated gap-fill despite being only
 // 290m from st171, because st145 already had *an* edge and so wasn't flagged as a bare dangling
 // bottom. Bridged st145<->st171 by hand; st171 already flows on into the main Fornet hub.
+// Two more from the user's own knowledge of the Pissaillas/3000 area, both marked off-piste/black
+// on the official map rather than fully patrolled runs, but real and skiable: the "3000" platter
+// had an uphill lift edge but no piste back down to its own base (st59->st42, retracing the lift
+// line) — most drags need one since you can't ride most of them down; and "Tunnel", which starts
+// near the same spot, runs through an actual tunnel, and comes out into the Fornet piste network
+// at Pont Abatte (st59->st91). Both one-way (kind "P", black, refId null — no digitized geometry).
+// Cugnaï (st47/st48) was a total island — only its own lift and its own return piste, nothing else
+// touching it. User confirmed its base piste comes down right at the Saint-Jacques junction, so
+// bridged st47<->st167 (583m, "W") — st167 already flows on into the wider network via st44.
 //
 // Two more rules layered on top of the base lift/piste/walk graph, from the user's own knowledge
 // of how the resort actually operates:
