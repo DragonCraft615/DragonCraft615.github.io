@@ -2335,8 +2335,26 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
   // shallow green, on average), lift speed prefers each lift's own real OSM-derived m/s and
   // falls back to a typical value for its speed class, and "W" edges are walked in ski boots.
   const SKI_SPEED_MS = { green:4.2, blue:6.1, red:8.3, black:10.8, grey:6.1, orange:8.3 };
-  const WALK_SPEED_MS = 1.1;
   const LIFT_SPEED_FALLBACK_MS = { fast:6.0, medium:3.0, slow:2.0 };
+  // Walking in ski boots was previously priced as a flat 1.1 m/s regardless of slope — an
+  // independent review found 91 of 186 walk edges actually gain height (worst +316m over 828m),
+  // priced identically to a downhill stroll. Real hiking pace drops sharply on an incline; this
+  // is Tobler's hiking-function shape (speed ~ exp(-3.5*|slope+0.05|)) rescaled so flat ground
+  // still comes out at the original 1.1 m/s baseline — steep ground gets meaningfully, not just
+  // nominally, slower. The review also suggested a hard ~150m cap on walkable edges, but this
+  // graph leans on walk bridges considerably longer than that for real connectivity (the Fornet
+  // glacier cluster, Cugnaï, the Tovière pocket, and others all only connect via a walk over
+  // 150m) — hard-excluding them would silently break routes that work correctly today. Priced
+  // realistically and flagged instead: any walk leg over 150m gets a visible warning in the route
+  // card (see stepHTML) rather than being hidden inside a "fine, just walk it" number.
+  const WALK_SPEED_FLAT_MS = 1.1;
+  const WALK_LONG_M = 150;
+  function walkSpeedMS(fromId, toId, dist){
+    const a = STATION_BY_ID[fromId], b = STATION_BY_ID[toId];
+    const slope = (a && b && dist>0) ? (b.elev - a.elev) / dist : 0;
+    const shape = Math.exp(-3.5*Math.abs(slope+0.05)) / Math.exp(-3.5*0.05); // 1 at slope=0
+    return WALK_SPEED_FLAT_MS * shape;
+  }
   function edgeSeconds(e){
     if(e.kind === "L"){
       const l = LIFTS.find(x=>x.id===e.refId);
@@ -2344,7 +2362,7 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       return e.dist / speed;
     }
     if(e.kind === "P") return e.dist / (SKI_SPEED_MS[e.diff] || SKI_SPEED_MS.grey);
-    return e.dist / WALK_SPEED_MS;
+    return e.dist / walkSpeedMS(e.from, e.to, e.dist);
   }
   function fmtTime(sec){
     const m = Math.round(sec/60);
@@ -2489,7 +2507,10 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       const dc = PISTE_COLOR[e.diff] || PISTE_COLOR.grey;
       return `<div class="route-step"><span class="step-icon">⛷</span><span class="step-name">${e.name || "Unnamed piste"}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:${dc}33;color:${dc}">${e.diff||"unrated"}</span></div>`;
     }
-    return `<div class="route-step"><span class="step-icon">🚶</span><span class="step-name">${e.name}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:rgba(207,227,250,.15);color:#cfe3fa">on foot</span></div>`;
+    const long = e.dist > WALK_LONG_M;
+    const walkTag = long ? `⚠️ ${Math.round(e.dist)}m on foot` : "on foot";
+    const walkColor = long ? "#f97316" : "#cfe3fa";
+    return `<div class="route-step"><span class="step-icon">🚶</span><span class="step-name">${e.name}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:${walkColor}26;color:${walkColor}">${walkTag}</span></div>`;
   }
 
   function routeCardHTML(path, tot){
