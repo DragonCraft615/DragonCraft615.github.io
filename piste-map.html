@@ -2286,7 +2286,12 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     const adj = {};
     STATIONS.forEach(s => adj[s.id] = []);
     GRAPH_EDGES.forEach(e=>{
-      if(e.kind==="P" && e.diff && ["green","blue","red","black"].includes(e.diff) && !routeGrades.has(e.diff)) return;
+      // Grey/orange pistes are unrated or off-piste/unofficial (e.g. "piste non répertoriée") —
+      // never route onto them regardless of grade filter state, since there's no checkbox for
+      // "unrated" and a route planner shouldn't default to suggesting unofficial terrain. Was
+      // previously only checking diff against the 4 standard grades, so anything outside that set
+      // (grey, orange) fell through unfiltered — closing that hole here.
+      if(e.kind==="P" && e.diff && !routeGrades.has(e.diff)) return;
       adj[e.from].push(e);
     });
     return adj;
