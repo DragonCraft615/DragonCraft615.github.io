@@ -1613,6 +1613,12 @@ const EDGE_RAW = [
 ["st77","st81","P",null,"Blue Lagoon",0,1026,"green"],
 ["st89","st1","P",null,"Petit Col",0,1031,"blue"],
 ["st88","st20","P",null,"Silène",0,744,"black"],
+["st41","st43","W",null,"Walk (Datcha valley floor)",0,410,null],
+["st43","st41","W",null,"Walk (Datcha valley floor)",0,410,null],
+["st60","st121","W",null,"Walk (gap fill)",0,167,null],
+["st121","st60","W",null,"Walk (gap fill)",0,167,null],
+["st12","st13","W",null,"Walk (gap fill)",0,383,null],
+["st13","st12","W",null,"Walk (gap fill)",0,383,null],
 ["st220","st1","W",null,"Walk (gap fill)",0,237,null],
 ["st221","st146","W",null,"Walk (gap fill)",0,179,null],
 ["st223","st173","W",null,"Walk (gap fill)",0,339,null],
@@ -1730,6 +1736,24 @@ const EDGE_RAW = [
 // (st88->st20, black — a mogul/bump run despite the name). An existing "Petit Col" edge already in
 // the graph is a coincidentally-named, unrelated piste over in the Tignes Le Lac sector, left
 // untouched. Both dashed placeholders, distances from our own station coordinates.
+//
+// Two fixes from the detour-ratio audit, confirmed against real map screenshots (2026-08-22):
+//  - st41<->st43 (Laisinant, Glacier lift base <-> Datcha base): the screenshot shows "Piste L"
+//    and "Route du Col"/"Aiglon" all converging at the same valley-floor switchback near Datcha —
+//    two real lift bases immediately adjacent that the graph routed 5,232m apart to link. 410m
+//    walk bridge.
+//  - st60<->st121 (Tignes Le Lac): st121 already pistes downhill into st60 via "Trolles" (one-way,
+//    correctly — it's a real piste, not a lift), but nothing let you go back up. Added anyway since
+//    it's real and close, though it turned out not to be the actual detour fix — checking the
+//    flagged st60->st69 pair afterward showed the "detour" was already correct: Paquis lift up,
+//    Johan Clarey down, a real ~200m elevation gain that has to go via a lift. Straight-line
+//    distance just doesn't account for elevation, a false positive of the audit heuristic itself.
+//  - st12<->st13 (Val Claret, Tichot base <-> Grattalu/Col des Vés/Col du Palet hub): unlike the
+//    st60/st69 false positive, this one's real — st13 is a pure lift-base hub (three lifts depart,
+//    nothing arrives except pistes from well above), 383m from st12 with no link, forcing a route
+//    through three other lift systems to cover 383m at nearly the same elevation. Same "unclustered
+//    shared hub" pattern as Arollay/Cugnaï/Tovière/Fornet-summit/Grande-Motte — inferred from
+//    topology, not screenshot-confirmed like the other two above, so flag if this reads wrong.
 //
 // Two more rules layered on top of the base lift/piste/walk graph, from the user's own knowledge
 // of how the resort actually operates:
