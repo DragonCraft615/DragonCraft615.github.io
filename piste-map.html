@@ -331,6 +331,31 @@ footer a { color: var(--gold); text-decoration: none; }
     </div>
 
     <div class="panel">
+      <h2>🕐 Last Lift Home</h2>
+      <div class="route-row">
+        <select class="route-select" id="llhFrom"></select>
+      </div>
+      <div class="route-row" style="justify-content:center">
+        <span style="font-size:11.5px;color:var(--sub)">to</span>
+      </div>
+      <div class="route-row">
+        <select class="route-select" id="llhTo"></select>
+      </div>
+      <div class="route-row" style="gap:8px">
+        <div style="flex:1">
+          <div style="font-size:10.5px;color:var(--sub);margin-bottom:3px">It's now</div>
+          <input type="time" class="route-select" id="llhNow" style="color-scheme:dark">
+        </div>
+        <div style="flex:1">
+          <div style="font-size:10.5px;color:var(--sub);margin-bottom:3px">Lifts close</div>
+          <input type="time" class="route-select" id="llhClose" style="color-scheme:dark">
+        </div>
+      </div>
+      <button id="llhBtn">Check</button>
+      <div id="llhResult"><p class="route-empty">We don't have real per-lift closing times, so this treats the whole resort as closing at once — adjust the time above if you know it's different for where you are.</p></div>
+    </div>
+
+    <div class="panel">
       <h2>Legend — Scott's Irrational Hatred Scale</h2>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-fast)"></span> Fast chair — Scott's favourite, no notes</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-slow)"></span> Slow chair — still fine, Scott has no beef here</div>
@@ -2611,6 +2636,49 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     document.getElementById("isoClearBtn").onclick = clearIsochrone;
   }
   document.getElementById("isoBtn").onclick = ()=> showIsochrone(isoFromSel.value);
+
+  // ───────────────── Last Lift Home ─────────────────
+  // "Can I still get back?" — the question everyone actually asks at 15:50. No real per-lift
+  // closing-time data exists in this dataset, so this treats the whole resort as closing at one
+  // adjustable time rather than fabricate false precision — clearly labelled as such above.
+  const llhFromSel = document.getElementById("llhFrom");
+  const llhToSel = document.getElementById("llhTo");
+  fillSelect(llhFromSel); fillSelect(llhToSel);
+  if([...llhFromSel.options].some(o=>o.value==="st79")) llhFromSel.value = "st79"; // Solaise — a plausible "far side" default
+  if([...llhToSel.options].some(o=>o.value==="st50")) llhToSel.value = "st50"; // Val Village — a plausible "home" default
+  const llhNow = document.getElementById("llhNow"), llhClose = document.getElementById("llhClose");
+  (function(){
+    const d = new Date();
+    llhNow.value = `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  })();
+  llhClose.value = "16:30";
+  function parseHM(str){ const [h,m] = str.split(":").map(Number); return h*3600 + m*60; }
+  function fmtHM(sec){
+    sec = ((sec % 86400) + 86400) % 86400;
+    return `${String(Math.floor(sec/3600)).padStart(2,"0")}:${String(Math.round((sec%3600)/60)).padStart(2,"0")}`;
+  }
+  const llhResult = document.getElementById("llhResult");
+  document.getElementById("llhBtn").onclick = ()=>{
+    const from = llhFromSel.value, to = llhToSel.value;
+    if(from === to){ llhResult.innerHTML = `<p class="route-empty">You're already there.</p>`; return; }
+    const path = findRoute(from, to, "time");
+    if(!path){ llhResult.innerHTML = `<p class="route-empty">No route found between those two with your current grade filter.</p>`; return; }
+    const tot = routeTotals(path);
+    const remaining = parseHM(llhClose.value) - parseHM(llhNow.value);
+    const buffer = remaining - tot.time;
+    const ok = buffer >= 0;
+    llhResult.innerHTML = `
+      <div class="route-score" style="background:${ok ? "rgba(34,197,94,.12)" : "rgba(239,68,68,.12)"}">
+        <div class="num" style="color:${ok ? "#22c55e" : "#ef4444"}">${ok ? "Yes" : "No"}</div>
+        <div class="lbl">${ok ? "you'll make it" : "you'll miss it"}</div>
+        <div class="verdict">${fmtTime(tot.time)} to get there — ${ok ? `${fmtTime(buffer)} to spare` : `you'd arrive ${fmtTime(-buffer)} after close`}</div>
+      </div>
+      <div class="legend-note">${ok
+        ? `You can leave any time up to ${fmtHM(parseHM(llhClose.value) - tot.time)} and still make it.`
+        : `You needed to have left by ${fmtHM(parseHM(llhClose.value) - tot.time)} — that's already gone.`}</div>
+    `;
+    highlightRoute(path);
+  };
 })();
 </script>
 </body>
