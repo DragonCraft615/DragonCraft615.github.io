@@ -706,7 +706,6 @@ const PISTE_RAW = [
 ["couloir-de-petite-balme","Couloir de petite balme","orange","219.3,780.9 220.9,781.7 221.6,782.0 222.4,782.1 223.2,782.3 223.9,782.3 224.8,781.7 225.4,781.1 225.8,779.9 226.2,779.1 227.1,778.3 228.0,777.6 229.2,777.0 230.7,776.4 232.5,775.5 234.0,775.0 235.7,774.8"],
 ["verte-4","Verte","green","728.4,777.4 728.1,777.5 727.0,777.9 724.8,777.0 723.4,775.8 720.0,776.9 719.2,777.7 718.0,779.7 717.2,781.5 716.3,783.4 714.0,786.8 712.4,789.0 710.3,791.2 709.4,791.5"],
 ["piste-23139772",null,"blue","218.8,412.8 219.7,413.3 220.3,413.9 221.4,415.4 222.5,416.9 224.1,419.0 225.3,420.7 227.4,425.8 229.3,428.6 231.8,430.9 233.3,431.7 236.8,432.0"],
-["face-4","Face","black","845.0,749.0 844.1,749.1 843.9,749.2 843.7,749.4 843.6,749.6 843.5,749.8 843.4,750.2 843.4,750.7 843.7,751.4 846.2,752.7 848.2,753.3 868.4,752.1"],
 ["piste-450069773",null,"green","1082.0,910.4 1081.6,910.0 1081.2,910.1 1081.0,910.4 1080.9,910.8 1081.8,915.0 1084.2,918.4 1092.7,928.7 1095.2,929.8 1096.7,929.2 1096.7,929.2 1096.8,929.1 1096.8,929.0"],
 ["chemin-vers-le-lavachet-piste-non-répertoriée","Chemin vers le Lavachet (piste non répertoriée)","grey","436.5,451.5 434.7,455.6 431.2,458.3 428.8,459.5 427.0,461.2 425.5,463.1 423.9,464.7 422.8,465.3 421.4,465.2 420.4,464.3 419.8,463.6 419.0,463.2 416.3,462.7"],
 ["santons-haut-2","Santons haut","red","921.3,852.0 925.4,846.6 928.2,839.6 929.2,837.7 936.0,829.7"],
@@ -1368,7 +1367,6 @@ const EDGE_RAW = [
 ["st211","st214","P","piste-47492026",null,0,216,"blue"],
 ["st91","st92","P","pont-abatte","Pont Abatte",0,1136,"blue"],
 ["st79","st215","P","lac-parc-à-moutons","Lac/Parc à Moutons",0,794,"blue"],
-["st51","st166","P","face-4","Face",0,269,"black"],
 ["st65","st64","P","combe-martin","Combe Martin",0,317,"black"],
 ["st33","st66","P","pays-désert","Pays Désert",0,599,"blue"],
 ["st113","st33","P","traversée-des-arses","Traversée des Arses",0,970,"blue"],
@@ -1596,6 +1594,11 @@ const EDGE_RAW = [
 ["st59","st91","P",null,"Tunnel",0,952,"black"],
 ["st47","st167","W",null,"Walk (Cugnaï/Saint-Jacques junction)",0,583,null],
 ["st167","st47","W",null,"Walk (Cugnaï/Saint-Jacques junction)",0,583,null],
+["st51","st52","P",null,"Bellevarde–Loyes link",0,457,"red"],
+["st56","st222","W",null,"Walk (gap fill)",0,145,null],
+["st222","st56","W",null,"Walk (gap fill)",0,145,null],
+["st57","st110","W",null,"Walk (gap fill)",0,205,null],
+["st110","st57","W",null,"Walk (gap fill)",0,205,null],
 ["st220","st1","W",null,"Walk (gap fill)",0,237,null],
 ["st221","st146","W",null,"Walk (gap fill)",0,179,null],
 ["st223","st173","W",null,"Walk (gap fill)",0,339,null],
@@ -1644,6 +1647,23 @@ const EDGE_RAW = [
 // Cugnaï (st47/st48) was a total island — only its own lift and its own return piste, nothing else
 // touching it. User confirmed its base piste comes down right at the Saint-Jacques junction, so
 // bridged st47<->st167 (583m, "W") — st167 already flows on into the wider network via st44.
+//
+// Val d'Isère Village / Bellevarde batch, from the user's own knowledge cross-checked against the
+// official map:
+//  - Removed the "Face" piste above Bellevarde Express (st51->st166, formerly refId "face-4",
+//    also dropped from PISTE_RAW) — genuinely off-piste terrain, not a real run, so it shouldn't
+//    be rendered or routable. Confirmed by the user and matches how the official map marks it.
+//  - Added a red run linking Bellevarde Express's top (st51) to Loyes Express's base (st52),
+//    457m apart at nearly the same elevation — user-confirmed, and it neatly replaces "Face" as
+//    st51's legitimate way down instead of the off-piste one just removed.
+//  - Grand Pré (st56/st57) was a sealed 2-station pocket — reachable set size 2, no way in or out
+//    except the lift/piste between those two. Same "already had *an* edge so gap-fill skipped it"
+//    bug as Arollay and Cugnaï: st56 is 145m from st222 (which already pistes on to st28 via
+//    Génépy) and st57 is 205m from st110 (which already pistes down into st56 via Club des
+//    Sports). Bridged both by hand.
+//  - Checked and confirmed already working, no fix needed: real piste/walk-only paths (not just
+//    riding the Solaise gondola down) already connect Solaise's top all the way to the village,
+//    and Santons haut / Épaule du Charvet already reach the village too, via st159->st195->walk.
 //
 // Two more rules layered on top of the base lift/piste/walk graph, from the user's own knowledge
 // of how the resort actually operates:
