@@ -270,7 +270,7 @@ footer a { color: var(--gold); text-decoration: none; }
   <!-- MAP -->
   <div class="map-panel">
     <div class="map-toolbar">
-      <div class="search-wrap"><input class="search-input" id="searchInput" placeholder="🔍 Search a lift name…"></div>
+      <div class="search-wrap"><input class="search-input" id="searchInput" placeholder="🔍 Search a lift name…" aria-label="Search a lift name"></div>
       <div class="zoom-btns">
         <button id="zoomOut" title="Zoom out">−</button>
         <button id="zoomIn" title="Zoom in">+</button>
@@ -278,7 +278,7 @@ footer a { color: var(--gold); text-decoration: none; }
       </div>
     </div>
     <div class="svg-wrap" id="svgWrap">
-      <svg id="mapSvg" viewBox="0 0 1700 1192"></svg>
+      <svg id="mapSvg" viewBox="0 0 1700 1192" role="img" aria-label="True-to-scale map of Tignes and Val d'Isère's lifts and pistes"></svg>
     </div>
     <div class="map-caption">True-to-scale, north-up · lifts &amp; pistes from real OpenStreetMap geometry · drag to pan, scroll/buttons to zoom · click a line for details</div>
   </div>
@@ -300,13 +300,13 @@ footer a { color: var(--gold); text-decoration: none; }
     <div class="panel">
       <h2>🎿 Plan a Route</h2>
       <div class="route-row">
-        <select class="route-select" id="routeFrom"></select>
+        <select class="route-select" id="routeFrom" aria-label="Route start"></select>
       </div>
       <div class="route-row" style="justify-content:center">
         <button class="route-swap" id="routeSwap" title="Swap from/to">⇅</button>
       </div>
       <div class="route-row">
-        <select class="route-select" id="routeTo"></select>
+        <select class="route-select" id="routeTo" aria-label="Route destination"></select>
       </div>
       <div class="filter-group">
         <h3>Pistes you're happy with</h3>
@@ -321,7 +321,7 @@ footer a { color: var(--gold); text-decoration: none; }
         <h3>Scott's patience: <span id="scottRateLabel">5</span> extra min per irritation point</h3>
         <div class="range-row">
           <span>0</span>
-          <input type="range" id="scottRate" min="0" max="20" step="1" value="5">
+          <input type="range" id="scottRate" min="0" max="20" step="1" value="5" aria-label="Extra minutes willing to spend per Scott irritation point">
           <span>20</span>
         </div>
       </div>
@@ -332,7 +332,7 @@ footer a { color: var(--gold); text-decoration: none; }
     <div class="panel">
       <h2>🎯 How Far Can I Get?</h2>
       <div class="route-row">
-        <select class="route-select" id="isoFrom"></select>
+        <select class="route-select" id="isoFrom" aria-label="Isochrone origin"></select>
       </div>
       <button id="isoBtn">Show Isochrone</button>
       <div id="isoResult"><p class="route-empty">Pick a spot and every lift and piste on the map colours by how long it takes to reach it from there — respects your grade filter above.</p></div>
@@ -341,22 +341,22 @@ footer a { color: var(--gold); text-decoration: none; }
     <div class="panel">
       <h2>🕐 Last Lift Home</h2>
       <div class="route-row">
-        <select class="route-select" id="llhFrom"></select>
+        <select class="route-select" id="llhFrom" aria-label="Last lift home: where you are"></select>
       </div>
       <div class="route-row" style="justify-content:center">
         <span style="font-size:11.5px;color:var(--sub)">to</span>
       </div>
       <div class="route-row">
-        <select class="route-select" id="llhTo"></select>
+        <select class="route-select" id="llhTo" aria-label="Last lift home: where you're headed"></select>
       </div>
       <div class="route-row" style="gap:8px">
         <div style="flex:1">
           <div style="font-size:10.5px;color:var(--sub);margin-bottom:3px">It's now</div>
-          <input type="time" class="route-select" id="llhNow" style="color-scheme:dark">
+          <input type="time" class="route-select" id="llhNow" style="color-scheme:dark" aria-label="Current time">
         </div>
         <div style="flex:1">
           <div style="font-size:10.5px;color:var(--sub);margin-bottom:3px">Lifts close</div>
-          <input type="time" class="route-select" id="llhClose" style="color-scheme:dark">
+          <input type="time" class="route-select" id="llhClose" style="color-scheme:dark" aria-label="Lift closing time">
         </div>
       </div>
       <button id="llhBtn">Check</button>
@@ -366,7 +366,7 @@ footer a { color: var(--gold); text-decoration: none; }
     <div class="panel">
       <h2>🚫 Lift Closures</h2>
       <div class="route-row">
-        <select class="route-select" id="closureSelect" multiple size="6" style="height:auto"></select>
+        <select class="route-select" id="closureSelect" multiple size="6" style="height:auto" aria-label="Lifts to treat as closed"></select>
       </div>
       <div id="closureNote" class="legend-note">Ctrl/Cmd-click to select more than one. Closed lifts are excluded from route planning, isochrones and Last Lift Home until you clear them here — nothing else on the map changes.</div>
     </div>
@@ -420,7 +420,7 @@ footer a { color: var(--gold); text-decoration: none; }
         <h3>Minimum capacity: <span id="capLabel">0</span> p/h</h3>
         <div class="range-row">
           <span>0</span>
-          <input type="range" id="capRange" min="0" max="4000" step="250" value="0">
+          <input type="range" id="capRange" min="0" max="4000" step="250" value="0" aria-label="Minimum lift capacity in people per hour">
           <span>4000+</span>
         </div>
       </div>
@@ -1932,7 +1932,11 @@ const pisteGroup = el("g", {id:"pisteGroup"});
 svg.appendChild(pisteGroup);
 PISTES.forEach(p=>{
   const common = { points:p.points, "data-id":p.id, "data-color":p.color, "data-name":(p.name||"").toLowerCase() };
-  const line = el("polyline",{...common, class:"piste-line", stroke:PISTE_COLOR[p.color]||PISTE_COLOR.grey, style:`color:${PISTE_COLOR[p.color]||PISTE_COLOR.grey}`});
+  // Black pistes render near-white against this dark background (true black would be invisible) —
+  // colour alone can't distinguish that from a bright rendering error or an unrated grey run in
+  // dim light, so give black a genuine second cue: a fine dash texture, not just a hue.
+  const dash = p.color === "black" ? {"stroke-dasharray":"3,1.5"} : {};
+  const line = el("polyline",{...common, ...dash, class:"piste-line", stroke:PISTE_COLOR[p.color]||PISTE_COLOR.grey, style:`color:${PISTE_COLOR[p.color]||PISTE_COLOR.grey}`});
   pisteGroup.appendChild(line);
   const hit = el("polyline",{...common, class:"piste-line piste-hit"});
   pisteGroup.appendChild(hit);
@@ -2760,6 +2764,24 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       : "Ctrl/Cmd-click to select more than one. Closed lifts are excluded from route planning, isochrones and Last Lift Home until you clear them here — nothing else on the map changes.";
   };
 })();
+
+// All the grade/speed/type/lift-search filter chips are <span class="chip"> with an onclick —
+// visually obvious toggle buttons, but invisible to a screen reader and unreachable by keyboard
+// (no role, no tabindex, per the accessibility review). Applied once, globally, after every
+// chip's own onclick is already registered above, so this only adds semantics and keyboard
+// support on top of behaviour that already works — it doesn't replace anything.
+document.querySelectorAll(".chip").forEach(chip=>{
+  chip.setAttribute("role", "button");
+  chip.setAttribute("tabindex", "0");
+  chip.setAttribute("aria-pressed", chip.classList.contains("active") ? "true" : "false");
+  chip.addEventListener("keydown", ev=>{
+    if(ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); chip.click(); }
+  });
+  chip.addEventListener("click", ()=>{
+    // runs after the chip's own onclick already flipped the "active" class this tick
+    chip.setAttribute("aria-pressed", chip.classList.contains("active") ? "true" : "false");
+  });
+});
 </script>
 </body>
 </html>
