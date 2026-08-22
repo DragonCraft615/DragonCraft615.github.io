@@ -364,6 +364,14 @@ footer a { color: var(--gold); text-decoration: none; }
     </div>
 
     <div class="panel">
+      <h2>🚫 Lift Closures</h2>
+      <div class="route-row">
+        <select class="route-select" id="closureSelect" multiple size="6" style="height:auto"></select>
+      </div>
+      <div id="closureNote" class="legend-note">Ctrl/Cmd-click to select more than one. Closed lifts are excluded from route planning, isochrones and Last Lift Home until you clear them here — nothing else on the map changes.</div>
+    </div>
+
+    <div class="panel">
       <h2>Legend — Scott's Irrational Hatred Scale</h2>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-fast)"></span> Fast chair — Scott's favourite, no notes</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-slow)"></span> Slow chair — still fine, Scott has no beef here</div>
@@ -2379,6 +2387,11 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
   // only as the tiebreak. 121 stations is small enough that a plain O(V²) scan per step is
   // instant, no heap needed.
   const SCOTT_W_MAX = 36000;
+  // Closure mode — "Funival's shut, wind on the Grande Motte" — a lift closed here is closed for
+  // route planning, isochrones and Last Lift Home alike, since they all build their adjacency
+  // through this one function. Keyed by lift id (a lift's uphill and downloading edges share the
+  // same refId, so closing one closes both directions in one go).
+  const closedLifts = new Set();
   function buildAdjacency(){
     const adj = {};
     STATIONS.forEach(s => adj[s.id] = []);
@@ -2389,6 +2402,7 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       // previously only checking diff against the 4 standard grades, so anything outside that set
       // (grey, orange) fell through unfiltered — closing that hole here.
       if(e.kind==="P" && e.diff && !routeGrades.has(e.diff)) return;
+      if(e.kind==="L" && closedLifts.has(e.refId)) return;
       adj[e.from].push(e);
     });
     return adj;
@@ -2723,6 +2737,22 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
         : `You needed to have left by ${fmtHM(parseHM(llhClose.value) - tot.time)} — that's already gone.`}</div>
     `;
     highlightRoute(path);
+  };
+
+  // ───────────────── Closure mode ─────────────────
+  const closureSelect = document.getElementById("closureSelect");
+  LIFTS.slice().sort((a,b)=>a.name.localeCompare(b.name)).forEach(l=>{
+    const opt = document.createElement("option");
+    opt.value = l.id; opt.textContent = l.name;
+    closureSelect.appendChild(opt);
+  });
+  closureSelect.onchange = ()=>{
+    closedLifts.clear();
+    [...closureSelect.selectedOptions].forEach(o => closedLifts.add(o.value));
+    const n = closedLifts.size;
+    document.getElementById("closureNote").textContent = n
+      ? `${n} lift${n===1?"":"s"} closed — route planning, isochrones and Last Lift Home will route around ${n===1?"it":"them"}.`
+      : "Ctrl/Cmd-click to select more than one. Closed lifts are excluded from route planning, isochrones and Last Lift Home until you clear them here — nothing else on the map changes.";
   };
 })();
 </script>
