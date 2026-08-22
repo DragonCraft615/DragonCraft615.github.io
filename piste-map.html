@@ -13,6 +13,7 @@
   --border: #1e1a2e; --text: #f0ede6; --sub: #a89880; --muted: #5c5248;
   --gold: #f5a623; --green: #2ecc71; --red: #e74c3c; --blue: #3498db;
   --fast: #2ecc71; --medium: #f5a623; --slow: #e74c3c;
+  --fast-chair: #15803d; --fast-gondola: #6ee7b7;
 }
 
 html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -226,7 +227,8 @@ footer a { color: var(--gold); text-decoration: none; }
   <div class="sidebar">
     <div class="panel">
       <h2>Legend</h2>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast)"></span> Fast — high-speed detachable, funicular, tramway, modern gondola (~5–10 m/s)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-chair)"></span> Fast chair — high-speed detachable chairlift (~5–6 m/s)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-gondola)"></span> Fast gondola/cable/funicular (~5–10 m/s)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--medium)"></span> Standard — fixed-grip chairlift / older gondola (~2.5–4 m/s)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--slow)"></span> Slow — drag lift, carpet, rope tow (~1–3 m/s)</div>
       <div class="thickness-demo">
@@ -317,89 +319,89 @@ const SECTORS = {
 // Lifts, plotted at their REAL base→top position (projected from OpenStreetMap "aerialway"/"railway=funicular"
 // way geometry via the Overpass API; base/top resolved from SRTM elevation along each lift's full line, not
 // just its endpoints, so mis-digitised end nodes don't flip direction).
-// [id, name, osmType, speedClass, capacity(pph), length(m), vertical(m), yearBuilt|null, sector, bubble(0/1), heating(0/1), x1, y1, x2, y2]
+// [id, name, osmType, speedClass, capacity(pph), length(m), vertical(m), yearBuilt|null, sector, bubble(0/1), heating(0/1), x1, y1, x2, y2, speedMS|null, baseElev(m), topElev(m)]
 const RAW = [
-["funiculaire-perce-neige","Funiculaire Perce-Neige","funicular","fast",3600,5207,900,null,"valclaret",0,0,318.9,680.8,262.3,1002.0],
-["vallon-de-l-iseran","Vallon de l'Iseran","gondola","fast",3000,2695,469,2024,"fornet",0,0,1273.1,788.8,1397.9,1036.5],
-["lanches","Lanches","chair_lift","fast",1650,2452,738,1992,"valclaret",1,0,308.4,677.6,306.5,930.0],
-["funival","Funival","funicular","fast",2200,2087,917,1986,"daille",0,0,843.6,598.6,734.5,773.6],
-["borsat","Borsat","chair_lift","fast",2400,2078,366,1994,"toviere",0,0,634.1,712.0,531.5,899.6],
-["solaise","Solaise","gondola","fast",3600,2077,711,2016,"laisinant",0,1,949.7,739.0,1081.1,907.7],
-["tsd6-marais","TSD6 Marais","chair_lift","fast",2000,2048,551,2024,"percee",0,0,445.0,260.0,240.5,312.0],
-["olympique","Olympique","gondola","fast",3750,1974,863,2002,"village",0,0,939.7,740.8,761.1,779.3],
-["fresse","Fresse","chair_lift","fast",1800,1872,366,null,"toviere",0,0,372.1,689.7,534.5,793.4],
-["manchet-express","Manchet Express","chair_lift","fast",2400,1792,673,1993,"laisinant",0,0,912.9,1014.1,1096.9,1002.8],
-["tsf3-col-des-vés","TSF3 Col des Vés","chair_lift","medium",1350,1785,343,null,"valclaret",0,0,186.8,684.2,36.0,789.2],
-["glacier","Glacier","chair_lift","fast",3000,1735,316,2001,"laisinant",0,0,1136.9,944.8,1260.6,1073.7],
-["tovière","Tovière","gondola","fast",3000,1687,599,2013,"toviere",0,0,393.0,504.8,485.3,636.8],
-["laisinant","Laisinant","chair_lift","fast",2100,1668,713,2005,"laisinant",0,0,1085.1,736.4,1210.6,853.6],
-["daille","Daille","gondola","fast",2500,1653,482,2018,"daille",1,1,840.2,580.0,675.5,623.0],
-["tommeuses","Tommeuses","chair_lift","fast",4500,1649,443,2002,"toviere",0,0,655.9,597.8,490.0,633.6],
-["grande-motte","Grande Motte","cable_car","fast",1100,1649,411,2018,"grandemotte",0,0,251.5,1008.8,123.4,1120.1],
-["cascade","Cascade","chair_lift","fast",2400,1585,384,null,"fornet",0,0,1452.0,1029.2,1615.0,1023.3],
-["paquis","Paquis","chair_lift","fast",1500,1561,436,1999,"lac",0,0,414.1,450.5,442.9,608.5],
-["tufs","Tufs","chair_lift","fast",2700,1499,543,2008,"valclaret",0,0,336.1,649.4,488.7,643.9],
-["tkd1-col-du-palet","TKD1 Col du Palet","platter","slow",650,1381,251,1968,"valclaret",0,0,179.0,683.0,39.0,664.2],
-["tsd6-grattalu","TSD6 Grattalu","chair_lift","fast",3000,1358,307,2004,"valclaret",0,0,180.2,680.9,89.6,574.4],
-["loyes-express","Loyes Express","chair_lift","fast",2400,1308,528,1991,"village",0,0,876.5,787.1,741.9,786.8],
-["merles","Merles","chair_lift","fast",2468,1263,265,2004,"valclaret",0,0,226.8,509.8,135.7,591.4],
-["palafour","Palafour","chair_lift","fast",3600,1231,453,2006,"lac",0,0,378.4,482.9,279.5,403.6],
-["pyramides","Pyramides","chair_lift","fast",2400,1195,398,2006,"fornet",0,0,1269.6,792.6,1355.6,880.6],
-["marmottes-express","Marmottes Express","chair_lift","fast",3600,1169,308,2008,"daille",0,0,650.0,682.9,727.7,774.8],
-["vanoise","Vanoise","chair_lift","fast",2000,1154,291,2008,"grandemotte",0,0,303.9,894.1,255.6,1002.6],
-["tsd6-chaudannes","TSD6 Chaudannes","chair_lift","fast",2400,1137,373,1999,"lac",0,0,414.2,446.9,376.0,336.2],
-["ts-fontaine","TS Fontaine","chair_lift","fast",3000,1136,289,null,"village",0,0,752.0,902.3,737.0,786.2],
-["tsd6-tichot","TSD6 Tichot","chair_lift","fast",3600,1116,362,null,"valclaret",0,0,302.5,657.0,188.4,642.9],
-["tsd6-aiguille-rouge","TSD6 Aiguille Rouge","chair_lift","fast",3000,1115,280,2022,"percee",0,0,446.5,262.2,360.0,337.7],
-["mont-blanc","Mont Blanc","chair_lift","medium",1800,1114,244,1982,"toviere",0,0,663.5,617.1,590.5,705.6],
-["tcd10-des-boisses","TCD10 des Boisses","gondola","fast",3000,1088,405,2010,"boisses",0,0,515.9,152.2,448.9,241.9],
-["aiguille-percée","Aiguille Percée","chair_lift","fast",2400,1026,294,2025,"percee",0,0,215.5,411.5,237.2,308.2],
-["fornet","Fornet","cable_car","fast",1000,973,368,1973,"fornet",0,0,1223.5,699.1,1272.0,786.7],
-["leissières","Leissières","chair_lift","fast",2400,964,129,2003,"fornet",0,0,1334.7,1024.0,1292.6,1029.0],
-["bellevarde-express","Bellevarde Express","chair_lift","fast",2400,964,375,1989,"village",0,0,942.1,733.4,844.2,749.7],
-["tcd8-des-brévières","TCD8 des Brévières","gondola","fast",2400,892,201,2018,"boisses",0,0,497.5,59.5,515.0,149.6],
-["madeleine-express","Madeleine Express","chair_lift","fast",3000,879,155,1998,"laisinant",0,0,1093.8,938.5,1110.0,1027.6],
-["grand-pré","Grand Pré","chair_lift","medium",2400,869,218,1992,"village",0,0,689.8,924.0,693.8,1008.7],
-["tkd1-chardonnet","TKD1 Chardonnet","platter","slow",600,858,273,1953,"lac",0,0,345.5,497.6,260.3,478.6],
-["combe-folle","Combe Folle","platter","slow",600,855,237,1967,"toviere",0,0,437.3,557.0,510.2,606.4],
-["montet","Montet","t-bar","slow",1200,840,167,2005,"fornet",0,0,1579.5,999.6,1664.0,1017.7],
-["datcha","Datcha","chair_lift","fast",2400,834,193,2017,"laisinant",0,0,1137.8,914.9,1106.8,994.9],
-["grand-huit","Grand Huit","chair_lift","medium",2400,822,195,1997,"percee",0,0,212.5,514.1,158.5,449.0],
-["cugnaï","Cugnaï","chair_lift","medium",1200,757,200,2006,"laisinant",0,0,1188.1,1071.2,1216.7,1143.7],
-["termignon-1","Termignon 1","t-bar","slow",1200,749,205,1990,"grandemotte",0,0,243.1,1132.0,169.5,1154.7],
-["termignon-2","Termignon 2","t-bar","slow",900,748,209,1967,"grandemotte",0,0,242.7,1131.3,169.1,1153.9],
-["tsd6-bollin","TSD6 Bollin","chair_lift","fast",3600,577,95,1997,"valclaret",0,0,316.1,669.9,372.1,689.7],
-["almes","Almes","chair_lift","medium",2400,540,180,2016,"lac",0,0,382.1,472.8,338.0,439.0],
-["rogoney","Rogoney","chair_lift","medium",2400,531,151,1997,"village",0,0,944.9,747.8,982.8,787.3],
-["signal-1","Signal 1","drag_lift","slow",250,529,190,2007,"fornet",0,0,1361.9,885.8,1415.6,876.8],
-["signal-2","Signal 2","drag_lift","slow",250,529,192,2006,"fornet",0,0,1362.0,886.3,1415.6,877.3],
-["céma","Céma","chair_lift","medium",2212,487,66,2000,"fornet",0,0,1450.0,1032.2,1402.8,1036.6],
-["pays-désert","Pays Désert","platter","slow",700,478,79,1975,"fornet",0,0,1443.3,1080.3,1460.3,1034.2],
-["3000","3000","platter","slow",433,376,152,1962,"fornet",0,0,1258.8,1055.4,1295.5,1064.7],
-["village","Village","chair_lift","medium",1800,358,51,1985,"village",0,0,955.7,731.3,972.5,764.0],
-["slalom","Slalom","t-bar","slow",728,346,90,2001,"toviere",0,0,637.7,703.5,602.3,699.8],
-["snow-park","Snow Park","t-bar","slow",728,346,90,null,"toviere",0,0,637.8,702.8,602.4,699.1],
-["legettaz","Legettaz","platter","slow",550,322,105,null,"village",0,0,946.5,787.8,975.6,803.5],
-["replat","Replat","rope_tow","slow",350,265,1,2021,"lac",0,0,236.0,500.0,248.5,475.8],
-["lavachet","Lavachet","platter","slow",800,262,33,1999,"lac",0,0,417.2,465.2,426.1,490.6],
-["rosset","Rosset","chair_lift","medium",2400,256,47,1985,"lac",0,0,403.2,499.4,426.0,512.7],
-["pim","Pim","magic_carpet","slow",1500,231,33,2010,"laisinant",0,0,1096.2,929.8,1081.4,911.3],
-["pam","Pam","magic_carpet","slow",1500,231,33,2010,"laisinant",0,0,1096.1,929.9,1081.2,911.4],
-["lanche","Lanche","drag_lift","slow",600,212,39,null,"daille",0,0,848.4,599.9,834.9,617.1],
-["savonnette-1","Savonnette 1","t-bar","slow",600,209,48,1984,"village",0,0,974.8,740.5,978.2,761.8],
-["savonnette-2","Savonnette 2","t-bar","slow",600,209,47,1987,"village",0,0,974.3,740.6,977.6,761.9],
-["carpe-diem","Carpe Diem","magic_carpet","slow",1500,166,14,2010,"toviere",0,0,647.4,688.9,641.2,704.8],
-["poum","Poum","magic_carpet","slow",1500,152,10,2010,"laisinant",0,0,1073.2,891.2,1081.1,904.8],
-["brévières","Brévières","funicular","fast",2400,132,32,2018,"boisses",0,0,504.9,49.6,505.2,36.0],
-["tke-grande-parei","TKE Grande Parei","drag_lift","slow",800,123,14,null,"boisses",0,0,491.8,57.5,488.5,69.7],
-["tapis-1-tignes-1800","Tapis 1 Tignes 1800","magic_carpet","slow",1200,115,16,null,"boisses",0,0,518.1,153.7,523.8,164.0],
-["tapis-2-tignes-1800","Tapis 2 Tignes 1800","magic_carpet","slow",1200,115,9,null,"boisses",0,0,524.3,166.0,529.1,176.8],
-["val-claret","Val Claret","magic_carpet","slow",1200,84,13,null,"valclaret",0,0,337.3,655.1,345.8,656.7],
-["centre","Centre","magic_carpet","slow",1500,79,2,2010,"lac",0,0,390.3,496.0,385.5,489.5],
-["snowtubing","Snowtubing","magic_carpet","slow",1200,51,5,null,"valclaret",0,0,310.7,603.8,307.8,599.4],
-["club-méditerrannée","Club Méditerrannée","magic_carpet","slow",1200,35,1,null,"valclaret",0,0,327.5,667.8,329.4,670.8],
-["club-pioupiou","Club PiouPiou","magic_carpet","slow",1200,32,3,null,"valclaret",0,0,337.4,676.1,340.6,676.9],
-["unnamed","(unnamed)","magic_carpet","slow",1200,32,4,null,"valclaret",0,0,341.1,675.8,344.4,676.1]
+["funiculaire-perce-neige","Funiculaire Perce-Neige","funicular","fast",3600,5207,900,null,"valclaret",0,0,318.9,680.8,262.3,1002.0,null,2116,3016],
+["vallon-de-l-iseran","Vallon de l'Iseran","gondola","fast",3000,2695,469,2024,"fornet",0,0,1273.1,788.8,1397.9,1036.5,4.08,2320,2789],
+["lanches","Lanches","chair_lift","fast",1650,2452,738,1992,"valclaret",1,0,308.4,677.6,306.5,930.0,4.21,2109,2847],
+["funival","Funival","funicular","fast",2200,2087,917,1986,"daille",0,0,843.6,598.6,734.5,773.6,null,1802,2719],
+["borsat","Borsat","chair_lift","fast",2400,2078,366,1994,"toviere",0,0,634.1,712.0,531.5,899.6,4.62,2410,2776],
+["solaise","Solaise","gondola","fast",3600,2077,711,2016,"laisinant",0,1,949.7,739.0,1081.1,907.7,null,1836,2547],
+["tsd6-marais","TSD6 Marais","chair_lift","fast",2000,2048,551,2024,"percee",0,0,445.0,260.0,240.5,312.0,5.69,2170,2721],
+["olympique","Olympique","gondola","fast",3750,1974,863,2002,"village",0,0,939.7,740.8,761.1,779.3,6.85,1833,2696],
+["fresse","Fresse","chair_lift","fast",1800,1872,366,null,"toviere",0,0,372.1,689.7,534.5,793.4,null,2208,2574],
+["manchet-express","Manchet Express","chair_lift","fast",2400,1792,673,1993,"laisinant",0,0,912.9,1014.1,1096.9,1002.8,3.64,1947,2620],
+["tsf3-col-des-vés","TSF3 Col des Vés","chair_lift","medium",1350,1785,343,null,"valclaret",0,0,186.8,684.2,36.0,789.2,2.14,2424,2767],
+["glacier","Glacier","chair_lift","fast",3000,1735,316,2001,"laisinant",0,0,1136.9,944.8,1260.6,1073.7,4.82,2488,2804],
+["tovière","Tovière","gondola","fast",3000,1687,599,2013,"toviere",0,0,393.0,504.8,485.3,636.8,null,2085,2684],
+["laisinant","Laisinant","chair_lift","fast",2100,1668,713,2005,"laisinant",0,0,1085.1,736.4,1210.6,853.6,4.09,1865,2578],
+["daille","Daille","gondola","fast",2500,1653,482,2018,"daille",1,1,840.2,580.0,675.5,623.0,4.59,1800,2282],
+["tommeuses","Tommeuses","chair_lift","fast",4500,1649,443,2002,"toviere",0,0,655.9,597.8,490.0,633.6,4.58,2236,2679],
+["grande-motte","Grande Motte","cable_car","fast",1100,1649,411,2018,"grandemotte",0,0,251.5,1008.8,123.4,1120.1,5.5,3024,3435],
+["cascade","Cascade","chair_lift","fast",2400,1585,384,null,"fornet",0,0,1452.0,1029.2,1615.0,1023.3,4.8,2723,3107],
+["paquis","Paquis","chair_lift","fast",1500,1561,436,1999,"lac",0,0,414.1,450.5,442.9,608.5,4.33,2054,2490],
+["tufs","Tufs","chair_lift","fast",2700,1499,543,2008,"valclaret",0,0,336.1,649.4,488.7,643.9,4.17,2138,2681],
+["tkd1-col-du-palet","TKD1 Col du Palet","platter","slow",650,1381,251,1968,"valclaret",0,0,179.0,683.0,39.0,664.2,null,2431,2682],
+["tsd6-grattalu","TSD6 Grattalu","chair_lift","fast",3000,1358,307,2004,"valclaret",0,0,180.2,680.9,89.6,574.4,4.19,2431,2738],
+["loyes-express","Loyes Express","chair_lift","fast",2400,1308,528,1991,"village",0,0,876.5,787.1,741.9,786.8,3.57,2151,2679],
+["merles","Merles","chair_lift","fast",2468,1263,265,2004,"valclaret",0,0,226.8,509.8,135.7,591.4,4.21,2381,2646],
+["palafour","Palafour","chair_lift","fast",3600,1231,453,2006,"lac",0,0,378.4,482.9,279.5,403.6,4.1,2097,2550],
+["pyramides","Pyramides","chair_lift","fast",2400,1195,398,2006,"fornet",0,0,1269.6,792.6,1355.6,880.6,4.74,2319,2717],
+["marmottes-express","Marmottes Express","chair_lift","fast",3600,1169,308,2008,"daille",0,0,650.0,682.9,727.7,774.8,4.06,2384,2692],
+["vanoise","Vanoise","chair_lift","fast",2000,1154,291,2008,"grandemotte",0,0,303.9,894.1,255.6,1002.6,3.85,2723,3014],
+["tsd6-chaudannes","TSD6 Chaudannes","chair_lift","fast",2400,1137,373,1999,"lac",0,0,414.2,446.9,376.0,336.2,4.12,2052,2425],
+["ts-fontaine","TS Fontaine","chair_lift","fast",3000,1136,289,null,"village",0,0,752.0,902.3,737.0,786.2,null,2392,2681],
+["tsd6-tichot","TSD6 Tichot","chair_lift","fast",3600,1116,362,null,"valclaret",0,0,302.5,657.0,188.4,642.9,3.65,2108,2470],
+["tsd6-aiguille-rouge","TSD6 Aiguille Rouge","chair_lift","fast",3000,1115,280,2022,"percee",0,0,446.5,262.2,360.0,337.7,null,2170,2450],
+["mont-blanc","Mont Blanc","chair_lift","medium",1800,1114,244,1982,"toviere",0,0,663.5,617.1,590.5,705.6,2.29,2266,2510],
+["tcd10-des-boisses","TCD10 des Boisses","gondola","fast",3000,1088,405,2010,"boisses",0,0,515.9,152.2,448.9,241.9,3.88,1770,2175],
+["aiguille-percée","Aiguille Percée","chair_lift","fast",2400,1026,294,2025,"percee",0,0,215.5,411.5,237.2,308.2,2.37,2431,2725],
+["fornet","Fornet","cable_car","fast",1000,973,368,1973,"fornet",0,0,1223.5,699.1,1272.0,786.7,8.11,1942,2310],
+["leissières","Leissières","chair_lift","fast",2400,964,129,2003,"fornet",0,0,1334.7,1024.0,1292.6,1029.0,3.65,2689,2818],
+["bellevarde-express","Bellevarde Express","chair_lift","fast",2400,964,375,1989,"village",0,0,942.1,733.4,844.2,749.7,3.35,1832,2207],
+["tcd8-des-brévières","TCD8 des Brévières","gondola","fast",2400,892,201,2018,"boisses",0,0,497.5,59.5,515.0,149.6,1.86,1563,1764],
+["madeleine-express","Madeleine Express","chair_lift","fast",3000,879,155,1998,"laisinant",0,0,1093.8,938.5,1110.0,1027.6,3.96,2519,2674],
+["grand-pré","Grand Pré","chair_lift","medium",2400,869,218,1992,"village",0,0,689.8,924.0,693.8,1008.7,2.07,2496,2714],
+["tkd1-chardonnet","TKD1 Chardonnet","platter","slow",600,858,273,1953,"lac",0,0,345.5,497.6,260.3,478.6,3.58,2110,2383],
+["combe-folle","Combe Folle","platter","slow",600,855,237,1967,"toviere",0,0,437.3,557.0,510.2,606.4,2.74,2346,2583],
+["montet","Montet","t-bar","slow",1200,840,167,2005,"fornet",0,0,1579.5,999.6,1664.0,1017.7,3.26,3041,3208],
+["datcha","Datcha","chair_lift","fast",2400,834,193,2017,"laisinant",0,0,1137.8,914.9,1106.8,994.9,4.83,2416,2609],
+["grand-huit","Grand Huit","chair_lift","medium",2400,822,195,1997,"percee",0,0,212.5,514.1,158.5,449.0,1.96,2385,2580],
+["cugnaï","Cugnaï","chair_lift","medium",1200,757,200,2006,"laisinant",0,0,1188.1,1071.2,1216.7,1143.7,2.14,2684,2884],
+["termignon-1","Termignon 1","t-bar","slow",1200,749,205,1990,"grandemotte",0,0,243.1,1132.0,169.5,1154.7,null,3115,3320],
+["termignon-2","Termignon 2","t-bar","slow",900,748,209,1967,"grandemotte",0,0,242.7,1131.3,169.1,1153.9,null,3114,3323],
+["tsd6-bollin","TSD6 Bollin","chair_lift","fast",3600,577,95,1997,"valclaret",0,0,316.1,669.9,372.1,689.7,4.18,2113,2208],
+["almes","Almes","chair_lift","medium",2400,540,180,2016,"lac",0,0,382.1,472.8,338.0,439.0,null,2096,2276],
+["rogoney","Rogoney","chair_lift","medium",2400,531,151,1997,"village",0,0,944.9,747.8,982.8,787.3,1.97,1838,1989],
+["signal-1","Signal 1","drag_lift","slow",250,529,190,2007,"fornet",0,0,1361.9,885.8,1415.6,876.8,2.94,2728,2918],
+["signal-2","Signal 2","drag_lift","slow",250,529,192,2006,"fornet",0,0,1362.0,886.3,1415.6,877.3,2.94,2727,2919],
+["céma","Céma","chair_lift","medium",2212,487,66,2000,"fornet",0,0,1450.0,1032.2,1402.8,1036.6,1.93,2717,2783],
+["pays-désert","Pays Désert","platter","slow",700,478,79,1975,"fornet",0,0,1443.3,1080.3,1460.3,1034.2,3.46,2647,2726],
+["3000","3000","platter","slow",433,376,152,1962,"fornet",0,0,1258.8,1055.4,1295.5,1064.7,2.73,2790,2942],
+["village","Village","chair_lift","medium",1800,358,51,1985,"village",0,0,955.7,731.3,972.5,764.0,null,1835,1886],
+["slalom","Slalom","t-bar","slow",728,346,90,2001,"toviere",0,0,637.7,703.5,602.3,699.8,null,2403,2493],
+["snow-park","Snow Park","t-bar","slow",728,346,90,null,"toviere",0,0,637.8,702.8,602.4,699.1,null,2402,2492],
+["legettaz","Legettaz","platter","slow",550,322,105,null,"village",0,0,946.5,787.8,975.6,803.5,null,1882,1987],
+["replat","Replat","rope_tow","slow",350,265,1,2021,"lac",0,0,236.0,500.0,248.5,475.8,null,2383,2384],
+["lavachet","Lavachet","platter","slow",800,262,33,1999,"lac",0,0,417.2,465.2,426.1,490.6,1.9,2069,2102],
+["rosset","Rosset","chair_lift","medium",2400,256,47,1985,"lac",0,0,403.2,499.4,426.0,512.7,1.1,2095,2142],
+["pim","Pim","magic_carpet","slow",1500,231,33,2010,"laisinant",0,0,1096.2,929.8,1081.4,911.3,null,2517,2550],
+["pam","Pam","magic_carpet","slow",1500,231,33,2010,"laisinant",0,0,1096.1,929.9,1081.2,911.4,null,2517,2550],
+["lanche","Lanche","drag_lift","slow",600,212,39,null,"daille",0,0,848.4,599.9,834.9,617.1,null,1800,1839],
+["savonnette-1","Savonnette 1","t-bar","slow",600,209,48,1984,"village",0,0,974.8,740.5,978.2,761.8,1.59,1842,1890],
+["savonnette-2","Savonnette 2","t-bar","slow",600,209,47,1987,"village",0,0,974.3,740.6,977.6,761.9,1.59,1842,1889],
+["carpe-diem","Carpe Diem","magic_carpet","slow",1500,166,14,2010,"toviere",0,0,647.4,688.9,641.2,704.8,0.69,2388,2402],
+["poum","Poum","magic_carpet","slow",1500,152,10,2010,"laisinant",0,0,1073.2,891.2,1081.1,904.8,null,2535,2545],
+["brévières","Brévières","funicular","fast",2400,132,32,2018,"boisses",0,0,504.9,49.6,505.2,36.0,null,1567,1599],
+["tke-grande-parei","TKE Grande Parei","drag_lift","slow",800,123,14,null,"boisses",0,0,491.8,57.5,488.5,69.7,0.68,1563,1577],
+["tapis-1-tignes-1800","Tapis 1 Tignes 1800","magic_carpet","slow",1200,115,16,null,"boisses",0,0,518.1,153.7,523.8,164.0,null,1773,1789],
+["tapis-2-tignes-1800","Tapis 2 Tignes 1800","magic_carpet","slow",1200,115,9,null,"boisses",0,0,524.3,166.0,529.1,176.8,null,1792,1801],
+["val-claret","Val Claret","magic_carpet","slow",1200,84,13,null,"valclaret",0,0,337.3,655.1,345.8,656.7,null,2140,2153],
+["centre","Centre","magic_carpet","slow",1500,79,2,2010,"lac",0,0,390.3,496.0,385.5,489.5,1.01,2088,2090],
+["snowtubing","Snowtubing","magic_carpet","slow",1200,51,5,null,"valclaret",0,0,310.7,603.8,307.8,599.4,null,2109,2114],
+["club-méditerrannée","Club Méditerrannée","magic_carpet","slow",1200,35,1,null,"valclaret",0,0,327.5,667.8,329.4,670.8,null,2133,2134],
+["club-pioupiou","Club PiouPiou","magic_carpet","slow",1200,32,3,null,"valclaret",0,0,337.4,676.1,340.6,676.9,null,2141,2144],
+["unnamed","(unnamed)","magic_carpet","slow",1200,32,4,null,"valclaret",0,0,341.1,675.8,344.4,676.1,null,2144,2148]
 ];
 
 const TYPE_META = {
@@ -421,14 +423,33 @@ const SPEED_META = {
 
 const LIFTS = RAW.map(r => ({
   id:r[0], name:r[1], type:r[2], speed:r[3], cap:r[4], len:r[5], vert:r[6], yoc:r[7], sector:r[8],
-  bubble: !!r[9], heating: !!r[10], x1:r[11], y1:r[12], x2:r[13], y2:r[14]
+  bubble: !!r[9], heating: !!r[10], x1:r[11], y1:r[12], x2:r[13], y2:r[14],
+  speedMS:r[15], baseElev:r[16], topElev:r[17]
 }));
+
+// "Fast" is split by lift type — a fast chairlift and a fast gondola/cable car/funicular get
+// visually distinct greens, since lumping them together hid a real difference in the ride.
+function speedColor(l){
+  if(l.speed === 'fast') return TYPE_META[l.type].group === 'chair' ? 'var(--fast-chair)' : 'var(--fast-gondola)';
+  return SPEED_META[l.speed].color;
+}
+function speedLabel(l){
+  if(l.speed === 'fast') return TYPE_META[l.type].group === 'chair' ? 'Fast chair' : 'Fast gondola/cable';
+  return SPEED_META[l.speed].label;
+}
+// Literal hex twins of the CSS custom properties above, for spots (like the alpha-blended
+// speed badge) that need to append an alpha suffix — you can't do "var(--x)22", only "#hex22".
+const HEX = { 'fast-chair':'#15803d', 'fast-gondola':'#6ee7b7', medium:'#f5a623', slow:'#e74c3c' };
+function speedColorHex(l){
+  if(l.speed === 'fast') return TYPE_META[l.type].group === 'chair' ? HEX['fast-chair'] : HEX['fast-gondola'];
+  return HEX[l.speed];
+}
 
 // Full-range linear scale across the resort's actual capacity spread (250–4,500 p/h),
 // so the thinnest drag lift and the thickest chair are as visually distinct as possible.
 const CAP_MIN = Math.min(...LIFTS.map(l=>l.cap));
 const CAP_MAX = Math.max(...LIFTS.map(l=>l.cap));
-const W_MIN = 1.5, W_MAX = 14;
+const W_MIN = 1, W_MAX = 18;
 function strokeWidth(cap){
   const t = (cap - CAP_MIN) / (CAP_MAX - CAP_MIN);
   return W_MIN + t * (W_MAX - W_MIN);
@@ -483,8 +504,8 @@ LIFTS.forEach(l=>{
     "data-connector": l.connector ? "1":"0"
   };
   const line = el("line",{...common,
-    class:"lift-line", stroke:SPEED_META[l.speed].color, "stroke-width":w,
-    style:`--w:${w}px; color:${SPEED_META[l.speed].color}`
+    class:"lift-line", stroke:speedColor(l), "stroke-width":w,
+    style:`--w:${w}px; color:${speedColor(l)}`
   });
   svg.appendChild(line);
   const hit = el("line",{...common,
@@ -551,7 +572,7 @@ let selectedId = null;
 function fmt(n){ return n.toLocaleString("en-GB"); }
 
 function showTooltip(l, x, y){
-  tooltip.innerHTML = `<b>${l.name}</b><br>${TYPE_META[l.type].icon} ${TYPE_META[l.type].label}<br>${fmt(l.cap)} p/h · ${SPEED_META[l.speed].label}`;
+  tooltip.innerHTML = `<b>${l.name}</b><br>${TYPE_META[l.type].icon} ${TYPE_META[l.type].label}<br>${fmt(l.cap)} p/h · ${speedLabel(l)}`;
   tooltip.style.left = (x+14)+"px"; tooltip.style.top = (y+14)+"px"; tooltip.style.display = "block";
 }
 function hideTooltip(){ tooltip.style.display = "none"; }
@@ -564,16 +585,21 @@ function selectLift(l){
   if(l.bubble) badges.push('<span class="detail-badge">☂ Bubble</span>');
   if(l.heating) badges.push('<span class="detail-badge">🔥 Heated seats</span>');
   if(l.connector) badges.push('<span class="detail-badge">⇄ Inter-area link</span>');
+  const col = speedColorHex(l);
+  const speedText = l.speedMS!=null ? `${l.speedMS.toFixed(1)} m/s` : SPEED_META[l.speed].ms;
   detailPanel.innerHTML = `
     <div class="detail-name">${TYPE_META[l.type].icon} ${l.name}</div>
     <div class="detail-type">${TYPE_META[l.type].label}${l.yoc ? ' · built '+l.yoc : ''}</div>
-    <span class="detail-speedtag" style="background:${SPEED_META[l.speed].color}22;color:${SPEED_META[l.speed].color}">${SPEED_META[l.speed].label} (${SPEED_META[l.speed].ms})</span>
+    <span class="detail-speedtag" style="background:${col}22;color:${col}">${speedLabel(l)}</span>
     <div class="detail-grid" style="margin-top:10px">
       <div class="detail-item"><div class="k">Capacity</div><div class="v">${fmt(l.cap)}/h</div></div>
-      <div class="detail-item"><div class="k">Length</div><div class="v">${fmt(l.len)} m</div></div>
-      <div class="detail-item"><div class="k">Vertical rise</div><div class="v">${fmt(l.vert)} m</div></div>
-      <div class="detail-item"><div class="k">Serves</div><div class="v" style="font-size:12px">${served}</div></div>
+      <div class="detail-item"><div class="k">Speed</div><div class="v">${speedText}</div></div>
+      <div class="detail-item"><div class="k">Distance</div><div class="v">${fmt(l.len)} m</div></div>
+      <div class="detail-item"><div class="k">Height gain</div><div class="v">${fmt(l.vert)} m</div></div>
+      <div class="detail-item"><div class="k">Starting height</div><div class="v">${fmt(l.baseElev)} m</div></div>
+      <div class="detail-item"><div class="k">End height</div><div class="v">${fmt(l.topElev)} m</div></div>
     </div>
+    <div class="detail-item" style="margin-bottom:0"><div class="k">Serves</div><div class="v" style="font-size:12.5px">${served}</div></div>
     ${badges.length ? `<div class="detail-badges">${badges.join('')}</div>` : ''}
   `;
 }
