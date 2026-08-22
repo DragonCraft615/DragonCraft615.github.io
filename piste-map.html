@@ -1588,6 +1588,10 @@ const EDGE_RAW = [
 ["st210","st168","W",null,"Walk (gap fill)",0,255,null],
 ["st214","st211","W",null,"Walk (gap fill)",0,149,null],
 ["st215","st43","W",null,"Walk (gap fill)",0,149,null],
+["st38","st211","W",null,"Walk (Leissières col)",0,585,null],
+["st211","st38","W",null,"Walk (Leissières col)",0,585,null],
+["st145","st171","W",null,"Walk (gap fill)",0,290,null],
+["st171","st145","W",null,"Walk (gap fill)",0,290,null],
 ["st220","st1","W",null,"Walk (gap fill)",0,237,null],
 ["st221","st146","W",null,"Walk (gap fill)",0,179,null],
 ["st223","st173","W",null,"Walk (gap fill)",0,339,null],
@@ -1614,6 +1618,19 @@ const EDGE_RAW = [
 // suggested, so treating every gap up to 900m as "probably the same run, digitized in two
 // pieces" is well supported rather than a guess — it dropped the fraction of lift-station pairs
 // with literally no route at all from 51.7% to 25.7%.
+//
+// One more manual connector, this time a "W" walk rather than a "P" piste: st38 (top of the
+// Leissières chair, Fornet/Pissaillas glacier side, 2818m) and st211 (top of the separate piste
+// ALSO named "Leissières", Laisinant/Solaise side, 2716m) are ~585m apart and sit either side of
+// the fornet/laisinant sector boundary, so they never clustered together despite sharing a name —
+// the user confirmed these are the same real col: get off the chair, short walk/traverse over,
+// ski down the other side toward Solaise. Without this the entire Fornet glacier cluster (Cascade,
+// Céma, Pays Désert, Montet, Signal, the "3000" platter) had no piste out at all except back the
+// way it came, since "3000"'s only other edge is the uphill lift itself.
+// Also: st145 (bottom of "Arollay") only had a walk back up to st144 (the top of the very same
+// piste) — a closed loop with no real exit, missed by the automated gap-fill despite being only
+// 290m from st171, because st145 already had *an* edge and so wasn't flagged as a bare dangling
+// bottom. Bridged st145<->st171 by hand; st171 already flows on into the main Fornet hub.
 //
 // Two more rules layered on top of the base lift/piste/walk graph, from the user's own knowledge
 // of how the resort actually operates:
