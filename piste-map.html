@@ -210,6 +210,19 @@ input[type=range] { flex: 1; accent-color: var(--gold); }
 .route-step .step-icon { width: 20px; text-align: center; flex-shrink: 0; font-size: 14px; }
 .route-step .step-name { flex: 1; }
 .route-step .step-tag { font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+.route-step .step-time { font-size: 10.5px; color: var(--sub); flex-shrink: 0; }
+.route-note { font-size: 12px; color: var(--sub); background: rgba(255,255,255,.04); border-radius: 9px; padding: 8px 10px; margin-bottom: 10px; line-height: 1.5; }
+.route-compare { background: rgba(255,255,255,.03); border: 1px solid var(--border); border-radius: 11px; padding: 10px 12px; margin-bottom: 10px; }
+.route-compare-row { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--sub); padding: 2px 0; }
+.route-compare-row b { color: var(--text); font-size: 14px; margin-left: auto; }
+.route-compare-sub { font-size: 10.5px; color: var(--sub); }
+.route-compare-delta { font-size: 11.5px; color: var(--gold); margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border); line-height: 1.5; }
+.route-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.route-tab {
+  flex: 1; padding: 8px; font-size: 12px; font-weight: 700; color: var(--sub); text-align: center;
+  background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 9px; cursor: pointer;
+}
+.route-tab.active { color: #06210f; background: linear-gradient(135deg, #7dd3fc, #38bdf8); border-color: transparent; }
 #routeClearBtn {
   width: 100%; margin-top: 8px; padding: 7px; font-size: 11.5px; font-weight: 700; color: var(--sub);
   background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 9px; cursor: pointer;
@@ -305,7 +318,7 @@ footer a { color: var(--gold); text-decoration: none; }
         </div>
       </div>
       <button id="findRouteBtn">Find Route</button>
-      <div id="routeResult"><p class="route-empty">Pick a start and an end, then find the route that puts Scott through the least amount of gondola. Ties are broken by distance.</p></div>
+      <div id="routeResult"><p class="route-empty">Pick a start and an end — you'll get two routes: the fastest one, and the one that gives Scott the least grief. Ties are broken by time.</p></div>
     </div>
 
     <div class="panel">
@@ -2059,9 +2072,36 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     };
   });
 
-  // Dijkstra, weighted so ANY reduction in total Scott penalty always wins over distance —
-  // 121 stations is small enough that a plain O(V²) scan per step is instant, no heap needed.
-  const SCOTT_W = 100000;
+  // Rough cruising speeds used only to compare a "fastest" route against the Scott-minimizing
+  // one — nobody's actual speed on snow, just a consistent yardstick. Grade roughly tracks how
+  // fast people actually ski a run (steeper/wider reds and blacks get skied faster than a
+  // shallow green, on average), lift speed prefers each lift's own real OSM-derived m/s and
+  // falls back to a typical value for its speed class, and "W" edges are walked in ski boots.
+  const SKI_SPEED_MS = { green:4.2, blue:6.1, red:8.3, black:10.8, grey:6.1, orange:8.3 };
+  const WALK_SPEED_MS = 1.1;
+  const LIFT_SPEED_FALLBACK_MS = { fast:6.0, medium:3.0, slow:2.0 };
+  function edgeSeconds(e){
+    if(e.kind === "L"){
+      const l = LIFTS.find(x=>x.id===e.refId);
+      const speed = (l && l.speedMS) || LIFT_SPEED_FALLBACK_MS[l ? l.speed : "medium"];
+      return e.dist / speed;
+    }
+    if(e.kind === "P") return e.dist / (SKI_SPEED_MS[e.diff] || SKI_SPEED_MS.grey);
+    return e.dist / WALK_SPEED_MS;
+  }
+  function fmtTime(sec){
+    const m = Math.round(sec/60);
+    if(m < 1) return `${Math.round(sec)}s`;
+    const h = Math.floor(m/60), mm = m%60;
+    return h>0 ? `${h}h ${mm}m` : `${m}m`;
+  }
+
+  // Dijkstra over time (seconds) as the base currency for both routes — "time" mode minimizes
+  // it directly; "scott" mode adds a per-scott-point penalty so large (10 hours) that it always
+  // dominates any realistic time difference, so it still minimizes Scott irritation first and
+  // uses time only as the tiebreak between equally-Scott-friendly options. 121 stations is small
+  // enough that a plain O(V²) scan per step is instant, no heap needed.
+  const SCOTT_W = 36000;
   function buildAdjacency(){
     const adj = {};
     STATIONS.forEach(s => adj[s.id] = []);
@@ -2071,7 +2111,7 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     });
     return adj;
   }
-  function findRoute(startId, endId){
+  function findRoute(startId, endId, mode){ // mode: "time" | "scott"
     const adj = buildAdjacency();
     const dist = {}, prevEdge = {}, visited = new Set();
     STATIONS.forEach(s => dist[s.id] = Infinity);
@@ -2082,7 +2122,9 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       if(u===null || u===endId) break;
       visited.add(u);
       for(const e of adj[u]){
-        const nd = dist[u] + e.scott*SCOTT_W + e.dist;
+        const t = edgeSeconds(e);
+        const w = mode==="scott" ? (e.scott*SCOTT_W + t) : t;
+        const nd = dist[u] + w;
         if(nd < dist[e.to]){ dist[e.to] = nd; prevEdge[e.to] = e; }
       }
     }
@@ -2095,6 +2137,15 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     }
     return path;
   }
+  function routeTotals(path){
+    return {
+      scott: path.reduce((s,e)=>s+e.scott,0),
+      dist: path.reduce((s,e)=>s+e.dist,0),
+      time: path.reduce((s,e)=>s+edgeSeconds(e),0),
+      gondolas: path.filter(e=>e.kind==="L" && e.scott===3).length,
+    };
+  }
+  function pathSignature(path){ return path.map(e => e.refId || `${e.from}>${e.to}:${e.kind}`).join("|"); }
 
   let routeGroup = null;
   function clearRouteHighlight(){ if(routeGroup){ routeGroup.remove(); routeGroup = null; } }
@@ -2157,7 +2208,47 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
 
   function resetResultPanel(){
     clearRouteHighlight();
-    routeResult.innerHTML = `<p class="route-empty">Pick a start and an end, then find the route that puts Scott through the least amount of gondola. Ties are broken by distance.</p>`;
+    routeResult.innerHTML = `<p class="route-empty">Pick a start and an end — you'll get two routes: the fastest one, and the one that gives Scott the least grief. Ties are broken by time.</p>`;
+  }
+
+  function stepHTML(e){
+    if(e.kind==="L"){
+      const l = LIFTS.find(x=>x.id===e.refId);
+      const icon = l ? TYPE_META[l.type].icon : "🚡";
+      const tagColor = e.scott===0?"var(--chair-fast)": e.scott===1?"var(--funicular)": e.scott===2?"var(--cablecar)":"var(--gondola)";
+      const tagText = e.scott===0 ? "fine by Scott" : `Scott +${e.scott}`;
+      return `<div class="route-step"><span class="step-icon">${icon}</span><span class="step-name">${e.name}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:${tagColor}33;color:${tagColor}">${tagText}</span></div>`;
+    }
+    if(e.kind==="P"){
+      const dc = PISTE_COLOR[e.diff] || PISTE_COLOR.grey;
+      return `<div class="route-step"><span class="step-icon">⛷</span><span class="step-name">${e.name || "Unnamed piste"}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:${dc}33;color:${dc}">${e.diff||"unrated"}</span></div>`;
+    }
+    return `<div class="route-step"><span class="step-icon">🚶</span><span class="step-name">${e.name}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:rgba(207,227,250,.15);color:#cfe3fa">on foot</span></div>`;
+  }
+
+  function routeCardHTML(path, tot){
+    const v = scoreVerdict(tot.scott);
+    return `
+      <div class="route-score" style="background:${v.color}18">
+        <div class="num" style="color:${v.color}">${tot.scott}</div>
+        <div class="lbl">Scott Penalty Score</div>
+        <div class="verdict" style="color:${v.color}">${v.label}</div>
+      </div>
+      <div class="route-meta">
+        <div><b>${fmtTime(tot.time)}</b>est. time</div>
+        <div><b>${(tot.dist/1000).toFixed(1)} km</b>distance</div>
+        <div><b>${tot.gondolas}</b>gondola${tot.gondolas===1?"":"s"}</div>
+      </div>
+      ${path.map(stepHTML).join("")}
+    `;
+  }
+
+  let routesCache = null; // {time:{path,tot}, scott:{path,tot}}
+  function showTab(mode){
+    document.querySelectorAll(".route-tab").forEach(b => b.classList.toggle("active", b.dataset.mode===mode));
+    const r = routesCache[mode];
+    document.getElementById("routeTabBody").innerHTML = routeCardHTML(r.path, r.tot);
+    highlightRoute(r.path);
   }
 
   document.getElementById("findRouteBtn").onclick = ()=>{
@@ -2167,46 +2258,46 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       routeResult.innerHTML = `<p class="route-empty">Pick two different stations.</p>`;
       return;
     }
-    const path = findRoute(startId, endId);
-    if(!path){
+    const timePath = findRoute(startId, endId, "time");
+    const scottPath = findRoute(startId, endId, "scott");
+    if(!timePath || !scottPath){
       clearRouteHighlight();
       routeResult.innerHTML = `<p class="route-empty">No route found with the pistes you're happy with — try allowing another grade.</p>`;
       return;
     }
-    const totalScott = path.reduce((s,e)=>s+e.scott,0);
-    const totalDist = path.reduce((s,e)=>s+e.dist,0);
-    const gondolaCount = path.filter(e=>e.kind==="L" && e.scott===3).length;
-    const v = scoreVerdict(totalScott);
-    const stepsHTML = path.map(e=>{
-      if(e.kind==="L"){
-        const l = LIFTS.find(x=>x.id===e.refId);
-        const icon = l ? TYPE_META[l.type].icon : "🚡";
-        const tagColor = e.scott===0?"var(--chair-fast)": e.scott===1?"var(--funicular)": e.scott===2?"var(--cablecar)":"var(--gondola)";
-        const tagText = e.scott===0 ? "fine by Scott" : `Scott +${e.scott}`;
-        return `<div class="route-step"><span class="step-icon">${icon}</span><span class="step-name">${e.name}</span><span class="step-tag" style="background:${tagColor}33;color:${tagColor}">${tagText}</span></div>`;
-      }
-      if(e.kind==="P"){
-        const dc = PISTE_COLOR[e.diff] || PISTE_COLOR.grey;
-        return `<div class="route-step"><span class="step-icon">⛷</span><span class="step-name">${e.name || "Unnamed piste"}</span><span class="step-tag" style="background:${dc}33;color:${dc}">${e.diff||"unrated"}</span></div>`;
-      }
-      return `<div class="route-step"><span class="step-icon">🚶</span><span class="step-name">${e.name}</span><span class="step-tag" style="background:rgba(207,227,250,.15);color:#cfe3fa">on foot</span></div>`;
-    }).join("");
+    const timeTot = routeTotals(timePath), scottTot = routeTotals(scottPath);
+    routesCache = { time: {path:timePath, tot:timeTot}, scott: {path:scottPath, tot:scottTot} };
+
+    if(pathSignature(timePath) === pathSignature(scottPath)){
+      routeResult.innerHTML = `
+        <div class="route-note">⏱️ + 😤 Same route either way — this is both the fastest option and the one that's easiest on Scott.</div>
+        <button id="routeClearBtn">Clear route</button>
+        <div id="routeTabBody"></div>
+      `;
+      document.getElementById("routeTabBody").innerHTML = routeCardHTML(scottPath, scottTot);
+      document.getElementById("routeClearBtn").onclick = resetResultPanel;
+      highlightRoute(scottPath);
+      return;
+    }
+
+    const dTime = scottTot.time - timeTot.time;   // always >= 0: the Scott route can only be equal-or-slower
+    const dScott = timeTot.scott - scottTot.scott; // always >= 0: the fast route can only be equal-or-worse for Scott
     routeResult.innerHTML = `
-      <div class="route-score" style="background:${v.color}18">
-        <div class="num" style="color:${v.color}">${totalScott}</div>
-        <div class="lbl">Scott Penalty Score</div>
-        <div class="verdict" style="color:${v.color}">${v.label}</div>
+      <div class="route-compare">
+        <div class="route-compare-row"><span>⏱️ Fastest</span><b>${fmtTime(timeTot.time)}</b><span class="route-compare-sub">Scott ${timeTot.scott}</span></div>
+        <div class="route-compare-row"><span>😤 Scott-safe</span><b>${fmtTime(scottTot.time)}</b><span class="route-compare-sub">Scott ${scottTot.scott}</span></div>
+        <div class="route-compare-delta">${dScott>0 ? `Avoiding ${dScott} point${dScott===1?"":"s"} of Scott's irritation costs +${fmtTime(dTime)}.` : `Same Scott score either way — the fastest route also happens to be +${fmtTime(dTime)} of extra distance for nothing.`}</div>
       </div>
-      <div class="route-meta">
-        <div><b>${path.length}</b>steps</div>
-        <div><b>${(totalDist/1000).toFixed(1)} km</b>distance</div>
-        <div><b>${gondolaCount}</b>gondola${gondolaCount===1?"":"s"}</div>
+      <div class="route-tabs">
+        <button class="route-tab active" data-mode="time">⏱️ Fastest</button>
+        <button class="route-tab" data-mode="scott">😤 Scott-Safe</button>
       </div>
-      ${stepsHTML}
+      <div id="routeTabBody"></div>
       <button id="routeClearBtn">Clear route</button>
     `;
+    document.querySelectorAll(".route-tab").forEach(b => b.onclick = ()=> showTab(b.dataset.mode));
     document.getElementById("routeClearBtn").onclick = resetResultPanel;
-    highlightRoute(path);
+    showTab("time");
   };
 })();
 </script>
