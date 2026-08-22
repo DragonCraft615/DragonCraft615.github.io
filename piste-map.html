@@ -317,8 +317,16 @@ footer a { color: var(--gold); text-decoration: none; }
           <span class="chip active" data-grade="black" style="--gc:#f3f4f6">Black</span>
         </div>
       </div>
+      <div class="filter-group">
+        <h3>Scott's patience: <span id="scottRateLabel">5</span> extra min per irritation point</h3>
+        <div class="range-row">
+          <span>0</span>
+          <input type="range" id="scottRate" min="0" max="20" step="1" value="5">
+          <span>20</span>
+        </div>
+      </div>
       <button id="findRouteBtn">Find Route</button>
-      <div id="routeResult"><p class="route-empty">Pick a start and an end — you'll get two routes: the fastest one, and the one that gives Scott the least grief. Ties are broken by time.</p></div>
+      <div id="routeResult"><p class="route-empty">Pick a start and an end — you'll get up to three routes: fastest, your balanced setting above, and the one that gives Scott the least grief. Identical ones collapse into one.</p></div>
     </div>
 
     <div class="panel">
@@ -2345,12 +2353,14 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     return h>0 ? `${h}h ${mm}m` : `${m}m`;
   }
 
-  // Dijkstra over time (seconds) as the base currency for both routes — "time" mode minimizes
-  // it directly; "scott" mode adds a per-scott-point penalty so large (10 hours) that it always
-  // dominates any realistic time difference, so it still minimizes Scott irritation first and
-  // uses time only as the tiebreak between equally-Scott-friendly options. 121 stations is small
-  // enough that a plain O(V²) scan per step is instant, no heap needed.
-  const SCOTT_W = 36000;
+  // Dijkstra over time (seconds) as the base currency, with a real per-Scott-point exchange rate
+  // in seconds rather than a hardcoded mode string — 0 gives pure fastest, the user's own slider
+  // value gives a genuinely tunable "how much detour is one point of Scott's irritation worth to
+  // you", and SCOTT_W_MAX (10 hours — so large it always dominates any realistic time difference)
+  // gives the old absolute "Scott-safest" behaviour, minimizing irritation first and using time
+  // only as the tiebreak. 121 stations is small enough that a plain O(V²) scan per step is
+  // instant, no heap needed.
+  const SCOTT_W_MAX = 36000;
   function buildAdjacency(){
     const adj = {};
     STATIONS.forEach(s => adj[s.id] = []);
@@ -2365,7 +2375,7 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     });
     return adj;
   }
-  function findRoute(startId, endId, mode){ // mode: "time" | "scott"
+  function findRoute(startId, endId, scottWeight){ // scottWeight: seconds "cost" of 1 Scott point
     const adj = buildAdjacency();
     const dist = {}, prevEdge = {}, visited = new Set();
     STATIONS.forEach(s => dist[s.id] = Infinity);
@@ -2377,7 +2387,7 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       visited.add(u);
       for(const e of adj[u]){
         const t = edgeSeconds(e);
-        const w = mode==="scott" ? (e.scott*SCOTT_W + t) : t;
+        const w = e.scott*scottWeight + t;
         const nd = dist[u] + w;
         if(nd < dist[e.to]){ dist[e.to] = nd; prevEdge[e.to] = e; }
       }
@@ -2462,8 +2472,10 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
 
   function resetResultPanel(){
     clearRouteHighlight();
-    routeResult.innerHTML = `<p class="route-empty">Pick a start and an end — you'll get two routes: the fastest one, and the one that gives Scott the least grief. Ties are broken by time.</p>`;
+    routeResult.innerHTML = `<p class="route-empty">Pick a start and an end — you'll get up to three routes: fastest, your balanced setting above, and the one that gives Scott the least grief. Identical ones collapse into one.</p>`;
   }
+  const scottRateInput = document.getElementById("scottRate"), scottRateLabel = document.getElementById("scottRateLabel");
+  scottRateInput.oninput = ()=>{ scottRateLabel.textContent = scottRateInput.value; };
 
   function stepHTML(e){
     if(e.kind==="L"){
@@ -2497,10 +2509,10 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     `;
   }
 
-  let routesCache = null; // {time:{path,tot}, scott:{path,tot}}
-  function showTab(mode){
-    document.querySelectorAll(".route-tab").forEach(b => b.classList.toggle("active", b.dataset.mode===mode));
-    const r = routesCache[mode];
+  let routesCache = null; // { key: {icon,label,path,tot} }
+  function showTab(key){
+    document.querySelectorAll(".route-tab").forEach(b => b.classList.toggle("active", b.dataset.mode===key));
+    const r = routesCache[key];
     document.getElementById("routeTabBody").innerHTML = routeCardHTML(r.path, r.tot);
     highlightRoute(r.path);
   }
@@ -2512,46 +2524,58 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       routeResult.innerHTML = `<p class="route-empty">Pick two different stations.</p>`;
       return;
     }
-    const timePath = findRoute(startId, endId, "time");
-    const scottPath = findRoute(startId, endId, "scott");
-    if(!timePath || !scottPath){
+    // A real Pareto set instead of a hardcoded pair: fastest (ignore Scott entirely), balanced
+    // (the user's own exchange-rate slider — "how many extra minutes is dodging one irritation
+    // point worth to you"), and Scott-safest (the old absolute-priority behaviour). Identical
+    // paths collapse into one option rather than showing duplicates.
+    const scottRateSec = Number(scottRateInput.value) * 60;
+    const candidates = [
+      { key:"fast",     icon:"⏱️", label:"Fastest",     weight:0 },
+      { key:"balanced", icon:"⚖️", label:"Balanced",     weight:scottRateSec },
+      { key:"safe",     icon:"😤", label:"Scott-Safe",   weight:SCOTT_W_MAX },
+    ];
+    const routes = [], seenSigs = new Set();
+    candidates.forEach(c=>{
+      const path = findRoute(startId, endId, c.weight);
+      if(!path) return;
+      const sig = pathSignature(path);
+      if(seenSigs.has(sig)) return;
+      seenSigs.add(sig);
+      routes.push({ ...c, path, tot: routeTotals(path) });
+    });
+    if(!routes.length){
       clearRouteHighlight();
       routeResult.innerHTML = `<p class="route-empty">No route found with the pistes you're happy with — try allowing another grade.</p>`;
       return;
     }
-    const timeTot = routeTotals(timePath), scottTot = routeTotals(scottPath);
-    routesCache = { time: {path:timePath, tot:timeTot}, scott: {path:scottPath, tot:scottTot} };
+    routesCache = {}; routes.forEach(r=> routesCache[r.key] = r);
 
-    if(pathSignature(timePath) === pathSignature(scottPath)){
+    if(routes.length === 1){
+      const r = routes[0];
       routeResult.innerHTML = `
-        <div class="route-note">⏱️ + 😤 Same route either way — this is both the fastest option and the one that's easiest on Scott.</div>
+        <div class="route-note">⏱️ + 😤 Same route no matter your Scott tolerance — there's only one sensible way to get there.</div>
         <button id="routeClearBtn">Clear route</button>
         <div id="routeTabBody"></div>
       `;
-      document.getElementById("routeTabBody").innerHTML = routeCardHTML(scottPath, scottTot);
+      document.getElementById("routeTabBody").innerHTML = routeCardHTML(r.path, r.tot);
       document.getElementById("routeClearBtn").onclick = resetResultPanel;
-      highlightRoute(scottPath);
+      highlightRoute(r.path);
       return;
     }
 
-    const dTime = scottTot.time - timeTot.time;   // always >= 0: the Scott route can only be equal-or-slower
-    const dScott = timeTot.scott - scottTot.scott; // always >= 0: the fast route can only be equal-or-worse for Scott
     routeResult.innerHTML = `
       <div class="route-compare">
-        <div class="route-compare-row"><span>⏱️ Fastest</span><b>${fmtTime(timeTot.time)}</b><span class="route-compare-sub">Scott ${timeTot.scott}</span></div>
-        <div class="route-compare-row"><span>😤 Scott-safe</span><b>${fmtTime(scottTot.time)}</b><span class="route-compare-sub">Scott ${scottTot.scott}</span></div>
-        <div class="route-compare-delta">${dScott>0 ? `Avoiding ${dScott} point${dScott===1?"":"s"} of Scott's irritation costs +${fmtTime(dTime)}.` : `Same Scott score either way — the fastest route also happens to be +${fmtTime(dTime)} of extra distance for nothing.`}</div>
+        ${routes.map(r=>`<div class="route-compare-row"><span>${r.icon} ${r.label}</span><b>${fmtTime(r.tot.time)}</b><span class="route-compare-sub">Scott ${r.tot.scott}</span></div>`).join("")}
       </div>
       <div class="route-tabs">
-        <button class="route-tab active" data-mode="time">⏱️ Fastest</button>
-        <button class="route-tab" data-mode="scott">😤 Scott-Safe</button>
+        ${routes.map((r,i)=>`<button class="route-tab${i===0?" active":""}" data-mode="${r.key}">${r.icon} ${r.label}</button>`).join("")}
       </div>
       <div id="routeTabBody"></div>
       <button id="routeClearBtn">Clear route</button>
     `;
     document.querySelectorAll(".route-tab").forEach(b => b.onclick = ()=> showTab(b.dataset.mode));
     document.getElementById("routeClearBtn").onclick = resetResultPanel;
-    showTab("time");
+    showTab(routes[0].key);
   };
 
   // ───────────────── Isochrones — "how far can I get from here?" ─────────────────
@@ -2661,7 +2685,7 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
   document.getElementById("llhBtn").onclick = ()=>{
     const from = llhFromSel.value, to = llhToSel.value;
     if(from === to){ llhResult.innerHTML = `<p class="route-empty">You're already there.</p>`; return; }
-    const path = findRoute(from, to, "time");
+    const path = findRoute(from, to, 0);
     if(!path){ llhResult.innerHTML = `<p class="route-empty">No route found between those two with your current grade filter.</p>`; return; }
     const tot = routeTotals(path);
     const remaining = parseHM(llhClose.value) - parseHM(llhNow.value);
