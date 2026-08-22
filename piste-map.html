@@ -13,7 +13,9 @@
   --border: #1e1a2e; --text: #f0ede6; --sub: #a89880; --muted: #5c5248;
   --gold: #f5a623; --green: #2ecc71; --red: #e74c3c; --blue: #3498db;
   --fast: #2ecc71; --medium: #f5a623; --slow: #e74c3c;
-  --fast-chair: #15803d; --fast-funicular: #16a34a; --fast-cablecar: #34d399; --fast-gondola: #6ee7b7;
+  /* "Scott's preference" palette — how much Scott will hate the ride, not lift speed */
+  --chair-fast: #15803d; --chair-slow: #4ade80; --drag-carpet: #6ee7b7;
+  --funicular: #ea580c; --cablecar: #fb923c; --gondola: #7f1d1d;
 }
 
 html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -244,20 +246,20 @@ footer a { color: var(--gold); text-decoration: none; }
     </div>
 
     <div class="panel">
-      <h2>Legend</h2>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-chair)"></span> Fast chair — high-speed detachable chairlift (~5–6 m/s)</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-funicular)"></span> Fast funicular (~10–13 m/s)</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-cablecar)"></span> Fast cable car / tramway (~10 m/s)</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-gondola)"></span> Fast gondola (~5–6 m/s)</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--medium)"></span> Standard — fixed-grip chairlift / older gondola (~2.5–4 m/s)</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--slow)"></span> Slow — drag lift, carpet, rope tow (~1–3 m/s)</div>
+      <h2>Legend — Scott's Fear Scale</h2>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-fast)"></span> Fast chair — open air, no problem</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-slow)"></span> Slow chair — still fine, just fixed-grip</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--drag-carpet)"></span> Drag lift / carpet — no cabin, totally safe</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--funicular)"></span> Funicular — enclosed, but rail-guided</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--cablecar)"></span> Cable car — big cabin, cable-hauled</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--gondola)"></span> Gondola — Scott's actual nemesis</div>
       <div class="thickness-demo">
         <div class="bar" style="width:26px;height:1.5px"></div>
         <div class="bar" style="width:26px;height:7px"></div>
         <div class="bar" style="width:26px;height:14px"></div>
         <span style="font-size:11px;color:var(--sub)">line thickness = capacity</span>
       </div>
-      <div class="legend-note">Thickness scales linearly across the resort's full range, 250 p/h (thinnest drag lift) to 4,500 p/h (Tommeuses). A thick red/gold line still means a bottleneck even if the lift itself is quick, because capacity — not speed — is what actually limits queueing.</div>
+      <div class="legend-note">Coloured by how much Scott will hate the ride, not by speed. Line thickness still scales linearly across the resort's full capacity range, 250 p/h (thinnest drag lift) to 4,500 p/h (Tommeuses).</div>
     </div>
 
     <div class="panel">
@@ -817,35 +819,30 @@ const LIFTS = RAW.map(r => ({
   speedMS:r[15], baseElev:r[16], topElev:r[17]
 }));
 
-// "Fast" is split by exact lift type, not just chair-vs-not — a chairlift, gondola, cable car,
-// and funicular are visually distinct shades of green rather than one shared colour. Kept as
-// its own lookup (not folded into TYPE_META) because this exact type→shade mapping is also
-// the hook the future Scott-Bailey routing score will read to weigh "how much of a gondola is
-// this really" (cable cars and funiculars ride very differently to a swinging gondola cabin).
-const FAST_TYPE_VAR = {
-  chair_lift: 'fast-chair', gondola: 'fast-gondola', cable_car: 'fast-cablecar', funicular: 'fast-funicular',
-};
-const FAST_TYPE_LABEL = {
-  chair_lift: 'Fast chair', gondola: 'Fast gondola', cable_car: 'Fast cable car', funicular: 'Fast funicular',
-};
-function speedColor(l){
-  if(l.speed === 'fast') return `var(--${FAST_TYPE_VAR[l.type] || 'fast-gondola'})`;
-  return SPEED_META[l.speed].color;
+// Coloured by SCOTT'S PREFERENCE, not by speed — this is the palette the future gondola-
+// avoidance routing score will read directly. Chairs are open-air and fine (just split by
+// speed); drags/carpets have no cabin at all, so they're the safest colour on the map;
+// funiculars and cable cars each get their own orange (a big enclosed cabin, but rail- or
+// cable-guided rather than swinging free); a true gondola — Scott's actual nemesis — gets
+// the alarming dark red.
+function scottGroup(l){
+  if(l.type === 'chair_lift') return l.speed === 'fast' ? 'chair-fast' : 'chair-slow';
+  if(l.type === 'funicular') return 'funicular';
+  if(l.type === 'cable_car') return 'cablecar';
+  if(l.type === 'gondola') return 'gondola';
+  return 'drag-carpet'; // platter, t-bar, drag_lift, magic_carpet, rope_tow
 }
-function speedLabel(l){
-  if(l.speed === 'fast') return FAST_TYPE_LABEL[l.type] || 'Fast';
-  return SPEED_META[l.speed].label;
-}
-// Literal hex twins of the CSS custom properties above, for spots (like the alpha-blended
-// speed badge) that need to append an alpha suffix — you can't do "var(--x)22", only "#hex22".
-const HEX = {
-  'fast-chair':'#15803d', 'fast-funicular':'#16a34a', 'fast-cablecar':'#34d399', 'fast-gondola':'#6ee7b7',
-  medium:'#f5a623', slow:'#e74c3c'
+const SCOTT_LABEL = {
+  'chair-fast': 'Fast chair', 'chair-slow': 'Slow chair', 'drag-carpet': 'Drag lift / carpet',
+  funicular: 'Funicular', cablecar: 'Cable car', gondola: 'Gondola — Scott’s nemesis',
 };
-function speedColorHex(l){
-  if(l.speed === 'fast') return HEX[FAST_TYPE_VAR[l.type] || 'fast-gondola'];
-  return HEX[l.speed];
-}
+const SCOTT_HEX = {
+  'chair-fast':'#15803d', 'chair-slow':'#4ade80', 'drag-carpet':'#6ee7b7',
+  funicular:'#ea580c', cablecar:'#fb923c', gondola:'#7f1d1d',
+};
+function speedColor(l){ return `var(--${scottGroup(l)})`; }
+function speedLabel(l){ return SCOTT_LABEL[scottGroup(l)]; }
+function speedColorHex(l){ return SCOTT_HEX[scottGroup(l)]; }
 
 // Full-range linear scale across the resort's actual capacity spread (250–4,500 p/h),
 // so the thinnest drag lift and the thickest chair are as visually distinct as possible.
