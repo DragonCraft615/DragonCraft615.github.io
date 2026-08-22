@@ -246,12 +246,12 @@ footer a { color: var(--gold); text-decoration: none; }
     </div>
 
     <div class="panel">
-      <h2>Legend — Scott's Fear Scale</h2>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-fast)"></span> Fast chair — open air, no problem</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-slow)"></span> Slow chair — still fine, just fixed-grip</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--drag-carpet)"></span> Drag lift / carpet — no cabin, totally safe</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--funicular)"></span> Funicular — enclosed, but rail-guided</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--cablecar)"></span> Cable car — big cabin, cable-hauled</div>
+      <h2>Legend — Scott's Irrational Hatred Scale</h2>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-fast)"></span> Fast chair — Scott's favourite, no notes</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--chair-slow)"></span> Slow chair — still fine, Scott has no beef here</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--drag-carpet)"></span> Drag lift / carpet — beneath Scott's notice</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--funicular)"></span> Funicular — grudgingly tolerated</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--cablecar)"></span> Cable car — gets the side-eye</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--gondola)"></span> Gondola — Scott's actual nemesis</div>
       <div class="thickness-demo">
         <div class="bar" style="width:26px;height:1.5px"></div>
@@ -259,7 +259,7 @@ footer a { color: var(--gold); text-decoration: none; }
         <div class="bar" style="width:26px;height:14px"></div>
         <span style="font-size:11px;color:var(--sub)">line thickness = capacity</span>
       </div>
-      <div class="legend-note">Coloured by how much Scott will hate the ride, not by speed. Line thickness still scales linearly across the resort's full capacity range, 250 p/h (thinnest drag lift) to 4,500 p/h (Tommeuses).</div>
+      <div class="legend-note">Coloured by Scott's completely irrational hatred of gondolas, not by speed — this has nothing to do with fear or safety, he just hates them. Line thickness still scales linearly across the resort's full capacity range, 250 p/h (thinnest drag lift) to 4,500 p/h (Tommeuses).</div>
     </div>
 
     <div class="panel">
@@ -819,12 +819,12 @@ const LIFTS = RAW.map(r => ({
   speedMS:r[15], baseElev:r[16], topElev:r[17]
 }));
 
-// Coloured by SCOTT'S PREFERENCE, not by speed — this is the palette the future gondola-
-// avoidance routing score will read directly. Chairs are open-air and fine (just split by
-// speed); drags/carpets have no cabin at all, so they're the safest colour on the map;
-// funiculars and cable cars each get their own orange (a big enclosed cabin, but rail- or
-// cable-guided rather than swinging free); a true gondola — Scott's actual nemesis — gets
-// the alarming dark red.
+// Coloured by SCOTT'S IRRATIONAL HATRED, not by speed and not by any actual safety or fear
+// logic — this is the palette the future gondola-avoidance routing score will read directly.
+// Chairs are fine by Scott (just split by speed); drags/carpets don't even register with him;
+// funiculars and cable cars each get their own orange (grudgingly tolerated, side-eyed
+// respectively); a true gondola — Scott's actual nemesis, for no defensible reason — gets the
+// dark red that makes it scream off the map.
 function scottGroup(l){
   if(l.type === 'chair_lift') return l.speed === 'fast' ? 'chair-fast' : 'chair-slow';
   if(l.type === 'funicular') return 'funicular';
