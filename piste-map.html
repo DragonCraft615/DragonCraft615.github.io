@@ -1599,6 +1599,10 @@ const EDGE_RAW = [
 ["st222","st56","W",null,"Walk (gap fill)",0,145,null],
 ["st57","st110","W",null,"Walk (gap fill)",0,205,null],
 ["st110","st57","W",null,"Walk (gap fill)",0,205,null],
+["st227","st100","W",null,"Walk (gap fill)",0,439,null],
+["st100","st227","W",null,"Walk (gap fill)",0,439,null],
+["st34","st183","W",null,"Walk (gap fill)",0,352,null],
+["st183","st34","W",null,"Walk (gap fill)",0,352,null],
 ["st220","st1","W",null,"Walk (gap fill)",0,237,null],
 ["st221","st146","W",null,"Walk (gap fill)",0,179,null],
 ["st223","st173","W",null,"Walk (gap fill)",0,339,null],
@@ -1664,6 +1668,16 @@ const EDGE_RAW = [
 //  - Checked and confirmed already working, no fix needed: real piste/walk-only paths (not just
 //    riding the Solaise gondola down) already connect Solaise's top all the way to the village,
 //    and Santons haut / Épaule du Charvet already reach the village too, via st159->st195->walk.
+//
+// Full connectivity recheck (2026-08-22) after the three area passes above: fail rate down to
+// 5.7%, and what's left collapsed into a few tight, same-bug-class pockets rather than scattered
+// gaps. Two more of the "already had *an* edge so gap-fill skipped it" closed loops, same as
+// Arollay/Cugnaï/Grand Pré:
+//  - Tovière: st73's only way out looped straight back to st227 and vice versa. Bridged st227 to
+//    st100 (439m), which already reaches the full network.
+//  - Fornet summit (Montet/Aiguille Pers/Pissaillas): st34 (top of the Cascade chair) was itself
+//    stuck in a closed loop with st33, so nothing could reach the whole st35/st36/st183/st208
+//    cluster even though it's internally fine. Bridged st34 to st183 (352m).
 //
 // Two more rules layered on top of the base lift/piste/walk graph, from the user's own knowledge
 // of how the resort actually operates:
