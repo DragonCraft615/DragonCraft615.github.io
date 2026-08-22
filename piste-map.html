@@ -1137,6 +1137,7 @@ const EDGE_RAW = [
 ["st33","st34","L","cascade","Cascade",0,1585,null],
 ["st35","st36","L","montet","Montet",0,840,null],
 ["st37","st38","L","leissières","Leissières",0,964,null],
+["st38","st37","L","leissières","Leissières",0,964,null],
 ["st39","st40","L","signal-1","Signal 1",0,529,null],
 ["st41","st42","L","glacier","Glacier",0,1735,null],
 ["st43","st44","L","datcha","Datcha",0,834,null],
@@ -1412,6 +1413,18 @@ const EDGE_RAW = [
 ["st69","st121","P",null,"Trolles / Johan Clarey",0,298,"black"],
 ["st6","st9","P",null,"Piste H",0,1701,null],
 ["st164","st10","P",null,"Henri",0,2900,"blue"],
+["st1","st0","L","tcd10-des-boisses","TCD10 des Boisses (downloading)",6,1088,null],
+["st5","st4","L","daille","Daille (downloading)",6,1653,null],
+["st6","st8","L","tovière","Tovière (downloading)",6,1687,null],
+["st25","st24","L","grande-motte","Grande Motte (downloading)",4,1649,null],
+["st31","st30","L","fornet","Fornet (downloading)",4,973,null],
+["st32","st31","L","vallon-de-l-iseran","Vallon de l'Iseran (downloading)",6,2695,null],
+["st58","st50","L","olympique","Olympique (downloading)",6,1974,null],
+["st79","st50","L","solaise","Solaise (downloading)",6,2077,null],
+["st0","st80","L","tcd8-des-brévières","TCD8 des Brévières (downloading)",6,892,null],
+["st29","st83","L","funival","Funival (downloading)",2,2087,null],
+["st24","st9","L","funiculaire-perce-neige","Funiculaire Perce-Neige (downloading)",2,5207,null],
+["st85","st80","L","brévières","Brévières (downloading)",2,132,null],
 ["st80","st85","W",null,"Walk",0,238,null],
 ["st85","st80","W",null,"Walk",0,238,null],
 ["st80","st122","W",null,"Walk",0,325,null],
@@ -1538,9 +1551,7 @@ const EDGE_RAW = [
 ["st97","st45","W",null,"Walk",0,319,null],
 ["st45","st226","W",null,"Walk",0,563,null],
 ["st226","st45","W",null,"Walk",0,563,null],
-["st38","st37","W",null,"Walk (gap fill)",0,421,null],
-["st58","st29","W",null,"Walk (gap fill)",0,284,null],
-["st59","st42","W",null,"Walk (gap fill)",0,375,null],
+["st59","st38","W",null,"Walk (gap fill)",0,347,null],
 ["st77","st151","W",null,"Walk (gap fill)",0,144,null],
 ["st87","st0","W",null,"Walk (gap fill)",0,262,null],
 ["st99","st98","W",null,"Walk (gap fill)",0,200,null],
@@ -1548,12 +1559,20 @@ const EDGE_RAW = [
 ["st106","st186","W",null,"Walk (gap fill)",0,314,null],
 ["st111","st70","W",null,"Walk (gap fill)",0,301,null],
 ["st116","st81","W",null,"Walk (gap fill)",0,190,null],
+["st123","st124","W",null,"Walk (gap fill)",0,499,null],
 ["st137","st136","W",null,"Walk (gap fill)",0,164,null],
+["st145","st144","W",null,"Walk (gap fill)",0,456,null],
 ["st147","st23","W",null,"Walk (gap fill)",0,142,null],
 ["st149","st148","W",null,"Walk (gap fill)",0,237,null],
+["st153","st144","W",null,"Walk (gap fill)",0,663,null],
 ["st156","st155","W",null,"Walk (gap fill)",0,242,null],
+["st158","st65","W",null,"Walk (gap fill)",0,474,null],
+["st167","st44","W",null,"Walk (gap fill)",0,473,null],
 ["st170","st70","W",null,"Walk (gap fill)",0,442,null],
+["st171","st31","W",null,"Walk (gap fill)",0,678,null],
 ["st174","st131","W",null,"Walk (gap fill)",0,189,null],
+["st175","st198","W",null,"Walk (gap fill)",0,865,null],
+["st179","st28","W",null,"Walk (gap fill)",0,664,null],
 ["st180","st13","W",null,"Walk (gap fill)",0,211,null],
 ["st181","st12","W",null,"Walk (gap fill)",0,431,null],
 ["st188","st92","W",null,"Walk (gap fill)",0,309,null],
@@ -1563,6 +1582,8 @@ const EDGE_RAW = [
 ["st199","st189","W",null,"Walk (gap fill)",0,197,null],
 ["st201","st152","W",null,"Walk (gap fill)",0,253,null],
 ["st202","st152","W",null,"Walk (gap fill)",0,329,null],
+["st204","st213","W",null,"Walk (gap fill)",0,696,null],
+["st205","st131","W",null,"Walk (gap fill)",0,450,null],
 ["st208","st35","W",null,"Walk (gap fill)",0,136,null],
 ["st210","st168","W",null,"Walk (gap fill)",0,255,null],
 ["st214","st211","W",null,"Walk (gap fill)",0,149,null],
@@ -1584,10 +1605,24 @@ const EDGE_RAW = [
 //    Endpoint used is the real stub's location (Tovière, 2604m); the far end and 2900m length are
 //    the source's own stated figures for that name, not a guess.
 // "W" edges are two things: sector hub-and-spoke walks (skiers can always walk between nearby
-// lift bases in the same named area) and automated gap-fills — a piste segment that dead-ends
-// with nothing else within 450m to continue onto almost always means the real run continues but
-// OSM digitized it as a separate way that didn't cluster with this one (the Trolles/Johan Clarey
-// pattern, automated instead of hand-found).
+// lift bases in the same named area, up to 900m) and automated gap-fills — a piste segment that
+// dead-ends with nothing else within 900m to continue onto almost always means the real run
+// continues but OSM digitized it as a separate way that didn't cluster with this one (the
+// Trolles/Johan Clarey pattern, automated instead of hand-found). That threshold was widened
+// from an initial, more conservative 450m after checking the official piste map: Espace Killy's
+// piste network is far more continuously interconnected than a handful of dangling OSM way-ends
+// suggested, so treating every gap up to 900m as "probably the same run, digitized in two
+// pieces" is well supported rather than a guess — it dropped the fraction of lift-station pairs
+// with literally no route at all from 51.7% to 25.7%.
+//
+// Two more rules layered on top of the base lift/piste/walk graph, from the user's own knowledge
+// of how the resort actually operates:
+//  - Leissières is unusual: it's a fast chair (Scott-neutral either way) that can genuinely be
+//    ridden in both directions, so unlike every other lift it gets a matching reverse "L" edge.
+//  - Every gondola, cable car, and funicular can be "downloaded" (ridden top→bottom) — added as
+//    a reverse "L" edge for each — but downloading DOUBLES that lift's Scott penalty (a gondola
+//    down is Scott +6, not +3), reflecting that it's an even less dignified way to end up back
+//    at the base than riding it up. 12 such reverse edges added.
 const GRAPH_EDGES = EDGE_RAW.map(r => ({ from:r[0], to:r[1], kind:r[2], refId:r[3], name:r[4], scott:r[5], dist:r[6], diff:r[7] }));
 
 const TYPE_META = {
