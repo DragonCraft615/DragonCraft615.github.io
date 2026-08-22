@@ -1398,6 +1398,7 @@ const EDGE_RAW = [
 ["st24","st154","P","piste-1549507069",null,0,450,"red"],
 ["st69","st121","P",null,"Trolles / Johan Clarey",0,298,"black"],
 ["st6","st9","P",null,"Piste H",0,1701,null],
+["st164","st10","P",null,"Henri",0,2900,"blue"],
 ["st80","st85","W",null,"Walk",0,238,null],
 ["st85","st80","W",null,"Walk",0,238,null],
 ["st80","st122","W",null,"Walk",0,325,null],
@@ -1559,15 +1560,21 @@ const EDGE_RAW = [
 ["st225","st89","W",null,"Walk (gap fill)",0,277,null],
 ["st227","st73","W",null,"Walk (gap fill)",0,193,null]
 ];
-// Two "P"-kind edges above (Trolles/Johan Clarey and Piste H) are user-confirmed local
-// knowledge, not OSM-sourced like the rest: neither has real digitized geometry, so they render
-// as a dashed line rather than tracing an actual mapped piste (see highlightRoute's fallback for
-// refId===null) — same treatment every "W" edge below already gets, since none of those have
-// real geometry either. "W" edges are two things: sector hub-and-spoke walks (skiers can always
-// walk between nearby lift bases in the same named area) and automated gap-fills — a piste
-// segment that dead-ends with nothing else within 450m to continue onto almost always means the
-// real run continues but OSM digitized it as a separate way that didn't cluster with this one
-// (exactly the Trolles/Johan Clarey pattern, just automated instead of hand-found).
+// Three "P"-kind edges above have no real digitized geometry, so they render as a dashed line
+// rather than tracing an actual mapped piste (see highlightRoute's fallback for refId===null) —
+// same treatment every "W" edge below already gets:
+//  - Trolles/Johan Clarey and Piste H are the user's own firsthand local knowledge.
+//  - Henri is different: surfaced by a Gemini query the user shared, corroborated (not just
+//    trusted) against our own OpenSkiMap data before adding it — OpenSkiMap's metadata for the
+//    OSM way named "Henri" states inclined_length_m=2900, but the way's actual digitized geometry
+//    is a 73m stub, a ~40x mismatch that says a real ~2.9km run exists but was never fully traced.
+//    Endpoint used is the real stub's location (Tovière, 2604m); the far end and 2900m length are
+//    the source's own stated figures for that name, not a guess.
+// "W" edges are two things: sector hub-and-spoke walks (skiers can always walk between nearby
+// lift bases in the same named area) and automated gap-fills — a piste segment that dead-ends
+// with nothing else within 450m to continue onto almost always means the real run continues but
+// OSM digitized it as a separate way that didn't cluster with this one (the Trolles/Johan Clarey
+// pattern, automated instead of hand-found).
 const GRAPH_EDGES = EDGE_RAW.map(r => ({ from:r[0], to:r[1], kind:r[2], refId:r[3], name:r[4], scott:r[5], dist:r[6], diff:r[7] }));
 
 const TYPE_META = {
