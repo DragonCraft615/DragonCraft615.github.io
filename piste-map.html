@@ -1409,8 +1409,7 @@ const EDGE_RAW = [
 ["st182","st49","P","epena","Epena",0,677,"red"],
 ["st24","st154","P","piste-1549507069",null,0,450,"red"],
 ["st69","st121","P",null,"Trolles / Johan Clarey",0,298,"black"],
-["st6","st9","P",null,"Piste H",0,1701,null],
-["st164","st10","P",null,"Henri",0,2900,"blue"],
+["st164","st10","P",null,"Piste H / Henri",0,2900,"blue"],
 ["st1","st0","L","tcd10-des-boisses","TCD10 des Boisses (downloading)",6,1088,null],
 ["st5","st4","L","daille","Daille (downloading)",6,1653,null],
 ["st6","st8","L","tovière","Tovière (downloading)",6,1687,null],
@@ -1603,6 +1602,8 @@ const EDGE_RAW = [
 ["st100","st227","W",null,"Walk (gap fill)",0,439,null],
 ["st34","st183","W",null,"Walk (gap fill)",0,352,null],
 ["st183","st34","W",null,"Walk (gap fill)",0,352,null],
+["st6","st5","P",null,"Tovière top – Tommeuses base link",0,1730,"blue"],
+["st6","st74","P",null,"Tovière top – Marmottes base link",0,1624,"blue"],
 ["st220","st1","W",null,"Walk (gap fill)",0,237,null],
 ["st221","st146","W",null,"Walk (gap fill)",0,179,null],
 ["st223","st173","W",null,"Walk (gap fill)",0,339,null],
@@ -1678,6 +1679,20 @@ const EDGE_RAW = [
 //  - Fornet summit (Montet/Aiguille Pers/Pissaillas): st34 (top of the Cascade chair) was itself
 //    stuck in a closed loop with st33, so nothing could reach the whole st35/st36/st183/st208
 //    cluster even though it's internally fine. Bridged st34 to st183 (352m).
+//
+// Tovière top batch, from the user's own knowledge:
+//  - "Piste H" and "Henri" were two separate guesses at the same real run (Tovière top to Val
+//    Claret) added in different sessions before the user clarified they're the same piste.
+//    Merged into one edge under both names, keeping Henri's more precisely sourced 2900m/blue
+//    (Piste H's 1701m was a rougher estimate). Real OSM geometry for this run turned out to be
+//    unrecoverable on a second look: beyond the known 73m stub, the only other OSM way named
+//    "Henri" nearby is a closed-loop *area* polygon (a piste zone, not a route), and the
+//    intermediate named segments visible on the user's reference screenshot (GunPowder, Tufs as
+//    a piste, Kangooride) aren't in our OSM pull at all — so this stays a dashed placeholder
+//    rather than risk hand-tracing a line onto a map that promises true-to-scale geometry.
+//  - Two direct blue links confirmed by the user from Tovière top (st6): to Tommeuses' base
+//    (st5) and to Marmottes Express's base (st74) — both dashed placeholders, no digitized
+//    geometry, distances from our own station coordinates.
 //
 // Two more rules layered on top of the base lift/piste/walk graph, from the user's own knowledge
 // of how the resort actually operates:
