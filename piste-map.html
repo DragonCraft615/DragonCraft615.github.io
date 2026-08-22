@@ -153,6 +153,8 @@ svg { width: 100%; height: 100%; display: block; }
 .chip[data-speed="medium"].active { background: var(--medium); border-color: var(--medium); }
 .chip[data-speed="slow"].active { background: var(--slow); border-color: var(--slow); }
 .chip[data-type].active { background: var(--blue); border-color: var(--blue); }
+.chip[data-grade].active { background: var(--gc); border-color: var(--gc); }
+.chip[data-grade="black"].active { color: #0a0a14; }
 .range-row { display: flex; align-items: center; gap: 8px; font-size: 11.5px; color: var(--sub); }
 input[type=range] { flex: 1; accent-color: var(--gold); }
 
@@ -176,6 +178,43 @@ input[type=range] { flex: 1; accent-color: var(--gold); }
   width: 100%; margin-top: 4px; padding: 7px; font-size: 11.5px; font-weight: 700; color: var(--gold);
   background: rgba(245,166,35,.08); border: 1px solid rgba(245,166,35,.25); border-radius: 9px; cursor: pointer;
 }
+
+/* ── ROUTE PLANNER ── */
+.route-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.route-select {
+  flex: 1; width: 100%; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+  color: var(--text); padding: 7px 9px; border-radius: 9px; font-size: 12.5px;
+}
+.route-swap {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06); color: var(--text); cursor: pointer; font-size: 14px;
+}
+.route-swap:hover { background: rgba(255,255,255,.12); }
+#findRouteBtn {
+  width: 100%; margin-top: 4px; padding: 11px; font-size: 13.5px; font-weight: 800; color: #06210f;
+  background: linear-gradient(135deg, #7dd3fc, #38bdf8); border: none; border-radius: 10px; cursor: pointer;
+}
+#findRouteBtn:hover { filter: brightness(1.08); }
+#findRouteBtn:disabled { opacity: .5; cursor: not-allowed; filter: none; }
+.route-empty { font-size: 12px; color: var(--sub); line-height: 1.6; margin-top: 10px; }
+.route-score { text-align: center; padding: 14px 10px; border-radius: 12px; margin: 10px 0; }
+.route-score .num { font-size: 34px; font-weight: 900; line-height: 1; }
+.route-score .lbl { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--sub); margin-top: 4px; }
+.route-score .verdict { font-size: 12px; margin-top: 6px; font-weight: 700; }
+.route-meta { display: flex; justify-content: space-around; font-size: 11px; color: var(--sub); margin-bottom: 10px; }
+.route-meta b { color: var(--text); font-size: 13px; display: block; }
+.route-step {
+  display: flex; align-items: center; gap: 8px; padding: 7px 2px; border-bottom: 1px solid rgba(255,255,255,.05); font-size: 12px;
+}
+.route-step:last-child { border-bottom: none; }
+.route-step .step-icon { width: 20px; text-align: center; flex-shrink: 0; font-size: 14px; }
+.route-step .step-name { flex: 1; }
+.route-step .step-tag { font-size: 9.5px; font-weight: 800; padding: 2px 7px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+#routeClearBtn {
+  width: 100%; margin-top: 8px; padding: 7px; font-size: 11.5px; font-weight: 700; color: var(--sub);
+  background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 9px; cursor: pointer;
+}
+.route-glow { fill: none; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
 
 .detail-empty { font-size: 12px; color: var(--sub); line-height: 1.6; }
 .detail-name { font-size: 15px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
@@ -243,6 +282,30 @@ footer a { color: var(--gold); text-decoration: none; }
           <input type="checkbox" id="pisteToggle" checked> Pistes
         </label>
       </div>
+    </div>
+
+    <div class="panel">
+      <h2>🎿 Plan a Route</h2>
+      <div class="route-row">
+        <select class="route-select" id="routeFrom"></select>
+      </div>
+      <div class="route-row" style="justify-content:center">
+        <button class="route-swap" id="routeSwap" title="Swap from/to">⇅</button>
+      </div>
+      <div class="route-row">
+        <select class="route-select" id="routeTo"></select>
+      </div>
+      <div class="filter-group">
+        <h3>Pistes you're happy with</h3>
+        <div class="chip-row">
+          <span class="chip active" data-grade="green" style="--gc:#22c55e">Green</span>
+          <span class="chip active" data-grade="blue" style="--gc:#3b82f6">Blue</span>
+          <span class="chip active" data-grade="red" style="--gc:#e0393e">Red</span>
+          <span class="chip active" data-grade="black" style="--gc:#f3f4f6">Black</span>
+        </div>
+      </div>
+      <button id="findRouteBtn">Find Route</button>
+      <div id="routeResult"><p class="route-empty">Pick a start and an end, then find the route that puts Scott through the least amount of gondola. Ties are broken by distance.</p></div>
     </div>
 
     <div class="panel">
@@ -796,6 +859,672 @@ const PISTE_LABEL = {
   grey: "Unrated",               orange: "Freeride / itinerary"
 };
 
+// ───────── ROUTE-PLANNER GRAPH ─────────
+// Nodes are "stations": every lift base/top point, clustered with any other lift base/top
+// within ~70m of it (union-find over real-world distance) so a village with nine lift bases
+// a few dozen metres apart becomes one selectable point, not nine. Each piste is directed
+// top→bottom by comparing SRTM elevation at its two ends (not just first/last node — same
+// robustness fix as the lift base/top logic), then snapped to its nearest station at each end.
+// A piste whose two ends snap to the SAME station (a short nursery run going nowhere on this
+// graph) is dropped rather than creating a useless self-loop.
+// [id, label, sectorId, x, y, elev]
+const STATION_RAW = [
+["st80","Tignes 1800 / Boisses / Brévières (1565m)","boisses",496.9,58.6,1565],
+["st85","Tignes 1800 / Boisses / Brévières (1599m)","boisses",506.3,36.0,1599],
+["st122","Tignes 1800 / Boisses / Brévières (1625m)","boisses",488.6,91.0,1625],
+["st0","Tignes 1800 / Boisses / Brévières (1780m)","boisses",520.8,158.9,1780],
+["st87","Tignes 1800 / Boisses / Brévières (1817m)","boisses",493.9,157.6,1817],
+["st150","Tignes 1800 / Boisses / Brévières (1837m)","boisses",450.2,108.5,1837],
+["st102","Tignes 1800 / Boisses / Brévières (1872m)","boisses",486.5,170.0,1872],
+["st118","Tignes 1800 / Boisses / Brévières (1891m)","boisses",498.2,194.5,1891],
+["st86","Tignes 1800 / Boisses / Brévières (1958m)","boisses",454.0,142.6,1958],
+["st101","Tignes 1800 / Boisses / Brévières (2100m)","boisses",460.6,205.3,2100],
+["st192","Tignes 1800 / Boisses / Brévières (2117m)","boisses",438.9,161.2,2117],
+["st1","Tignes 1800 / Boisses / Brévières (2171m)","boisses",448.1,255.8,2171],
+["st220","Tignes 1800 / Boisses / Brévières (2207m)","boisses",427.9,269.4,2207],
+["st108","Tignes 1800 / Boisses / Brévières (2262m)","boisses",419.1,293.8,2262],
+["st4","La Daille (1801m)","daille",839.2,579.2,1801],
+["st83","La Daille (1805m)","daille",844.5,598.1,1805],
+["st84","La Daille (1839m)","daille",835.7,616.5,1839],
+["st94","La Daille (1861m)","daille",818.0,596.5,1861],
+["st105","La Daille (1926m)","daille",809.8,618.0,1926],
+["st96","La Daille (2008m)","daille",766.7,596.5,2008],
+["st95","La Daille (2082m)","daille",734.5,595.6,2082],
+["st115","La Daille (2154m)","daille",697.1,586.7,2154],
+["st172","La Daille (2163m)","daille",717.0,606.0,2163],
+["st114","La Daille (2171m)","daille",723.6,618.6,2171],
+["st99","La Daille (2557m)","daille",694.6,741.9,2557],
+["st130","La Daille (2632m)","daille",708.4,793.5,2632],
+["st29","La Daille (2680m)","daille",733.1,782.7,2680],
+["st187","La Daille (2787m)","daille",742.5,759.5,2787],
+["st207","Le Fornet (1938m)","fornet",1241.5,702.6,1938],
+["st30","Le Fornet (1942m)","fornet",1224.8,698.1,1942],
+["st206","Le Fornet (2094m)","fornet",1310.3,710.5,2094],
+["st193","Le Fornet (2218m)","fornet",1288.7,754.9,2218],
+["st31","Le Fornet (2323m)","fornet",1272.4,791.5,2323],
+["st191","Le Fornet (2359m)","fornet",1269.4,814.9,2359],
+["st171","Le Fornet (2485m)","fornet",1282.2,860.5,2485],
+["st145","Le Fornet (2534m)","fornet",1277.2,889.9,2534],
+["st153","Le Fornet (2547m)","fornet",1299.1,894.5,2547],
+["st144","Le Fornet (2564m)","fornet",1238.1,864.1,2564],
+["st188","Le Fornet (2569m)","fornet",1320.5,934.7,2569],
+["st46","Le Fornet (2571m)","fornet",1215.9,852.1,2571],
+["st92","Le Fornet (2612m)","fornet",1325.5,966.1,2612],
+["st209","Le Fornet (2614m)","fornet",1324.7,885.4,2614],
+["st66","Le Fornet (2647m)","fornet",1443.5,1079.2,2647],
+["st132","Le Fornet (2678m)","fornet",1344.0,867.7,2678],
+["st37","Le Fornet (2689m)","fornet",1335.9,1022.7,2689],
+["st39","Le Fornet (2724m)","fornet",1359.8,883.2,2724],
+["st33","Le Fornet (2728m)","fornet",1456.7,1028.8,2728],
+["st91","Le Fornet (2754m)","fornet",1384.4,1022.0,2754],
+["st32","Le Fornet (2785m)","fornet",1402.1,1032.8,2785],
+["st177","Le Fornet (2789m)","fornet",1486.2,976.5,2789],
+["st38","Le Fornet (2818m)","fornet",1293.0,1028.1,2818],
+["st113","Le Fornet (2874m)","fornet",1511.0,990.8,2874],
+["st40","Le Fornet (2919m)","fornet",1416.0,876.4,2919],
+["st59","Le Fornet (2942m)","fornet",1295.9,1063.7,2942],
+["st208","Le Fornet (3019m)","fornet",1566.9,992.2,3019],
+["st35","Le Fornet (3037m)","fornet",1576.6,1002.2,3037],
+["st183","Le Fornet (3047m)","fornet",1594.0,988.5,3047],
+["st34","Le Fornet (3106m)","fornet",1615.8,1017.4,3106],
+["st176","Le Fornet (3175m)","fornet",1646.7,995.9,3175],
+["st36","Le Fornet (3196m)","fornet",1656.4,1016.0,3196],
+["st146","Grande Motte Glacier (2840m)","grandemotte",273.9,927.9,2840],
+["st219","Grande Motte Glacier (2843m)","grandemotte",350.3,972.9,2843],
+["st154","Grande Motte Glacier (2890m)","grandemotte",275.4,955.5,2890],
+["st200","Grande Motte Glacier (2891m)","grandemotte",256.8,961.7,2891],
+["st141","Grande Motte Glacier (2928m)","grandemotte",214.9,997.0,2928],
+["st140","Grande Motte Glacier (2955m)","grandemotte",231.4,1004.5,2955],
+["st218","Grande Motte Glacier (2955m)","grandemotte",315.5,980.2,2955],
+["st143","Grande Motte Glacier (2965m)","grandemotte",287.6,974.3,2965],
+["st142","Grande Motte Glacier (3005m)","grandemotte",231.6,1028.3,3005],
+["st24","Grande Motte Glacier (3016m)","grandemotte",259.9,1002.4,3016],
+["st216","Grande Motte Glacier (3047m)","grandemotte",204.9,1053.8,3047],
+["st26","Grande Motte Glacier (3113m)","grandemotte",244.6,1130.4,3113],
+["st201","Grande Motte Glacier (3171m)","grandemotte",208.7,1121.7,3171],
+["st152","Grande Motte Glacier (3209m)","grandemotte",188.3,1105.5,3209],
+["st202","Grande Motte Glacier (3322m)","grandemotte",155.5,1113.7,3322],
+["st27","Grande Motte Glacier (3333m)","grandemotte",164.9,1146.6,3333],
+["st25","Grande Motte Glacier (3443m)","grandemotte",124.6,1125.4,3443],
+["st17","Tignes Le Lac (2060m)","lac",414.7,452.1,2060],
+["st135","Tignes Le Lac (2080m)","lac",435.6,457.0,2080],
+["st8","Tignes Le Lac (2093m)","lac",388.8,487.3,2093],
+["st18","Tignes Le Lac (2104m)","lac",427.5,491.4,2104],
+["st67","Tignes Le Lac (2119m)","lac",345.5,493.3,2119],
+["st138","Tignes Le Lac (2142m)","lac",377.4,441.3,2142],
+["st60","Tignes Le Lac (2145m)","lac",428.2,512.3,2145],
+["st133","Tignes Le Lac (2149m)","lac",358.5,463.8,2149],
+["st196","Tignes Le Lac (2166m)","lac",346.1,470.6,2166],
+["st128","Tignes Le Lac (2180m)","lac",385.6,420.4,2180],
+["st124","Tignes Le Lac (2183m)","lac",329.9,480.0,2183],
+["st121","Tignes Le Lac (2198m)","lac",427.8,529.5,2198],
+["st104","Tignes Le Lac (2239m)","lac",309.6,473.4,2239],
+["st71","Tignes Le Lac (2272m)","lac",338.1,442.0,2272],
+["st123","Tignes Le Lac (2323m)","lac",284.3,456.4,2323],
+["st129","Tignes Le Lac (2338m)","lac",414.5,318.9,2338],
+["st15","Tignes Le Lac (2384m)","lac",235.7,498.3,2384],
+["st68","Tignes Le Lac (2384m)","lac",255.6,476.3,2384],
+["st45","Le Laisinant (1865m)","laisinant",1085.7,735.7,1865],
+["st97","Le Laisinant (1925m)","laisinant",1108.7,759.1,1925],
+["st226","Le Laisinant (1990m)","laisinant",1125.8,777.4,1990],
+["st158","Le Laisinant (2238m)","laisinant",1025.2,814.0,2238],
+["st157","Le Laisinant (2319m)","laisinant",1033.0,835.8,2319],
+["st43","Le Laisinant (2413m)","laisinant",1140.4,912.3,2413],
+["st194","Le Laisinant (2413m)","laisinant",1043.0,854.9,2413],
+["st215","Le Laisinant (2450m)","laisinant",1139.1,927.6,2450],
+["st41","Le Laisinant (2502m)","laisinant",1141.8,954.4,2502],
+["st204","Le Laisinant (2506m)","laisinant",1057.9,1013.5,2506],
+["st53","Le Laisinant (2518m)","laisinant",1096.5,931.8,2518],
+["st213","Le Laisinant (2533m)","laisinant",1094.8,952.2,2533],
+["st78","Le Laisinant (2535m)","laisinant",1073.8,890.4,2535],
+["st168","Le Laisinant (2543m)","laisinant",1170.7,963.8,2543],
+["st79","Le Laisinant (2548m)","laisinant",1081.6,908.0,2548],
+["st210","Le Laisinant (2576m)","laisinant",1166.3,989.6,2576],
+["st109","Le Laisinant (2579m)","laisinant",1109.7,980.7,2579],
+["st167","Le Laisinant (2611m)","laisinant",1141.0,1029.8,2611],
+["st44","Le Laisinant (2617m)","laisinant",1102.8,999.7,2617],
+["st54","Le Laisinant (2674m)","laisinant",1110.5,1026.6,2674],
+["st47","Le Laisinant (2682m)","laisinant",1186.5,1068.8,2682],
+["st214","Le Laisinant (2690m)","laisinant",1218.2,1036.7,2690],
+["st211","Le Laisinant (2716m)","laisinant",1233.5,1036.7,2716],
+["st42","Le Laisinant (2790m)","laisinant",1257.3,1063.5,2790],
+["st48","Le Laisinant (2884m)","laisinant",1217.1,1142.7,2884],
+["st103","Aiguille Percée (2399m)","percee",250.1,449.0,2399],
+["st90","Aiguille Percée (2423m)","percee",234.7,435.8,2423],
+["st2","Aiguille Percée (2430m)","percee",217.0,412.6,2430],
+["st20","Aiguille Percée (2440m)","percee",367.5,335.5,2440],
+["st162","Aiguille Percée (2477m)","percee",193.1,443.6,2477],
+["st89","Aiguille Percée (2482m)","percee",358.9,313.0,2482],
+["st225","Aiguille Percée (2531m)","percee",342.6,289.6,2531],
+["st212","Aiguille Percée (2538m)","percee",220.4,361.4,2538],
+["st19","Aiguille Percée (2548m)","percee",278.4,402.0,2548],
+["st22","Aiguille Percée (2568m)","percee",163.0,441.8,2568],
+["st203","Aiguille Percée (2577m)","percee",216.4,342.7,2577],
+["st224","Aiguille Percée (2596m)","percee",310.0,298.5,2596],
+["st88","Aiguille Percée (2620m)","percee",295.9,308.7,2620],
+["st3","Aiguille Percée (2724m)","percee",239.9,308.9,2724],
+["st5","Tovière (2271m)","toviere",668.1,616.6,2271],
+["st93","Tovière (2318m)","toviere",656.4,633.9,2318],
+["st205","Tovière (2331m)","toviere",434.4,717.5,2331],
+["st69","Tovière (2346m)","toviere",435.1,559.3,2346],
+["st185","Tovière (2375m)","toviere",663.3,662.8,2375],
+["st74","Tovière (2387m)","toviere",651.6,683.9,2387],
+["st173","Tovière (2400m)","toviere",458.8,721.7,2400],
+["st62","Tovière (2409m)","toviere",638.6,710.6,2409],
+["st184","Tovière (2410m)","toviere",679.0,673.2,2410],
+["st100","Tovière (2430m)","toviere",453.8,579.6,2430],
+["st117","Tovière (2436m)","toviere",673.0,698.2,2436],
+["st223","Tovière (2438m)","toviere",480.3,749.1,2438],
+["st169","Tovière (2453m)","toviere",646.6,739.6,2453],
+["st227","Tovière (2471m)","toviere",422.1,611.7,2471],
+["st190","Tovière (2472m)","toviere",619.6,762.5,2472],
+["st73","Tovière (2497m)","toviere",441.9,611.0,2497],
+["st7","Tovière (2503m)","toviere",596.3,701.5,2503],
+["st199","Tovière (2533m)","toviere",522.0,820.7,2533],
+["st170","Tovière (2534m)","toviere",543.0,638.5,2534],
+["st198","Tovière (2538m)","toviere",491.6,835.1,2538],
+["st116","Tovière (2548m)","toviere",555.9,797.7,2548],
+["st111","Tovière (2553m)","toviere",529.4,631.2,2553],
+["st189","Tovière (2571m)","toviere",539.9,811.3,2571],
+["st98","Tovière (2572m)","toviere",690.5,762.0,2572],
+["st81","Tovière (2575m)","toviere",536.9,793.3,2575],
+["st70","Tovière (2584m)","toviere",510.9,606.4,2584],
+["st164","Tovière (2604m)","toviere",468.4,632.4,2604],
+["st160","Tovière (2605m)","toviere",521.0,649.5,2605],
+["st6","Tovière (2684m)","toviere",491.4,636.9,2684],
+["st151","Tovière (2730m)","toviere",545.4,906.1,2730],
+["st77","Tovière (2776m)","toviere",532.6,898.7,2776],
+["st9","Tignes Val Claret (2120m)","valclaret",319.5,669.1,2120],
+["st11","Tignes Val Claret (2134m)","valclaret",333.6,646.2,2134],
+["st163","Tignes Val Claret (2159m)","valclaret",308.8,712.6,2159],
+["st127","Tignes Val Claret (2169m)","valclaret",293.2,695.8,2169],
+["st126","Tignes Val Claret (2195m)","valclaret",283.4,683.8,2195],
+["st10","Tignes Val Claret (2210m)","valclaret",373.2,687.3,2210],
+["st125","Tignes Val Claret (2234m)","valclaret",265.8,648.4,2234],
+["st131","Tignes Val Claret (2260m)","valclaret",396.1,691.5,2260],
+["st174","Tignes Val Claret (2272m)","valclaret",407.3,707.4,2272],
+["st112","Tignes Val Claret (2296m)","valclaret",242.9,681.0,2296],
+["st21","Tignes Val Claret (2385m)","valclaret",213.9,513.6,2385],
+["st186","Tignes Val Claret (2388m)","valclaret",214.1,527.8,2388],
+["st13","Tignes Val Claret (2427m)","valclaret",185.2,681.4,2427],
+["st180","Tignes Val Claret (2449m)","valclaret",173.3,663.3,2449],
+["st106","Tignes Val Claret (2466m)","valclaret",198.6,556.1,2466],
+["st12","Tignes Val Claret (2470m)","valclaret",189.9,642.3,2470],
+["st181","Tignes Val Claret (2553m)","valclaret",146.6,632.8,2553],
+["st175","Tignes Val Claret (2624m)","valclaret",449.5,913.4,2624],
+["st16","Tignes Val Claret (2643m)","valclaret",136.6,593.2,2643],
+["st161","Tignes Val Claret (2650m)","valclaret",334.6,877.9,2650],
+["st107","Tignes Val Claret (2653m)","valclaret",118.9,595.3,2653],
+["st72","Tignes Val Claret (2682m)","valclaret",40.5,663.6,2682],
+["st49","Tignes Val Claret (2725m)","valclaret",305.5,894.0,2725],
+["st149","Tignes Val Claret (2725m)","valclaret",400.9,946.3,2725],
+["st14","Tignes Val Claret (2740m)","valclaret",90.7,573.4,2740],
+["st148","Tignes Val Claret (2750m)","valclaret",394.7,922.7,2750],
+["st61","Tignes Val Claret (2767m)","valclaret",37.6,788.5,2767],
+["st221","Tignes Val Claret (2791m)","valclaret",282.2,911.5,2791],
+["st147","Tignes Val Claret (2822m)","valclaret",295.4,923.0,2822],
+["st182","Tignes Val Claret (2824m)","valclaret",324.9,922.4,2824],
+["st23","Tignes Val Claret (2848m)","valclaret",308.5,929.4,2848],
+["st50","Val d'Isère Village (1835m)","village",947.6,738.4,1835],
+["st63","Val d'Isère Village (1842m)","village",975.2,739.6,1842],
+["st120","Val d'Isère Village (1861m)","village",947.0,772.0,1861],
+["st75","Val d'Isère Village (1882m)","village",947.2,787.0,1882],
+["st119","Val d'Isère Village (1883m)","village",939.9,805.6,1883],
+["st195","Val d'Isère Village (1883m)","village",936.0,829.7,1883],
+["st64","Val d'Isère Village (1887m)","village",975.8,762.2,1887],
+["st159","Val d'Isère Village (1894m)","village",921.3,852.0,1894],
+["st55","Val d'Isère Village (1947m)","village",913.7,1013.2,1947],
+["st134","Val d'Isère Village (1958m)","village",963.7,815.7,1958],
+["st76","Val d'Isère Village (1987m)","village",976.3,802.7,1987],
+["st65","Val d'Isère Village (1995m)","village",984.5,787.3,1995],
+["st166","Val d'Isère Village (2073m)","village",876.8,752.0,2073],
+["st137","Val d'Isère Village (2085m)","village",864.5,877.1,2085],
+["st136","Val d'Isère Village (2101m)","village",869.8,893.1,2101],
+["st52","Val d'Isère Village (2151m)","village",877.3,786.3,2151],
+["st51","Val d'Isère Village (2207m)","village",845.7,751.5,2207],
+["st165","Val d'Isère Village (2287m)","village",834.5,781.6,2287],
+["st28","Val d'Isère Village (2387m)","village",756.3,903.0,2387],
+["st222","Val d'Isère Village (2473m)","village",705.2,924.3,2473],
+["st56","Val d'Isère Village (2496m)","village",690.5,921.6,2496],
+["st179","Val d'Isère Village (2559m)","village",749.2,835.1,2559],
+["st156","Val d'Isère Village (2604m)","village",773.0,807.2,2604],
+["st178","Val d'Isère Village (2620m)","village",733.2,820.6,2620],
+["st155","Val d'Isère Village (2630m)","village",748.2,805.4,2630],
+["st110","Val d'Isère Village (2665m)","village",676.9,998.9,2665],
+["st58","Val d'Isère Village (2696m)","village",762.0,778.6,2696],
+["st57","Val d'Isère Village (2712m)","village",694.8,1010.0,2712]
+];
+const STATIONS = STATION_RAW.map(r => ({ id:r[0], label:r[1], sector:r[2], x:r[3], y:r[4], elev:r[5] }));
+const STATION_BY_ID = Object.fromEntries(STATIONS.map(s => [s.id, s]));
+
+// [from, to, kind("L"|"P"), refId (matches LIFTS/PISTES id), name, scott, distanceM, difficulty|null]
+const EDGE_RAW = [
+["st0","st1","L","tcd10-des-boisses","TCD10 des Boisses",3,1088,null],
+["st2","st3","L","aiguille-percée","Aiguille Percée",0,1026,null],
+["st4","st5","L","daille","Daille",3,1653,null],
+["st5","st6","L","tommeuses","Tommeuses",0,1649,null],
+["st5","st7","L","mont-blanc","Mont Blanc",0,1114,null],
+["st8","st6","L","tovière","Tovière",3,1687,null],
+["st9","st10","L","tsd6-bollin","TSD6 Bollin",0,577,null],
+["st11","st6","L","tufs","Tufs",0,1499,null],
+["st9","st12","L","tsd6-tichot","TSD6 Tichot",0,1116,null],
+["st13","st14","L","tsd6-grattalu","TSD6 Grattalu",0,1358,null],
+["st15","st16","L","merles","Merles",0,1263,null],
+["st17","st18","L","lavachet","Lavachet",0,262,null],
+["st8","st19","L","palafour","Palafour",0,1231,null],
+["st17","st20","L","tsd6-chaudannes","TSD6 Chaudannes",0,1137,null],
+["st21","st22","L","grand-huit","Grand Huit",0,822,null],
+["st9","st23","L","lanches","Lanches",0,2452,null],
+["st24","st25","L","grande-motte","Grande Motte",2,1649,null],
+["st26","st27","L","termignon-1","Termignon 1",0,749,null],
+["st28","st29","L","ts-fontaine","TS Fontaine",0,1136,null],
+["st30","st31","L","fornet","Fornet",2,973,null],
+["st31","st32","L","vallon-de-l-iseran","Vallon de l'Iseran",3,2695,null],
+["st33","st32","L","céma","Céma",0,487,null],
+["st33","st34","L","cascade","Cascade",0,1585,null],
+["st35","st36","L","montet","Montet",0,840,null],
+["st37","st38","L","leissières","Leissières",0,964,null],
+["st39","st40","L","signal-1","Signal 1",0,529,null],
+["st41","st42","L","glacier","Glacier",0,1735,null],
+["st43","st44","L","datcha","Datcha",0,834,null],
+["st45","st46","L","laisinant","Laisinant",0,1668,null],
+["st47","st48","L","cugnaï","Cugnaï",0,757,null],
+["st49","st24","L","vanoise","Vanoise",0,1154,null],
+["st50","st51","L","bellevarde-express","Bellevarde Express",0,964,null],
+["st52","st29","L","loyes-express","Loyes Express",0,1308,null],
+["st53","st54","L","madeleine-express","Madeleine Express",0,879,null],
+["st55","st44","L","manchet-express","Manchet Express",0,1792,null],
+["st56","st57","L","grand-pré","Grand Pré",0,869,null],
+["st50","st58","L","olympique","Olympique",3,1974,null],
+["st42","st59","L","3000","3000",0,376,null],
+["st8","st60","L","rosset","Rosset",0,256,null],
+["st13","st61","L","tsf3-col-des-vés","TSF3 Col des Vés",0,1785,null],
+["st62","st7","L","slalom","Slalom",0,346,null],
+["st63","st64","L","savonnette-1","Savonnette 1",0,209,null],
+["st50","st64","L","village","Village",0,358,null],
+["st50","st65","L","rogoney","Rogoney",0,531,null],
+["st66","st33","L","pays-désert","Pays Désert",0,478,null],
+["st67","st68","L","tkd1-chardonnet","TKD1 Chardonnet",0,858,null],
+["st69","st70","L","combe-folle","Combe Folle",0,855,null],
+["st1","st20","L","tsd6-aiguille-rouge","TSD6 Aiguille Rouge",0,1115,null],
+["st8","st71","L","almes","Almes",0,540,null],
+["st13","st72","L","tkd1-col-du-palet","TKD1 Col du Palet",0,1381,null],
+["st31","st39","L","pyramides","Pyramides",0,1195,null],
+["st17","st73","L","paquis","Paquis",0,1561,null],
+["st74","st29","L","marmottes-express","Marmottes Express",0,1169,null],
+["st75","st76","L","legettaz","Legettaz",0,322,null],
+["st62","st77","L","borsat","Borsat",0,2078,null],
+["st26","st27","L","termignon-2","Termignon 2",0,748,null],
+["st78","st79","L","poum","Poum",0,152,null],
+["st53","st79","L","pim","Pim",0,231,null],
+["st50","st79","L","solaise","Solaise",3,2077,null],
+["st80","st0","L","tcd8-des-brévières","TCD8 des Brévières",3,892,null],
+["st10","st81","L","fresse","Fresse",0,1872,null],
+["st62","st7","L","snow-park","Snow Park",0,346,null],
+["st74","st62","L","carpe-diem","Carpe Diem",0,166,null],
+["st63","st64","L","savonnette-2","Savonnette 2",0,209,null],
+["st83","st84","L","lanche","Lanche",0,212,null],
+["st53","st79","L","pam","Pam",0,231,null],
+["st39","st40","L","signal-2","Signal 2",0,529,null],
+["st15","st68","L","replat","Replat",0,265,null],
+["st1","st3","L","tsd6-marais","TSD6 Marais",0,2048,null],
+["st83","st29","L","funival","Funival",1,2087,null],
+["st9","st24","L","funiculaire-perce-neige","Funiculaire Perce-Neige",1,5207,null],
+["st80","st85","L","brévières","Brévières",1,132,null],
+["st86","st87","P","chardons-2","Chardons",0,458,"red"],
+["st88","st89","P","poney","Poney",0,820,"blue"],
+["st19","st90","P","lys","Lys",0,890,"blue"],
+["st91","st92","P","pré-chemin","Pré Chemin",0,701,"blue"],
+["st34","st33","P","moraine","Moraine",0,1839,"red"],
+["st42","st41","P","glacier-2","Glacier",0,356,"blue"],
+["st54","st41","P","col-de-la-madeleine","Col de la Madeleine",0,1015,"blue"],
+["st86","st80","P","pavot","Pavot",0,1274,"red"],
+["st93","st5","P","edelweiss-3","Edelweiss",0,256,"blue"],
+["st29","st5","P","diebold","Diebold",0,2286,"blue"],
+["st94","st83","P","piste-30721493",null,0,163,"red"],
+["st95","st96","P","verte-3","Verte",0,321,"green"],
+["st97","st63","P","traversée-du-laisinant","Traversée du Laisinant",0,1354,"blue"],
+["st18","st17","P","lavachet","Lavachet",0,310,"green"],
+["st98","st99","P","piste-32359333",null,0,204,"blue"],
+["st96","st4","P","raye","Raye",0,763,"red"],
+["st70","st100","P","combe-folle","Combe Folle",0,689,"red"],
+["st101","st102","P","mélézes","Mélézes",0,1299,"red"],
+["st19","st8","P","anemone","Anemone",0,2259,"blue"],
+["st103","st104","P","combe","Combe",0,762,"blue"],
+["st16","st106","P","merles","Merles",0,1071,"red"],
+["st16","st107","P","piste-47377206",null,0,201,"blue"],
+["st22","st2","P","ancolie","Ancolie",0,630,"red"],
+["st108","st1","P","airelles","Airelles",0,462,"blue"],
+["st40","st39","P","signal-2","Signal",0,621,"black"],
+["st109","st53","P","marais-2","Marais",0,435,"blue"],
+["st110","st56","P","club-des-sports","Club des Sports",0,816,"blue"],
+["st6","st111","P","rocs","Rocs",0,381,"red"],
+["st112","st9","P","stade-de-slalom","Stade de Slalom",0,902,"red"],
+["st35","st113","P","pissaillas","Pissaillas",0,866,"blue"],
+["st76","st75","P","piste-56681510",null,0,358,"red"],
+["st14","st107","P","mur","Mur",0,426,"red"],
+["st5","st114","P","diebold-4","Diebold",0,484,"blue"],
+["st5","st115","P","semanmille","Semanmille",0,461,"red"],
+["st5","st115","P","piste-90421618",null,0,452,"red"],
+["st81","st116","P","fresse-2","Fresse",0,203,"green"],
+["st117","st74","P","piste-94376935",null,0,150,"red"],
+["st118","st0","P","colchique","Colchique",0,521,"blue"],
+["st119","st120","P","santons","Santons",0,581,"red"],
+["st6","st70","P","crêtes","Crêtes",0,350,"black"],
+["st29","st28","P","fontaine-froide","Fontaine Froide",0,1274,"red"],
+["st121","st60","P","trolles","Trolles",0,181,"black"],
+["st10","st9","P","bollin","Bollin",0,620,"blue"],
+["st122","st80","P","pitots","Pitots",0,8,"blue"],
+["st68","st123","P","anémone","Anémone",0,538,"blue"],
+["st124","st67","P","gentiane","Gentiane",0,225,"blue"],
+["st16","st125","P","merles-stade-de-lognan-compétitions","Merles, Stade de Lognan-Compétitions",0,17,"blue"],
+["st126","st127","P","carline-2","Carline",0,154,"blue"],
+["st20","st128","P","bleuets","Bleuets",0,892,"red"],
+["st129","st1","P","rhododendron","Rhododendron",0,789,"blue"],
+["st130","st62","P","mont-blanc","Mont Blanc",0,1424,"green"],
+["st0","st80","P","myrtilles","Myrtilles",0,2670,"blue"],
+["st81","st131","P","prariond","Prariond",0,1848,"blue"],
+["st10","st9","P","boïu","Boïu",0,710,"green"],
+["st29","st50","P","face-de-bellevarde","Face de Bellevarde",0,2685,"black"],
+["st39","st132","P","pyramides-2","Pyramides",0,219,"blue"],
+["st71","st133","P","primevères","Primevères",0,319,"black"],
+["st65","st134","P","traversée-du-rogoney-3","Traversée du Rogoney",0,362,"blue"],
+["st79","st53","P","piste-450069773",null,0,263,"green"],
+["st136","st137","P","piste-744499191",null,0,185,"black"],
+["st32","st33","P","lac-céma","Lac Céma",0,508,"green"],
+["st115","st4","P","triffollet","Triffollet",0,1596,"red"],
+["st64","st50","P","village-i-village-ii","Village-I, Village-II",0,8,"green"],
+["st3","st88","P","corniche","Corniche",0,610,"blue"],
+["st46","st43","P","route-du-col","Route du Col",0,2095,"red"],
+["st128","st138","P","petit-col","Petit Col",0,2493,"blue"],
+["st138","st8","P","petit-col-2","Petit Col",0,449,"blue"],
+["st100","st69","P","johan-clarey","Johan Clarey",0,1645,"black"],
+["st140","st141","P","piste-1390573066",null,0,186,"blue"],
+["st142","st143","P","piste-1390576819",null,0,911,"red"],
+["st144","st145","P","arollay","Arollay",0,985,"blue"],
+["st46","st144","P","aiglon-arollay","Aiglon, Arollay",0,17,"blue"],
+["st146","st147","P","piste-1549507068",null,0,202,"red"],
+["st148","st149","P","piste-1549507070",null,0,256,"red"],
+["st88","st150","P","sache","Sache",0,2951,"black"],
+["st7","st62","P","moutons","Moutons",0,461,"blue"],
+["st151","st62","P","borsat","Borsat",0,2000,"green"],
+["st2","st90","P","piste-23139772",null,0,270,"blue"],
+["st152","st26","P","piste-23140080",null,0,596,"red"],
+["st32","st91","P","piste-30676451",null,0,156,"blue"],
+["st91","st153","P","col","Col",0,674,"blue"],
+["st42","st41","P","glacier-3","Glacier",0,356,"blue"],
+["st48","st47","P","cugnaï-2","Cugnaï",0,4,"red"],
+["st24","st154","P","dahu","Dahu",0,838,"red"],
+["st7","st74","P","les-tines-edelweiss","Les Tines, Edelweiss",0,87,"blue"],
+["st155","st156","P","face-3","Face",0,280,"black"],
+["st157","st158","P","piste-m","Piste M",0,1134,"red"],
+["st44","st55","P","arcelle-marmottons","Arcelle, Marmottons",0,14,"red"],
+["st44","st41","P","marais","Marais",0,662,"blue"],
+["st28","st159","P","santons-haut","Santons haut",0,1835,"red"],
+["st46","st31","P","table-d-orientation","Table d'Orientation",0,819,"red"],
+["st160","st5","P","edelweiss","Edelweiss",0,658,"blue"],
+["st71","st138","P","almes","Almes",0,541,"blue"],
+["st154","st161","P","face","Face",0,1140,"red"],
+["st162","st2","P","beau-plan","Beau Plan",0,410,"blue"],
+["st163","st9","P","double-m-2","Double M",0,418,"red"],
+["st164","st131","P","campanules","Campanules",0,958,"black"],
+["st165","st50","P","joseray","Joseray",0,1717,"red"],
+["st64","st63","P","savonnette","Savonnette",0,238,"green"],
+["st42","st167","P","saint-jacques","Saint-Jacques",0,1449,"blue"],
+["st168","st41","P","leissières-2","Leissières",0,297,"blue"],
+["st130","st169","P","3j","3J",0,738,"blue"],
+["st70","st170","P","violettes","Violettes",0,469,"blue"],
+["st44","st41","P","fourche","Fourche",0,616,"blue"],
+["st132","st171","P","petit-bois","Petit Bois",0,657,"red"],
+["st35","st33","P","cascade","Cascade",0,1150,"red"],
+["st172","st95","P","g","G",0,313,"red"],
+["st173","st174","P","joubarbe","Joubarbe",0,593,"blue"],
+["st23","st175","P","cairn","Cairn",0,1482,"blue"],
+["st176","st177","P","roches","Roches",0,1790,"red"],
+["st178","st179","P","fontaine-froide-2","Fontaine Froide",0,224,"red"],
+["st135","st17","P","chemin-vers-le-lavachet-piste-non-répertoriée","Chemin vers le Lavachet (piste non répertoriée)",0,262,"grey"],
+["st16","st180","P","piste-90410038",null,0,708,"blue"],
+["st16","st181","P","prémou","Prémou",0,414,"blue"],
+["st182","st9","P","double-m","Double M",0,2874,"red"],
+["st183","st35","P","piste-94376872",null,0,186,"blue"],
+["st184","st185","P","piste-148902809",null,0,210,"red"],
+["st96","st4","P","diebold-3","Diebold",0,812,"blue"],
+["st96","st83","P","verte","Verte",0,1049,"green"],
+["st186","st21","P","lac-2","Lac",0,145,"blue"],
+["st138","st17","P","petit-col-3","Petit Col",0,423,"blue"],
+["st187","st29","P","face-de-bellevarde-2","Face de Bellevarde",0,284,"black"],
+["st122","st80","P","pitots-2","Pitots",0,8,"blue"],
+["st16","st125","P","merles-stade-de-lognan-compétitions-2","Merles, Stade de Lognan-Compétitions",0,17,"blue"],
+["st163","st9","P","cirse","Cirse",0,546,"red"],
+["st39","st188","P","signal-bas","Signal Bas",0,692,"black"],
+["st189","st190","P","fresse","Fresse",0,2203,"green"],
+["st74","st5","P","verte-mont-blanc","Verte, Mont Blanc",0,805,"green"],
+["st29","st56","P","collet","Collet",0,1379,"blue"],
+["st5","st95","P","verte-2","Verte",0,756,"green"],
+["st92","st191","P","vallon","Vallon",0,1687,"blue"],
+["st79","st78","P","piste-450069771",null,0,166,"green"],
+["st79","st78","P","piste-450069772",null,0,165,"green"],
+["st101","st86","P","chardons","Chardons",0,572,"red"],
+["st102","st0","P","mélèzes-4","Mélèzes",0,32,"red"],
+["st192","st101","P","arcosses-2","Arcosses",0,344,"red"],
+["st39","st31","P","pyramides","Pyramides",0,1978,"blue"],
+["st29","st130","P","verte-4","Verte",0,271,"green"],
+["st11","st9","P","piste-767659103",null,0,149,"blue"],
+["st177","st33","P","parking-ski-d-été","Parking Ski d'été",0,556,"blue"],
+["st193","st30","P","mangard","Mangard",0,1784,"red"],
+["st79","st194","P","le-plan","Le Plan",0,891,"red"],
+["st159","st195","P","santons-haut-2","Santons haut",0,262,"red"],
+["st60","st18","P","digues-2","Digues",0,219,"green"],
+["st84","st83","P","lanche","Lanche",0,256,"green"],
+["st196","st8","P","bec-rouge","Bec Rouge",0,609,"blue"],
+["st164","st73","P","crocus","Crocus",0,871,"black"],
+["st198","st199","P","piste-1390571590",null,0,609,"blue"],
+["st154","st200","P","dahu-2","Dahu",0,256,"red"],
+["st27","st201","P","piste-1390576814",null,0,562,"red"],
+["st27","st202","P","piste-1390576816",null,0,190,"red"],
+["st24","st142","P","leisse","Leisse",0,333,"red"],
+["st203","st2","P","aigle","Aigle",0,815,"red"],
+["st44","st204","P","piste-1550312769",null,0,508,"red"],
+["st12","st9","P","carline","Carline",0,1651,"blue"],
+["st68","st15","P","accès-merles","Accès Merles",0,337,"blue"],
+["st18","st8","P","retour-lavachet","Retour Lavachet",0,260,"green"],
+["st19","st123","P","saxifrage","Saxifrage",0,752,"red"],
+["st24","st205","P","génépy","Génépy",0,4527,"blue"],
+["st25","st142","P","glacier","Glacier",0,1849,"red"],
+["st91","st153","P","col-2","Col",0,674,"blue"],
+["st36","st35","P","montet","Montet",0,789,"blue"],
+["st31","st193","P","mangard-2","Mangard",0,635,"blue"],
+["st206","st207","P","cognon","Cognon",0,927,"red"],
+["st36","st208","P","aiguille-pers","Aiguille Pers",0,1063,"blue"],
+["st209","st188","P","variante-col","Variante Col",0,487,"blue"],
+["st42","st210","P","plan-milet","Plan Milet",0,1222,"blue"],
+["st211","st41","P","leissières","Leissières",0,1495,"blue"],
+["st54","st41","P","col-de-la-madeleine-2","Col de la Madeleine",0,1015,"blue"],
+["st212","st2","P","bruyères","Bruyères",0,685,"blue"],
+["st7","st74","P","les-tines-edelweiss-2","Les Tines, Edelweiss",0,87,"blue"],
+["st29","st96","P","coupe-du-monde","Coupe du Monde",0,2550,"red"],
+["st54","st53","P","madeleine","Madeleine",0,1026,"green"],
+["st213","st53","P","madeleine-2","Madeleine",0,216,"green"],
+["st28","st159","P","épaule-du-charvet","Épaule du Charvet",0,1950,"black"],
+["st160","st5","P","edelweiss-2","Edelweiss",0,658,"blue"],
+["st114","st96","P","criterium","Criterium",0,697,"blue"],
+["st108","st1","P","airelles-2","Airelles",0,462,"blue"],
+["st72","st13","P","signal","Signal",0,1577,"blue"],
+["st64","st63","P","savonnette-2","Savonnette",0,226,"green"],
+["st211","st214","P","piste-47492026",null,0,216,"blue"],
+["st91","st92","P","pont-abatte","Pont Abatte",0,1136,"blue"],
+["st79","st215","P","lac-parc-à-moutons","Lac/Parc à Moutons",0,794,"blue"],
+["st51","st166","P","face-4","Face",0,269,"black"],
+["st65","st64","P","combe-martin","Combe Martin",0,317,"black"],
+["st33","st66","P","pays-désert","Pays Désert",0,599,"blue"],
+["st113","st33","P","traversée-des-arses","Traversée des Arses",0,970,"blue"],
+["st57","st56","P","grand-pré","Grand Pré",0,1360,"green"],
+["st3","st2","P","cyclamen","Cyclamen",0,1235,"red"],
+["st107","st13","P","grattalu","Grattalu",0,1085,"blue"],
+["st216","st142","P","piste-89751998",null,0,386,"blue"],
+["st125","st9","P","piste-90410040",null,0,449,"red"],
+["st7","st62","P","grand-stade","Grand Stade",0,458,"red"],
+["st169","st62","P","piste-90499105",null,0,183,"green"],
+["st184","st105","P","orange","Orange",0,1702,"red"],
+["st32","st37","P","isérane","Isérane",0,808,"blue"],
+["st218","st219","P","piste-148902811",null,0,370,"blue"],
+["st120","st50","P","traversée-du-rogoney-2","Traversée du Rogoney",0,366,"red"],
+["st89","st220","P","myosotis","Myosotis",0,927,"red"],
+["st60","st8","P","rosset","Rosset",0,328,"blue"],
+["st107","st15","P","lac","Lac",0,1575,"blue"],
+["st142","st146","P","rimaye","Rimaye",0,1098,"red"],
+["st24","st182","P","rabotch","Rabotch",0,1141,"blue"],
+["st14","st107","P","grattalu-2","Grattalu",0,531,"blue"],
+["st61","st13","P","pramecou","Pramecou",0,2931,"black"],
+["st46","st43","P","aiglon","Aiglon",0,1061,"red"],
+["st1","st101","P","mélèzes-2","Mélèzes",0,321,"blue"],
+["st23","st221","P","face-2","Face",0,391,"red"],
+["st222","st28","P","génépy-2","Génépy",0,2221,"green"],
+["st189","st223","P","isolée","Isolée",0,1057,"blue"],
+["st224","st225","P","poney-2","Poney",0,398,"blue"],
+["st41","st45","P","piste-l","Piste L",0,2503,"red"],
+["st157","st65","P","rhône-alpes","Rhône-Alpes",0,971,"black"],
+["st102","st0","P","mélèzes-5","Mélèzes",0,32,"red"],
+["st105","st94","P","piste-765127823",null,0,159,"grey"],
+["st134","st120","P","traversée-du-rogoney","Traversée du Rogoney",0,467,"blue"],
+["st71","st104","P","joubarbe-2","Joubarbe",0,391,"blue"],
+["st64","st50","P","village-i-village-ii-2","Village-I, Village-II",0,8,"green"],
+["st64","st50","P","village-ii","Village-II",0,389,"green"],
+["st25","st216","P","descente","Descente",0,2577,"black"],
+["st43","st226","P","germain-mattis","Germain Mattis",0,2113,"red"],
+["st73","st227","P","piste-1154843729",null,0,186,"blue"],
+["st25","st27","P","piste-1390576812",null,0,622,"red"],
+["st182","st49","P","epena","Epena",0,677,"red"],
+["st24","st154","P","piste-1549507069",null,0,450,"red"],
+["st80","st85","W",null,"Walk to Tignes 1800 / Boisses / Brévières (1599m)",0,238,null],
+["st85","st80","W",null,"Walk to Tignes 1800 / Boisses / Brévières (1565m)",0,238,null],
+["st80","st122","W",null,"Walk to Tignes 1800 / Boisses / Brévières (1625m)",0,325,null],
+["st122","st80","W",null,"Walk to Tignes 1800 / Boisses / Brévières (1565m)",0,325,null],
+["st80","st150","W",null,"Walk to Tignes 1800 / Boisses / Brévières (1837m)",0,665,null],
+["st150","st80","W",null,"Walk to Tignes 1800 / Boisses / Brévières (1565m)",0,665,null],
+["st103","st90","W",null,"Walk to Aiguille Percée (2423m)",0,197,null],
+["st90","st103","W",null,"Walk to Aiguille Percée (2399m)",0,197,null],
+["st103","st2","W",null,"Walk to Aiguille Percée (2430m)",0,479,null],
+["st2","st103","W",null,"Walk to Aiguille Percée (2399m)",0,479,null],
+["st103","st162","W",null,"Walk to Aiguille Percée (2477m)",0,557,null],
+["st162","st103","W",null,"Walk to Aiguille Percée (2399m)",0,557,null],
+["st103","st212","W",null,"Walk to Aiguille Percée (2538m)",0,900,null],
+["st212","st103","W",null,"Walk to Aiguille Percée (2399m)",0,900,null],
+["st103","st19","W",null,"Walk to Aiguille Percée (2548m)",0,534,null],
+["st19","st103","W",null,"Walk to Aiguille Percée (2399m)",0,534,null],
+["st103","st22","W",null,"Walk to Aiguille Percée (2568m)",0,850,null],
+["st22","st103","W",null,"Walk to Aiguille Percée (2399m)",0,850,null],
+["st4","st83","W",null,"Walk to La Daille (1805m)",0,191,null],
+["st83","st4","W",null,"Walk to La Daille (1801m)",0,191,null],
+["st4","st84","W",null,"Walk to La Daille (1839m)",0,364,null],
+["st84","st4","W",null,"Walk to La Daille (1801m)",0,364,null],
+["st4","st94","W",null,"Walk to La Daille (1861m)",0,266,null],
+["st94","st4","W",null,"Walk to La Daille (1801m)",0,266,null],
+["st4","st105","W",null,"Walk to La Daille (1926m)",0,474,null],
+["st105","st4","W",null,"Walk to La Daille (1801m)",0,474,null],
+["st4","st96","W",null,"Walk to La Daille (2008m)",0,725,null],
+["st96","st4","W",null,"Walk to La Daille (1801m)",0,725,null],
+["st5","st93","W",null,"Walk to Tovière (2318m)",0,203,null],
+["st93","st5","W",null,"Walk to Tovière (2271m)",0,203,null],
+["st5","st185","W",null,"Walk to Tovière (2375m)",0,452,null],
+["st185","st5","W",null,"Walk to Tovière (2271m)",0,452,null],
+["st5","st74","W",null,"Walk to Tovière (2387m)",0,674,null],
+["st74","st5","W",null,"Walk to Tovière (2271m)",0,674,null],
+["st5","st184","W",null,"Walk to Tovière (2410m)",0,561,null],
+["st184","st5","W",null,"Walk to Tovière (2271m)",0,561,null],
+["st5","st117","W",null,"Walk to Tovière (2436m)",0,795,null],
+["st117","st5","W",null,"Walk to Tovière (2271m)",0,795,null],
+["st17","st135","W",null,"Walk to Tignes Le Lac (2080m)",0,209,null],
+["st135","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,209,null],
+["st17","st8","W",null,"Walk to Tignes Le Lac (2093m)",0,425,null],
+["st8","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,425,null],
+["st17","st18","W",null,"Walk to Tignes Le Lac (2104m)",0,402,null],
+["st18","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,402,null],
+["st17","st67","W",null,"Walk to Tignes Le Lac (2119m)",0,783,null],
+["st67","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,783,null],
+["st17","st138","W",null,"Walk to Tignes Le Lac (2142m)",0,378,null],
+["st138","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,378,null],
+["st17","st60","W",null,"Walk to Tignes Le Lac (2145m)",0,600,null],
+["st60","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,600,null],
+["st17","st133","W",null,"Walk to Tignes Le Lac (2149m)",0,558,null],
+["st133","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,558,null],
+["st17","st196","W",null,"Walk to Tignes Le Lac (2166m)",0,691,null],
+["st196","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,691,null],
+["st17","st128","W",null,"Walk to Tignes Le Lac (2180m)",0,419,null],
+["st128","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,419,null],
+["st17","st124","W",null,"Walk to Tignes Le Lac (2183m)",0,868,null],
+["st124","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,868,null],
+["st17","st121","W",null,"Walk to Tignes Le Lac (2198m)",0,764,null],
+["st121","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,764,null],
+["st17","st71","W",null,"Walk to Tignes Le Lac (2272m)",0,752,null],
+["st71","st17","W",null,"Walk to Tignes Le Lac (2060m)",0,752,null],
+["st9","st11","W",null,"Walk to Tignes Val Claret (2134m)",0,262,null],
+["st11","st9","W",null,"Walk to Tignes Val Claret (2120m)",0,262,null],
+["st9","st163","W",null,"Walk to Tignes Val Claret (2159m)",0,436,null],
+["st163","st9","W",null,"Walk to Tignes Val Claret (2120m)",0,436,null],
+["st9","st127","W",null,"Walk to Tignes Val Claret (2169m)",0,365,null],
+["st127","st9","W",null,"Walk to Tignes Val Claret (2120m)",0,365,null],
+["st9","st126","W",null,"Walk to Tignes Val Claret (2195m)",0,379,null],
+["st126","st9","W",null,"Walk to Tignes Val Claret (2120m)",0,379,null],
+["st9","st10","W",null,"Walk to Tignes Val Claret (2210m)",0,552,null],
+["st10","st9","W",null,"Walk to Tignes Val Claret (2120m)",0,552,null],
+["st9","st125","W",null,"Walk to Tignes Val Claret (2234m)",0,560,null],
+["st125","st9","W",null,"Walk to Tignes Val Claret (2120m)",0,560,null],
+["st9","st131","W",null,"Walk to Tignes Val Claret (2260m)",0,776,null],
+["st131","st9","W",null,"Walk to Tignes Val Claret (2120m)",0,776,null],
+["st9","st112","W",null,"Walk to Tignes Val Claret (2296m)",0,754,null],
+["st112","st9","W",null,"Walk to Tignes Val Claret (2120m)",0,754,null],
+["st146","st219","W",null,"Walk to Grande Motte Glacier (2843m)",0,863,null],
+["st219","st146","W",null,"Walk to Grande Motte Glacier (2840m)",0,863,null],
+["st146","st154","W",null,"Walk to Grande Motte Glacier (2890m)",0,269,null],
+["st154","st146","W",null,"Walk to Grande Motte Glacier (2840m)",0,269,null],
+["st146","st200","W",null,"Walk to Grande Motte Glacier (2891m)",0,368,null],
+["st200","st146","W",null,"Walk to Grande Motte Glacier (2840m)",0,368,null],
+["st146","st141","W",null,"Walk to Grande Motte Glacier (2928m)",0,884,null],
+["st141","st146","W",null,"Walk to Grande Motte Glacier (2840m)",0,884,null],
+["st146","st140","W",null,"Walk to Grande Motte Glacier (2955m)",0,852,null],
+["st140","st146","W",null,"Walk to Grande Motte Glacier (2840m)",0,852,null],
+["st146","st218","W",null,"Walk to Grande Motte Glacier (2955m)",0,650,null],
+["st218","st146","W",null,"Walk to Grande Motte Glacier (2840m)",0,650,null],
+["st146","st143","W",null,"Walk to Grande Motte Glacier (2965m)",0,471,null],
+["st143","st146","W",null,"Walk to Grande Motte Glacier (2840m)",0,471,null],
+["st146","st24","W",null,"Walk to Grande Motte Glacier (3016m)",0,737,null],
+["st24","st146","W",null,"Walk to Grande Motte Glacier (2840m)",0,737,null],
+["st50","st63","W",null,"Walk to Val d'Isère Village (1842m)",0,269,null],
+["st63","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,269,null],
+["st50","st120","W",null,"Walk to Val d'Isère Village (1861m)",0,327,null],
+["st120","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,327,null],
+["st50","st75","W",null,"Walk to Val d'Isère Village (1882m)",0,473,null],
+["st75","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,473,null],
+["st50","st119","W",null,"Walk to Val d'Isère Village (1883m)",0,658,null],
+["st119","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,658,null],
+["st50","st195","W",null,"Walk to Val d'Isère Village (1883m)",0,895,null],
+["st195","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,895,null],
+["st50","st64","W",null,"Walk to Val d'Isère Village (1887m)",0,359,null],
+["st64","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,359,null],
+["st50","st134","W",null,"Walk to Val d'Isère Village (1958m)",0,768,null],
+["st134","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,768,null],
+["st50","st76","W",null,"Walk to Val d'Isère Village (1987m)",0,685,null],
+["st76","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,685,null],
+["st50","st65","W",null,"Walk to Val d'Isère Village (1995m)",0,596,null],
+["st65","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,596,null],
+["st50","st166","W",null,"Walk to Val d'Isère Village (2073m)",0,701,null],
+["st166","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,701,null],
+["st50","st52","W",null,"Walk to Val d'Isère Village (2151m)",0,828,null],
+["st52","st50","W",null,"Walk to Val d'Isère Village (1835m)",0,828,null],
+["st207","st30","W",null,"Walk to Le Fornet (1942m)",0,168,null],
+["st30","st207","W",null,"Walk to Le Fornet (1938m)",0,168,null],
+["st207","st206","W",null,"Walk to Le Fornet (2094m)",0,674,null],
+["st206","st207","W",null,"Walk to Le Fornet (1938m)",0,674,null],
+["st207","st193","W",null,"Walk to Le Fornet (2218m)",0,685,null],
+["st193","st207","W",null,"Walk to Le Fornet (1938m)",0,685,null],
+["st45","st97","W",null,"Walk to Le Laisinant (1925m)",0,319,null],
+["st97","st45","W",null,"Walk to Le Laisinant (1865m)",0,319,null],
+["st45","st226","W",null,"Walk to Le Laisinant (1990m)",0,563,null],
+["st226","st45","W",null,"Walk to Le Laisinant (1865m)",0,563,null]
+];
+const GRAPH_EDGES = EDGE_RAW.map(r => ({ from:r[0], to:r[1], kind:r[2], refId:r[3], name:r[4], scott:r[5], dist:r[6], diff:r[7] }));
+
 const TYPE_META = {
   "chair_lift":  { label: "Chairlift", icon: "🪑", group: "chair" },
   "gondola":     { label: "Gondola", icon: "🚠", group: "gondola" },
@@ -1166,6 +1895,211 @@ function clearSectorFocus(){
   document.querySelectorAll(".sector-label, .sector-sub, .sector-blob, .hub-dot").forEach(elm=> elm.classList.remove("dim"));
 }
 document.getElementById("showAllBtn").onclick = clearSectorFocus;
+
+/* ───────────────────────── ROUTE PLANNER ───────────────────────── */
+(function(){
+  const fromSel = document.getElementById("routeFrom");
+  const toSel = document.getElementById("routeTo");
+  const routeResult = document.getElementById("routeResult");
+
+  const bySector = {};
+  STATIONS.forEach(s => { (bySector[s.sector] = bySector[s.sector] || []).push(s); });
+  function fillSelect(sel){
+    Object.keys(SECTORS).forEach(secId=>{
+      const list = bySector[secId];
+      if(!list || !list.length) return;
+      const og = document.createElement("optgroup");
+      og.label = SECTORS[secId].name;
+      list.slice().sort((a,b)=>a.elev-b.elev).forEach(s=>{
+        const opt = document.createElement("option");
+        opt.value = s.id; opt.textContent = s.label;
+        og.appendChild(opt);
+      });
+      sel.appendChild(og);
+    });
+  }
+  fillSelect(fromSel); fillSelect(toSel);
+  // Pick a default pair that's guaranteed to actually connect (and makes a good first
+  // impression) rather than a hand-picked pair that might not exist in the real, imperfect
+  // graph: find the best-connected station, then the farthest-away station it can still reach.
+  if(STATIONS.length > 1){
+    const fwdAdj = {};
+    STATIONS.forEach(s => fwdAdj[s.id] = []);
+    GRAPH_EDGES.forEach(e => fwdAdj[e.from].push(e.to));
+    function reachableFrom(id){
+      const seen = new Set([id]), q=[id];
+      while(q.length){ const u=q.pop(); for(const v of fwdAdj[u]) if(!seen.has(v)){ seen.add(v); q.push(v); } }
+      return seen;
+    }
+    let bestFrom = STATIONS[0], bestReach = reachableFrom(STATIONS[0].id);
+    STATIONS.forEach(s=>{
+      const r = reachableFrom(s.id);
+      if(r.size > bestReach.size){ bestReach = r; bestFrom = s; }
+    });
+    let bestTo = bestFrom, bestD = -1;
+    bestReach.forEach(id=>{
+      if(id === bestFrom.id) return;
+      const s = STATION_BY_ID[id];
+      const d = Math.hypot(s.x-bestFrom.x, s.y-bestFrom.y);
+      if(d > bestD){ bestD = d; bestTo = s; }
+    });
+    fromSel.value = bestFrom.id; toSel.value = bestTo.id;
+  }
+  document.getElementById("routeSwap").onclick = ()=>{
+    const a = fromSel.value; fromSel.value = toSel.value; toSel.value = a;
+  };
+
+  const routeGrades = new Set(["green","blue","red","black"]);
+  document.querySelectorAll(".chip[data-grade]").forEach(chip=>{
+    chip.onclick = ()=>{
+      chip.classList.toggle("active");
+      const g = chip.dataset.grade;
+      chip.classList.contains("active") ? routeGrades.add(g) : routeGrades.delete(g);
+    };
+  });
+
+  // Dijkstra, weighted so ANY reduction in total Scott penalty always wins over distance —
+  // 121 stations is small enough that a plain O(V²) scan per step is instant, no heap needed.
+  const SCOTT_W = 100000;
+  function buildAdjacency(){
+    const adj = {};
+    STATIONS.forEach(s => adj[s.id] = []);
+    GRAPH_EDGES.forEach(e=>{
+      if(e.kind==="P" && e.diff && ["green","blue","red","black"].includes(e.diff) && !routeGrades.has(e.diff)) return;
+      adj[e.from].push(e);
+    });
+    return adj;
+  }
+  function findRoute(startId, endId){
+    const adj = buildAdjacency();
+    const dist = {}, prevEdge = {}, visited = new Set();
+    STATIONS.forEach(s => dist[s.id] = Infinity);
+    dist[startId] = 0;
+    while(true){
+      let u=null, best=Infinity;
+      for(const s of STATIONS){ if(!visited.has(s.id) && dist[s.id]<best){ best=dist[s.id]; u=s.id; } }
+      if(u===null || u===endId) break;
+      visited.add(u);
+      for(const e of adj[u]){
+        const nd = dist[u] + e.scott*SCOTT_W + e.dist;
+        if(nd < dist[e.to]){ dist[e.to] = nd; prevEdge[e.to] = e; }
+      }
+    }
+    if(dist[endId] === Infinity) return null;
+    const path = []; let cur = endId;
+    while(cur !== startId){
+      const e = prevEdge[cur];
+      if(!e) return null;
+      path.unshift(e); cur = e.from;
+    }
+    return path;
+  }
+
+  let routeGroup = null;
+  function clearRouteHighlight(){ if(routeGroup){ routeGroup.remove(); routeGroup = null; } }
+
+  function pistePoints(p){ return p.points.split(" ").map(pt => pt.split(",").map(Number)); }
+
+  function highlightRoute(path){
+    clearRouteHighlight();
+    routeGroup = el("g", {id:"routeGroup"});
+    svg.appendChild(routeGroup);
+    const xs=[], ys=[];
+    path.forEach(e=>{
+      if(e.kind==="L"){
+        const l = LIFTS.find(x=>x.id===e.refId);
+        if(!l) return;
+        const w = strokeWidth(l.cap);
+        routeGroup.appendChild(el("line",{x1:l.x1,y1:l.y1,x2:l.x2,y2:l.y2,class:"route-glow",stroke:"#ffffff","stroke-width":w+7,opacity:.35}));
+        routeGroup.appendChild(el("line",{x1:l.x1,y1:l.y1,x2:l.x2,y2:l.y2,class:"route-glow",stroke:"#22d3ee","stroke-width":w+2.5}));
+        xs.push(l.x1,l.x2); ys.push(l.y1,l.y2);
+      } else if(e.kind==="P"){
+        const p = PISTES.find(x=>x.id===e.refId);
+        if(!p) return;
+        routeGroup.appendChild(el("polyline",{points:p.points,class:"route-glow",stroke:"#ffffff","stroke-width":8,opacity:.35}));
+        routeGroup.appendChild(el("polyline",{points:p.points,class:"route-glow",stroke:"#22d3ee","stroke-width":3.5}));
+        pistePoints(p).forEach(([x,y])=>{ xs.push(x); ys.push(y); });
+      } else {
+        // "W" — not a mapped lift or piste, just walking between two nearby lift stations in
+        // the same area. Drawn as a plain dashed line so it never reads as a real waymarked run.
+        const a = STATION_BY_ID[e.from], b = STATION_BY_ID[e.to];
+        if(!a || !b) return;
+        routeGroup.appendChild(el("line",{x1:a.x,y1:a.y,x2:b.x,y2:b.y,class:"route-glow",stroke:"#cfe3fa","stroke-width":2.5,"stroke-dasharray":"1,6",opacity:.85}));
+        xs.push(a.x,b.x); ys.push(a.y,b.y);
+      }
+    });
+    if(xs.length){
+      const rect = wrap.getBoundingClientRect();
+      const aspect = rect.width/rect.height || (BASE.w/BASE.h);
+      const pad = 90;
+      let W = (Math.max(...xs)-Math.min(...xs))+2*pad, H = (Math.max(...ys)-Math.min(...ys))+2*pad;
+      if(W/H < aspect) W = H*aspect; else H = W/aspect;
+      vb = { x:(Math.min(...xs)+Math.max(...xs))/2 - W/2, y:(Math.min(...ys)+Math.max(...ys))/2 - H/2, w:W, h:H };
+      applyVB();
+    }
+  }
+
+  function scoreVerdict(score){
+    if(score===0) return {label:"Scott's dream route", color:"var(--chair-fast)"};
+    if(score<=2)  return {label:"Scott will survive",  color:"var(--funicular)"};
+    if(score<=4)  return {label:"Scott will complain loudly", color:"var(--cablecar)"};
+    return {label:"Scott is never speaking to you again", color:"var(--gondola)"};
+  }
+
+  function resetResultPanel(){
+    clearRouteHighlight();
+    routeResult.innerHTML = `<p class="route-empty">Pick a start and an end, then find the route that puts Scott through the least amount of gondola. Ties are broken by distance.</p>`;
+  }
+
+  document.getElementById("findRouteBtn").onclick = ()=>{
+    const startId = fromSel.value, endId = toSel.value;
+    if(startId === endId){
+      clearRouteHighlight();
+      routeResult.innerHTML = `<p class="route-empty">Pick two different stations.</p>`;
+      return;
+    }
+    const path = findRoute(startId, endId);
+    if(!path){
+      clearRouteHighlight();
+      routeResult.innerHTML = `<p class="route-empty">No route found with the pistes you're happy with — try allowing another grade.</p>`;
+      return;
+    }
+    const totalScott = path.reduce((s,e)=>s+e.scott,0);
+    const totalDist = path.reduce((s,e)=>s+e.dist,0);
+    const gondolaCount = path.filter(e=>e.kind==="L" && e.scott===3).length;
+    const v = scoreVerdict(totalScott);
+    const stepsHTML = path.map(e=>{
+      if(e.kind==="L"){
+        const l = LIFTS.find(x=>x.id===e.refId);
+        const icon = l ? TYPE_META[l.type].icon : "🚡";
+        const tagColor = e.scott===0?"var(--chair-fast)": e.scott===1?"var(--funicular)": e.scott===2?"var(--cablecar)":"var(--gondola)";
+        const tagText = e.scott===0 ? "fine by Scott" : `Scott +${e.scott}`;
+        return `<div class="route-step"><span class="step-icon">${icon}</span><span class="step-name">${e.name}</span><span class="step-tag" style="background:${tagColor}33;color:${tagColor}">${tagText}</span></div>`;
+      }
+      if(e.kind==="P"){
+        const dc = PISTE_COLOR[e.diff] || PISTE_COLOR.grey;
+        return `<div class="route-step"><span class="step-icon">⛷</span><span class="step-name">${e.name || "Unnamed piste"}</span><span class="step-tag" style="background:${dc}33;color:${dc}">${e.diff||"?"}</span></div>`;
+      }
+      return `<div class="route-step"><span class="step-icon">🚶</span><span class="step-name">${e.name}</span><span class="step-tag" style="background:rgba(207,227,250,.15);color:#cfe3fa">on foot</span></div>`;
+    }).join("");
+    routeResult.innerHTML = `
+      <div class="route-score" style="background:${v.color}18">
+        <div class="num" style="color:${v.color}">${totalScott}</div>
+        <div class="lbl">Scott Penalty Score</div>
+        <div class="verdict" style="color:${v.color}">${v.label}</div>
+      </div>
+      <div class="route-meta">
+        <div><b>${path.length}</b>steps</div>
+        <div><b>${(totalDist/1000).toFixed(1)} km</b>distance</div>
+        <div><b>${gondolaCount}</b>gondola${gondolaCount===1?"":"s"}</div>
+      </div>
+      ${stepsHTML}
+      <button id="routeClearBtn">Clear route</button>
+    `;
+    document.getElementById("routeClearBtn").onclick = resetResultPanel;
+    highlightRoute(path);
+  };
+})();
 </script>
 </body>
 </html>
