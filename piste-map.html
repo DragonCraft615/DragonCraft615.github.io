@@ -1911,21 +1911,51 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
   const routeResult = document.getElementById("routeResult");
 
   // The full 224-station graph includes piste-to-piste junctions that only exist to route
-  // *through* — picking "where you are" among those would be meaningless (and made the list
-  // unusably long). Only stations that are actually the base or top of a real lift are
-  // offered here; junction-only stations remain fully usable as pass-through points mid-route.
-  const PICKABLE = STATIONS.filter(s => s.hasLift);
-  const bySector = {};
-  PICKABLE.forEach(s => { (bySector[s.sector] = bySector[s.sector] || []).push(s); });
+  // *through* — picking "where you are" among those would be meaningless. Restricting to
+  // lift base/top stations alone still left a dozen near-duplicate "Tignes Val Claret (2108m)",
+  // "(2144m)", "(2169m)"... entries per sector (every lift based a few dozen metres apart from
+  // the next stayed a separate station, since the 130m clustering threshold — picked to avoid
+  // merging real lifts into each other — is tighter than a whole village). So: group lift
+  // stations within each sector into Base/Mid/Top areas. A single big gap isn't a reliable
+  // splitter on its own — Val Claret has a dozen lift stations climbing steadily from 2120m to
+  // 2848m with no single jump over 180m, so gap-only clustering lumped the entire mountainside
+  // into one "area". Instead pick a target group count from the sector's total elevation range
+  // (a wide spread should never be "one area" even without an obvious gap), then split at
+  // whichever gaps are actually the biggest — so a genuine gap still wins the split when one
+  // exists, and a steady climb still gets divided sensibly when one doesn't.
+  const AREAS = [];
+  Object.keys(SECTORS).forEach(secId=>{
+    const list = STATIONS.filter(s => s.hasLift && s.sector===secId).sort((a,b)=>a.elev-b.elev);
+    if(!list.length) return;
+    const range = list[list.length-1].elev - list[0].elev;
+    const k = Math.min(list.length, range<=300 ? 1 : range<=700 ? 2 : 3);
+    const gaps = [];
+    for(let i=1;i<list.length;i++) gaps.push({i, size: list[i].elev-list[i-1].elev});
+    const splitAt = new Set(gaps.sort((a,b)=>b.size-a.size).slice(0,k-1).map(g=>g.i));
+    const groups = [[list[0]]];
+    for(let i=1;i<list.length;i++){
+      if(splitAt.has(i)) groups.push([]);
+      groups[groups.length-1].push(list[i]);
+    }
+    groups.forEach((g,i)=>{
+      const rep = i===0 ? g[0] : i===groups.length-1 ? g[g.length-1] : g[Math.floor(g.length/2)];
+      const qualifier = groups.length===1 ? "" :
+        i===0 ? " — Base" : i===groups.length-1 ? " — Top" :
+        groups.length===3 ? " — Mid" : ` — Mid ${i}`;
+      AREAS.push({ id: rep.id, sector: secId, elev: rep.elev, x: rep.x, y: rep.y,
+                   label: SECTORS[secId].name + qualifier });
+    });
+  });
+
   function fillSelect(sel){
     Object.keys(SECTORS).forEach(secId=>{
-      const list = bySector[secId];
-      if(!list || !list.length) return;
+      const list = AREAS.filter(a => a.sector===secId).sort((a,b)=>a.elev-b.elev);
+      if(!list.length) return;
       const og = document.createElement("optgroup");
       og.label = SECTORS[secId].name;
-      list.slice().sort((a,b)=>a.elev-b.elev).forEach(s=>{
+      list.forEach(a=>{
         const opt = document.createElement("option");
-        opt.value = s.id; opt.textContent = s.label;
+        opt.value = a.id; opt.textContent = a.label.replace(SECTORS[secId].name, "").replace(/^ — /, "") || "Main area";
         og.appendChild(opt);
       });
       sel.appendChild(og);
@@ -1934,8 +1964,8 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
   fillSelect(fromSel); fillSelect(toSel);
   // Pick a default pair that's guaranteed to actually connect (and makes a good first
   // impression) rather than a hand-picked pair that might not exist in the real, imperfect
-  // graph: find the best-connected station, then the farthest-away station it can still reach.
-  if(STATIONS.length > 1){
+  // graph: find the best-connected area, then the farthest-away area it can still reach.
+  if(AREAS.length > 1){
     const fwdAdj = {};
     STATIONS.forEach(s => fwdAdj[s.id] = []);
     GRAPH_EDGES.forEach(e => fwdAdj[e.from].push(e.to));
@@ -1944,18 +1974,16 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       while(q.length){ const u=q.pop(); for(const v of fwdAdj[u]) if(!seen.has(v)){ seen.add(v); q.push(v); } }
       return seen;
     }
-    let bestFrom = PICKABLE[0], bestReach = reachableFrom(PICKABLE[0].id);
-    PICKABLE.forEach(s=>{
-      const r = reachableFrom(s.id);
-      if(r.size > bestReach.size){ bestReach = r; bestFrom = s; }
+    let bestFrom = AREAS[0], bestReach = reachableFrom(AREAS[0].id);
+    AREAS.forEach(a=>{
+      const r = reachableFrom(a.id);
+      if(r.size > bestReach.size){ bestReach = r; bestFrom = a; }
     });
     let bestTo = bestFrom, bestD = -1;
-    bestReach.forEach(id=>{
-      if(id === bestFrom.id) return;
-      const s = STATION_BY_ID[id];
-      if(!s.hasLift) return;
-      const d = Math.hypot(s.x-bestFrom.x, s.y-bestFrom.y);
-      if(d > bestD){ bestD = d; bestTo = s; }
+    AREAS.forEach(a=>{
+      if(a.id === bestFrom.id || !bestReach.has(a.id)) return;
+      const d = Math.hypot(a.x-bestFrom.x, a.y-bestFrom.y);
+      if(d > bestD){ bestD = d; bestTo = a; }
     });
     fromSel.value = bestFrom.id; toSel.value = bestTo.id;
   }
