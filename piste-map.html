@@ -2519,7 +2519,12 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
     }
     if(e.kind==="P"){
       const dc = PISTE_COLOR[e.diff] || PISTE_COLOR.grey;
-      return `<div class="route-step"><span class="step-icon">⛷</span><span class="step-name">${e.name || "Unnamed piste"}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:${dc}33;color:${dc}">${e.diff||"unrated"}</span></div>`;
+      // Espace Killy has some infamous skate-or-die traverses — flag anything under ~5% gradient
+      // so a green-only skier isn't surprised by a flat run that needs poling, not just snowplough.
+      const a = STATION_BY_ID[e.from], b = STATION_BY_ID[e.to];
+      const flat = (a && b && e.dist > 0) ? (Math.abs(b.elev - a.elev) / e.dist) < 0.05 : false;
+      const tagText = (e.diff || "unrated") + (flat ? " ⚠️ flat" : "");
+      return `<div class="route-step"><span class="step-icon">⛷</span><span class="step-name">${e.name || "Unnamed piste"}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:${dc}33;color:${dc}">${tagText}</span></div>`;
     }
     const long = e.dist > WALK_LONG_M;
     const walkTag = long ? `⚠️ ${Math.round(e.dist)}m on foot` : "on foot";
