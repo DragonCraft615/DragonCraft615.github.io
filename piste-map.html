@@ -465,8 +465,7 @@ const RAW = [
 ["tcd10-des-boisses","TCD10 des Boisses","gondola","fast",3000,1088,405,2010,"tignes1800",0,0,517.1,152.1,450.1,241.7,3.88,1770,2175],
 ["aiguille-percée","Aiguille Percée","chair_lift","fast",2400,1026,294,2025,"percee",0,0,216.9,411.1,238.6,307.9,2.37,2431,2725],
 ["fornet","Fornet","cable_car","fast",1000,973,368,1973,"fornet",0,0,1224.0,698.4,1272.4,786.0,8.11,1942,2310],
-["leissières","Leissières","chair_lift","fast",2400,964,129,2003,"fornet",0,0,1335.1,1023.1,1293.0,1028.1,3.65,2689,2818],
-["leissières-pont-abatte","Leissières 2","chair_lift","fast",2400,1301,36,2003,"fornet",0,0,1384.4,1022.0,1257.3,1063.5,3.65,2754,2790],
+["leissières","Leissières Express","chair_lift","fast",2400,1085,27,2003,"fornet",0,0,1335.1,1023.1,1233.5,1036.7,5.0,2689,2716],
 ["bellevarde-express","Bellevarde Express","chair_lift","fast",2400,964,375,1989,"village",0,0,942.8,732.7,845.0,749.0,3.35,1832,2207],
 ["tcd8-des-brévières","TCD8 des Brévières","gondola","fast",2400,892,201,2018,"brevieres",0,0,498.6,59.4,516.1,149.5,1.86,1563,1764],
 ["madeleine-express","Madeleine Express","chair_lift","fast",3000,879,155,1998,"laisinant",0,0,1094.4,937.6,1110.5,1026.6,3.96,2519,2674],
@@ -930,10 +929,9 @@ const STATION_RAW = [
 ["st37","Le Fornet (2689m)","fornet",1335.9,1022.7,2689,1],
 ["st39","Le Fornet (2724m)","fornet",1359.8,883.2,2724,1],
 ["st33","Le Fornet (2728m)","fornet",1456.7,1028.8,2728,1],
-["st91","Le Fornet (2754m)","fornet",1384.4,1022.0,2754,1],
+["st91","Le Fornet (2754m)","fornet",1384.4,1022.0,2754,0],
 ["st32","Le Fornet (2785m)","fornet",1402.1,1032.8,2785,1],
 ["st177","Le Fornet (2789m)","fornet",1486.2,976.5,2789,0],
-["st38","Le Fornet (2818m)","fornet",1293.0,1028.1,2818,1],
 ["st113","Le Fornet (2874m)","fornet",1511.0,990.8,2874,0],
 ["st40","Le Fornet (2919m)","fornet",1416.0,876.4,2919,1],
 ["st59","Le Fornet (2942m)","fornet",1295.9,1063.7,2942,1],
@@ -1000,7 +998,7 @@ const STATION_RAW = [
 ["st54","Le Laisinant (2674m)","laisinant",1110.5,1026.6,2674,1],
 ["st47","Le Laisinant (2682m)","laisinant",1186.5,1068.8,2682,1],
 ["st214","Le Laisinant (2690m)","laisinant",1218.2,1036.7,2690,0],
-["st211","Le Laisinant (2716m)","laisinant",1233.5,1036.7,2716,0],
+["st211","Le Laisinant (2716m)","laisinant",1233.5,1036.7,2716,1],
 ["st42","Le Laisinant (2790m)","laisinant",1257.3,1063.5,2790,1],
 ["st48","Le Laisinant (2884m)","laisinant",1217.1,1142.7,2884,1],
 ["st103","Aiguille Percée (2399m)","percee",250.1,449.0,2399,0],
@@ -1137,8 +1135,8 @@ const EDGE_RAW = [
 ["st33","st32","L","céma","Céma",0,487,null],
 ["st33","st34","L","cascade","Cascade",0,1585,null],
 ["st35","st36","L","montet","Montet",0,840,null],
-["st37","st38","L","leissières","Leissières",0,964,null],
-["st38","st37","L","leissières","Leissières",0,964,null],
+["st37","st211","L","leissières","Leissières Express",0,1085,null],
+["st211","st37","L","leissières","Leissières Express",0,1085,null],
 ["st39","st40","L","signal-1","Signal 1",0,529,null],
 ["st41","st42","L","glacier","Glacier",0,1735,null],
 ["st43","st44","L","datcha","Datcha",0,834,null],
@@ -1550,7 +1548,6 @@ const EDGE_RAW = [
 ["st97","st45","W",null,"Walk",0,319,null],
 ["st45","st226","W",null,"Walk",0,563,null],
 ["st226","st45","W",null,"Walk",0,563,null],
-["st59","st38","W",null,"Walk (gap fill)",0,347,null],
 ["st77","st151","W",null,"Walk (gap fill)",0,144,null],
 ["st87","st0","W",null,"Walk (gap fill)",0,262,null],
 ["st99","st98","W",null,"Walk (gap fill)",0,200,null],
@@ -1587,16 +1584,8 @@ const EDGE_RAW = [
 ["st210","st168","W",null,"Walk (gap fill)",0,255,null],
 ["st214","st211","W",null,"Walk (gap fill)",0,149,null],
 ["st215","st43","W",null,"Walk (gap fill)",0,149,null],
-// Real second Leissières chair segment (see the long comment block below EDGE_RAW for the full
-// story) — st91 (Pont Abatte, Fornet) <-> st42 (Plan Milet, Laisinant/Solaise side), 1301m, a
-// second "leissières-pont-abatte" LIFTS entry near the top of RAW. Replaces an earlier st38<->st211
-// walk guess once the user supplied a screenshot showing this is a real, near-flat chair the
-// whole way — no walking required, matching "the lift starts in the valleys on both sides."
-["st91","st42","L","leissières-pont-abatte","Leissières 2",0,1301,null],
-["st42","st91","L","leissières-pont-abatte","Leissières 2",0,1301,null],
-["st38","st42","W",null,"Walk (gap fill)",0,489,null],
-["st42","st38","W",null,"Walk (gap fill)",0,489,null],
 ["st145","st171","W",null,"Walk (gap fill)",0,290,null],
+["st153","st31","P",null,"Col",0,1035,"blue"],
 ["st171","st145","W",null,"Walk (gap fill)",0,290,null],
 ["st59","st42","P",null,"3000",0,375,"black"],
 ["st59","st91","P",null,"Tunnel",0,952,"black"],
@@ -1654,14 +1643,32 @@ const EDGE_RAW = [
 // pieces" is well supported rather than a guess — it dropped the fraction of lift-station pairs
 // with literally no route at all from 51.7% to 25.7%.
 //
-// One more manual connector, originally added as a "W" walk between st38 (top of the Leissières
-// chair, Fornet/Pissaillas glacier side, 2818m) and st211 (top of the separate piste ALSO named
-// "Leissières", Laisinant/Solaise side, 2716m) — the user's first-pass description of the link.
-// Without something here the entire Fornet glacier cluster (Cascade, Céma, Pays Désert, Montet,
-// Signal, the "3000" platter) had no piste out at all except back the way it came, since "3000"'s
-// only other edge is the uphill lift itself. Later corrected — see the "leissières-pont-abatte"
-// entry further down in EDGE_RAW — once the user supplied a screenshot of the official map
-// showing this is actually a real second chair segment, not a walk.
+// The Leissières chair itself went through three revisions before landing on real, sourced data —
+// worth recording since each one taught something. (1) Original OSM pull clustered the lift's real
+// top endpoint to an existing nearby station, "st38" (2818m) — this was WRONG, a mis-clustering
+// artifact with no real-world counterpart, later deleted. (2) Fixed by adding a "W" walk from st38
+// to st211 (top of the separate piste also named "Leissières", Laisinant/Solaise side, 2716m) —
+// the user's first-pass description of the link ("get off the chair, walk over"). Without
+// something here the entire Fornet glacier cluster (Cascade, Céma, Pays Désert, Montet, Signal,
+// the "3000" platter) had no piste out at all, since "3000"'s only other edge is the uphill lift
+// itself. (3) User later beta-tested with a friend who found the chair wasn't being chosen for
+// routing, which prompted a proper re-investigation: a screenshot of the official map seemed to
+// show a second, much longer chair segment (Plan Milet to Pont Abatte) — added, then immediately
+// broke connectivity by orphaning the original st37/st38 segment, patched with yet another walk.
+// User then supplied skiresort.com's actual lift-by-lift data for "Leissières Express": a SINGLE
+// 1,085m chair, base 2,692m / top 2,723m (31m vertical — nearly flat despite being famous as "the
+// world's scariest chairlift" for cresting a ridge near the Ouillette peak mid-ride before
+// dropping to its real top station). Base matches st37 (2689m) almost exactly; top matches st211
+// (2716m), not st38 — confirming (1) was the actual bug all along, not st211. Deleted st38
+// entirely (it had no other real referent), redirected the lift to st37<->st211, 1085m, and
+// removed both the walk-over patch and the wrong second-segment lift. Moral: when OSM and a
+// screenshot both suggest an answer but a named lift's own spec sheet is available, get the spec
+// sheet — it settled in one lookup what three rounds of inference didn't.
+// Same investigation surfaced a second, independent gap nearby: "Col" (st91->st153, blue) already
+// existed but dead-ended at st153 with nothing onward — its only other edge was a walk toward
+// Arollay, the wrong direction. User confirmed it's actually a continuous run all the way down to
+// the Vallon de l'Iseran gondola's base (st31): "a straight blast down blues, no walking
+// required." Added st153->st31 as a real piste (1035m, blue), not a walk.
 // Also: st145 (bottom of "Arollay") only had a walk back up to st144 (the top of the very same
 // piste) — a closed loop with no real exit, missed by the automated gap-fill despite being only
 // 290m from st171, because st145 already had *an* edge and so wasn't flagged as a bare dangling
