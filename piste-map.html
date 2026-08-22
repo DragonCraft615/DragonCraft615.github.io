@@ -13,7 +13,7 @@
   --border: #1e1a2e; --text: #f0ede6; --sub: #a89880; --muted: #5c5248;
   --gold: #f5a623; --green: #2ecc71; --red: #e74c3c; --blue: #3498db;
   --fast: #2ecc71; --medium: #f5a623; --slow: #e74c3c;
-  --fast-chair: #15803d; --fast-gondola: #6ee7b7;
+  --fast-chair: #15803d; --fast-funicular: #16a34a; --fast-cablecar: #34d399; --fast-gondola: #6ee7b7;
 }
 
 html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -246,7 +246,9 @@ footer a { color: var(--gold); text-decoration: none; }
     <div class="panel">
       <h2>Legend</h2>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-chair)"></span> Fast chair — high-speed detachable chairlift (~5–6 m/s)</div>
-      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-gondola)"></span> Fast gondola/cable/funicular (~5–10 m/s)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-funicular)"></span> Fast funicular (~10–13 m/s)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-cablecar)"></span> Fast cable car / tramway (~10 m/s)</div>
+      <div class="legend-row"><span class="legend-swatch" style="background:var(--fast-gondola)"></span> Fast gondola (~5–6 m/s)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--medium)"></span> Standard — fixed-grip chairlift / older gondola (~2.5–4 m/s)</div>
       <div class="legend-row"><span class="legend-swatch" style="background:var(--slow)"></span> Slow — drag lift, carpet, rope tow (~1–3 m/s)</div>
       <div class="thickness-demo">
@@ -815,21 +817,33 @@ const LIFTS = RAW.map(r => ({
   speedMS:r[15], baseElev:r[16], topElev:r[17]
 }));
 
-// "Fast" is split by lift type — a fast chairlift and a fast gondola/cable car/funicular get
-// visually distinct greens, since lumping them together hid a real difference in the ride.
+// "Fast" is split by exact lift type, not just chair-vs-not — a chairlift, gondola, cable car,
+// and funicular are visually distinct shades of green rather than one shared colour. Kept as
+// its own lookup (not folded into TYPE_META) because this exact type→shade mapping is also
+// the hook the future Scott-Bailey routing score will read to weigh "how much of a gondola is
+// this really" (cable cars and funiculars ride very differently to a swinging gondola cabin).
+const FAST_TYPE_VAR = {
+  chair_lift: 'fast-chair', gondola: 'fast-gondola', cable_car: 'fast-cablecar', funicular: 'fast-funicular',
+};
+const FAST_TYPE_LABEL = {
+  chair_lift: 'Fast chair', gondola: 'Fast gondola', cable_car: 'Fast cable car', funicular: 'Fast funicular',
+};
 function speedColor(l){
-  if(l.speed === 'fast') return TYPE_META[l.type].group === 'chair' ? 'var(--fast-chair)' : 'var(--fast-gondola)';
+  if(l.speed === 'fast') return `var(--${FAST_TYPE_VAR[l.type] || 'fast-gondola'})`;
   return SPEED_META[l.speed].color;
 }
 function speedLabel(l){
-  if(l.speed === 'fast') return TYPE_META[l.type].group === 'chair' ? 'Fast chair' : 'Fast gondola/cable';
+  if(l.speed === 'fast') return FAST_TYPE_LABEL[l.type] || 'Fast';
   return SPEED_META[l.speed].label;
 }
 // Literal hex twins of the CSS custom properties above, for spots (like the alpha-blended
 // speed badge) that need to append an alpha suffix — you can't do "var(--x)22", only "#hex22".
-const HEX = { 'fast-chair':'#15803d', 'fast-gondola':'#6ee7b7', medium:'#f5a623', slow:'#e74c3c' };
+const HEX = {
+  'fast-chair':'#15803d', 'fast-funicular':'#16a34a', 'fast-cablecar':'#34d399', 'fast-gondola':'#6ee7b7',
+  medium:'#f5a623', slow:'#e74c3c'
+};
 function speedColorHex(l){
-  if(l.speed === 'fast') return TYPE_META[l.type].group === 'chair' ? HEX['fast-chair'] : HEX['fast-gondola'];
+  if(l.speed === 'fast') return HEX[FAST_TYPE_VAR[l.type] || 'fast-gondola'];
   return HEX[l.speed];
 }
 
