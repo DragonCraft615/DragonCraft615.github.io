@@ -2441,6 +2441,26 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
   // falls back to a typical value for its speed class, and "W" edges are walked in ski boots.
   const SKI_SPEED_MS = { green:4.2, blue:6.1, red:8.3, black:10.8, grey:6.1, orange:8.3 };
   const LIFT_SPEED_FALLBACK_MS = { fast:6.0, medium:3.0, slow:2.0 };
+  // Real observed speeds (2026-08-24), from the same 484 GPS tracks as the "have I skied this?"
+  // layer above: refId -> metres/second, median across every real, accepted GPS-matched visit to
+  // that piste/lift (97 of 348 pistes, 48 of 81 lifts — everywhere there's at least one clean
+  // observation). Piste speed = leg's own real haversine distance ÷ its share of the descent's
+  // recorded duration (point-count fraction, since Ski Tracks logs at ~constant time intervals but
+  // doesn't give per-vertex timestamps); lift speed = the lift's own real length ÷ the matched
+  // ride's recorded duration. 13 piste samples came back outside a sane 1.5-18 m/s ski-speed band
+  // (almost certainly a rest stop or photo break eating most of a short leg) and were dropped rather
+  // than trusted; none of the 48 lift samples needed dropping.
+  // Used in edgeSeconds() below in preference to the grade/speed-class estimate wherever it exists.
+  // Interesting, expected finding rather than a bug: plenty of real black/red pistes come back far
+  // slower than SKI_SPEED_MS's "black=10.8 m/s" assumption (many under 3 m/s) — SKI_SPEED_MS is a
+  // single idealized "blasting it" speed per grade, but named blacks here range from wide-open fast
+  // pitches to narrow mogul/tree runs genuinely skied at a careful crawl (Marmottons, Guerlain
+  // Chicherit, Épilobes among them) — real skier behaviour, not a matching error. Likewise several
+  // lift speeds (grande-motte, rosset, signal-2 all under 1 m/s) plausibly bake in real boarding-queue
+  // time that a lift's raw mechanical speed never would — arguably a feature for a route planner
+  // meant to reflect the actual experience, not a defect.
+  const OBSERVED_PISTE_SPEED = {'ancolie':2.36,'anemone':5.92,'anémone':4.28,'arcelle':4.4,'arollay':2.69,'bleuets':5.04,'bollin':4.01,'bruyères':4.41,'cairn':1.93,'carline':2.15,'cascade':3.51,'centre':3.09,'chardons':5.38,'chardons-3':1.58,'cirse':4.02,'club-des-sports':1.94,'col-de-la-madeleine':5.02,'collet':3.65,'combe':5.68,'combe-folle':4.8,'combe-martin':1.85,'corniche':2.09,'coupe-du-monde':3.73,'creux':1.61,'creux-2':1.58,'crocus':5.75,'crêtes':4.74,'cugnaï-2':1.72,'cyclamen':4.05,'dahu':4.72,'diebold':3.48,'diebold-4':3.09,'diebold-5':1.72,'double-m':5.74,'edelweiss':5.42,'epilobes':1.7,'face':3.63,'face-2':2.2,'face-de-bellevarde':3.21,'fontaine-froide':5.52,'fourche':1.81,'fresse':5.47,'glacier':5.46,'glacier-2':7.85,'grand-pré':2.72,'grattalu':3.31,'grattalu-2':3.29,'guerlain-chicherit':1.7,'génépy':5.13,'génépy-2':1.58,'johan-clarey':2.77,'lac':7.17,'lac-2':4.56,'lac-céma':2.64,'lac-parc-à-moutons':4.58,'lavachet':2.5,'leissières-2':6.03,'les-tines-edelweiss':2.77,'lys':6.81,'madeleine':4.09,'mangard':2.66,'marais':2.39,'marmottons':2.33,'merles':3.56,'montet':2.9,'moraine':4.21,'mur':2.66,'myosotis':1.98,'mélèzes-4':1.62,'orange':3.12,'pavot':2.1,'petit-col':5.9,'piste-l':3.7,'pitots':2.88,'plan-milet':3.98,'pont-abatte':5.45,'pramecou':2.35,'prariond':6.15,'prémou':2.3,'pyramides':2.14,'raye':2.47,'rhododendron':2.64,'rhône-alpes':1.94,'roches':3.02,'rocs':2.09,'sache':2.23,'saint-jacques':4.57,'santons-haut':3.31,'signal-2':4.2,'signal-bas':4.27,'table-d-orientation':1.9,'traversée-des-arses':5.73,'traversée-du-rogoney':3.84,'trolles-2':1.55,'verte':2.53,'verte-5':1.76,'verte-mont-blanc':3.56};
+  const OBSERVED_LIFT_SPEED = {'aiguille-percée':2.02,'bellevarde-express':3.24,'borsat':2.74,'cascade':3.75,'combe-folle':2.25,'cugnaï':2.11,'céma':2.16,'daille':2.06,'datcha':2.61,'fornet':1.9,'fresse':2.75,'funiculaire-perce-neige':3.97,'funival':3.36,'glacier':3.75,'grand-huit':2.51,'grand-pré':2.15,'grande-motte':0.9,'laisinant':3.83,'lanches':3.81,'leissières':6.87,'loyes-express':3.56,'madeleine-express':3.53,'manchet-express':3.52,'marmottes-express':3.9,'merles':6.35,'mont-blanc':1.94,'montet':2.62,'olympique':3.52,'palafour':3.45,'paquis':3.46,'rosset':0.9,'signal-2':0.84,'solaise':4.05,'tcd10-des-boisses':1.73,'tcd8-des-brévières':1.1,'tommeuses':3.58,'tovière':2.99,'ts-fontaine':3.67,'tsd6-aiguille-rouge':1.96,'tsd6-bollin':2.67,'tsd6-chaudannes':3.4,'tsd6-grattalu':3.91,'tsd6-marais':1.62,'tsd6-tichot':3.66,'tsf3-col-des-vés':2.78,'tufs':3.41,'vallon-de-l-iseran':1.87,'vanoise':2.52};
   // Walking in ski boots was previously priced as a flat 1.1 m/s regardless of slope — an
   // independent review found 91 of 186 walk edges actually gain height (worst +316m over 828m),
   // priced identically to a downhill stroll. Real hiking pace drops sharply on an incline; this
@@ -2463,10 +2483,10 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
   function edgeSeconds(e){
     if(e.kind === "L"){
       const l = LIFTS.find(x=>x.id===e.refId);
-      const speed = (l && l.speedMS) || LIFT_SPEED_FALLBACK_MS[l ? l.speed : "medium"];
+      const speed = OBSERVED_LIFT_SPEED[e.refId] || (l && l.speedMS) || LIFT_SPEED_FALLBACK_MS[l ? l.speed : "medium"];
       return e.dist / speed;
     }
-    if(e.kind === "P") return e.dist / (SKI_SPEED_MS[e.diff] || SKI_SPEED_MS.grey);
+    if(e.kind === "P") return e.dist / (OBSERVED_PISTE_SPEED[e.refId] || SKI_SPEED_MS[e.diff] || SKI_SPEED_MS.grey);
     return e.dist / walkSpeedMS(e.from, e.to, e.dist);
   }
   function fmtTime(sec){
@@ -2606,13 +2626,20 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
   const scottRateInput = document.getElementById("scottRate"), scottRateLabel = document.getElementById("scottRateLabel");
   scottRateInput.oninput = ()=>{ scottRateLabel.textContent = scottRateInput.value; };
 
+  // A step timed from a real, GPS-observed median speed (see OBSERVED_PISTE_SPEED/OBSERVED_LIFT_SPEED
+  // above) gets a small 📍 next to its time instead of the usual estimate, so it's clear which numbers
+  // in a route card are ground truth from the user's own skiing and which are still the grade/speed-
+  // class model filling a gap.
+  function timeCell(e, observed){
+    return `<span class="step-time"${observed ? ' title="From your own real GPS tracks, not an estimate"' : ""}>${fmtTime(edgeSeconds(e))}${observed ? ' 📍' : ""}</span>`;
+  }
   function stepHTML(e){
     if(e.kind==="L"){
       const l = LIFTS.find(x=>x.id===e.refId);
       const icon = l ? TYPE_META[l.type].icon : "🚡";
       const tagColor = e.scott===0?"var(--chair-fast)": e.scott===1?"var(--funicular)": e.scott===2?"var(--cablecar)":"var(--gondola)";
       const tagText = e.scott===0 ? "fine by Scott" : `Scott +${e.scott}`;
-      return `<div class="route-step"><span class="step-icon">${icon}</span><span class="step-name">${e.name}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:${tagColor}33;color:${tagColor}">${tagText}</span></div>`;
+      return `<div class="route-step"><span class="step-icon">${icon}</span><span class="step-name">${e.name}</span>${timeCell(e, !!OBSERVED_LIFT_SPEED[e.refId])}<span class="step-tag" style="background:${tagColor}33;color:${tagColor}">${tagText}</span></div>`;
     }
     if(e.kind==="P"){
       const dc = PISTE_COLOR[e.diff] || PISTE_COLOR.grey;
@@ -2621,7 +2648,7 @@ document.getElementById("showAllBtn").onclick = clearSectorFocus;
       const a = STATION_BY_ID[e.from], b = STATION_BY_ID[e.to];
       const flat = (a && b && e.dist > 0) ? (Math.abs(b.elev - a.elev) / e.dist) < 0.05 : false;
       const tagText = (e.diff || "unrated") + (flat ? " ⚠️ flat" : "");
-      return `<div class="route-step"><span class="step-icon">⛷</span><span class="step-name">${e.name || "Unnamed piste"}</span><span class="step-time">${fmtTime(edgeSeconds(e))}</span><span class="step-tag" style="background:${dc}33;color:${dc}">${tagText}</span></div>`;
+      return `<div class="route-step"><span class="step-icon">⛷</span><span class="step-name">${e.name || "Unnamed piste"}</span>${timeCell(e, !!OBSERVED_PISTE_SPEED[e.refId])}<span class="step-tag" style="background:${dc}33;color:${dc}">${tagText}</span></div>`;
     }
     const long = e.dist > WALK_LONG_M;
     const walkTag = long ? `⚠️ ${Math.round(e.dist)}m on foot` : "on foot";
