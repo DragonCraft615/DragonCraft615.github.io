@@ -112,6 +112,11 @@ svg { width: 100%; height: 100%; display: block; }
 .piste-line.hovering { opacity: 1; filter: drop-shadow(0 0 3px currentColor); }
 .piste-hit { stroke: transparent !important; stroke-width: 9; pointer-events: stroke; cursor: pointer; }
 #pisteGroup.dim-pistes .piste-line { opacity: .18; }
+#pisteGroup.skied-mode .piste-line:not(.piste-hit):not(.skied) { opacity: .1; }
+#liftGroup.skied-mode .lift-line:not(.lift-hit):not(.skied) { opacity: .12; }
+.piste-line.skied, .lift-line.skied { filter: drop-shadow(0 0 3px currentColor); }
+#pisteGroup.skied-mode .piste-line.skied { opacity: 1; }
+#liftGroup.skied-mode .lift-line.skied { opacity: 1; }
 .hub-dot { fill: #cfe3fa; stroke: #060912; stroke-width: 1.5; }
 .hub-dot.dim { opacity: .15; }
 
@@ -295,6 +300,10 @@ footer a { color: var(--gold); text-decoration: none; }
           <input type="checkbox" id="pisteToggle" checked> Pistes
         </label>
       </div>
+      <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;margin-top:10px">
+        <input type="checkbox" id="skiedToggle"> 🎿 I've skied this
+      </label>
+      <div class="legend-note" id="skiedNote" style="display:none"></div>
     </div>
 
     <div class="panel">
@@ -1876,6 +1885,20 @@ const EDGE_RAW = [
 // skiing was Peisey-Nancroix and Grossarl, different domains entirely, so nothing to reconcile there.
 const GRAPH_EDGES = EDGE_RAW.map(r => ({ from:r[0], to:r[1], kind:r[2], refId:r[3], name:r[4], scott:r[5], dist:r[6], diff:r[7] }));
 
+// "Have I skied this?" layer (2026-08-24): the same 484 GPS tracks re-matched a second time, this
+// time directly against THIS file's own PISTE_RAW/RAW geometry (via the real-lat/lon<->SVG transform
+// above, inverted) rather than a fresh OSM pull — deliberately, since ~43% of PISTE_RAW entries share
+// a name with at least one other entry (French piste names get reused a lot: 8 different "Petit Col"s,
+// "Verte" x8, "Génépy" x2, etc.), so matching by name alone would risk marking the wrong same-named
+// piste as skied. Geometric matching against our own displayed lines disambiguates correctly even
+// when names collide. Slightly lower hit rate than the delivered GeoJSON's OSM-based match (238/245
+// lifts, 212/239 descents with >=1 leg) since unnamed PISTE_RAW stubs aren't eligible candidates here
+// — expected and fine, this layer only ever needed to cover named, displayed runs anyway.
+// refId -> [visit count, first date skied, last date skied], covering both trips (Feb 2017, Jan/Feb
+// 2022). 110 of 348 pistes and 48 of 81 lifts have at least one real, GPS-confirmed visit.
+const SKIED_PISTES = {'ancolie':[1,'2017-02-08','2017-02-08'],'anemone':[41,'2017-02-05','2022-02-04'],'anémone':[5,'2022-01-30','2022-02-03'],'arcelle':[8,'2017-02-07','2022-02-04'],'arollay':[1,'2017-02-07','2017-02-07'],'beau-plan':[1,'2017-02-08','2017-02-08'],'bleuets':[5,'2017-02-05','2022-02-03'],'bollin':[5,'2017-02-08','2022-02-04'],'bruyères':[1,'2017-02-10','2017-02-10'],'cairn':[5,'2022-02-01','2022-02-03'],'carline':[5,'2017-02-08','2022-02-01'],'cascade':[1,'2022-02-04','2022-02-04'],'centre':[1,'2022-01-30','2022-01-30'],'chardons':[2,'2022-02-03','2022-02-03'],'chardons-3':[1,'2022-02-03','2022-02-03'],'cirse':[1,'2022-01-30','2022-01-30'],'club-des-sports':[2,'2017-02-06','2022-02-01'],'col-de-la-madeleine':[2,'2017-02-09','2022-02-02'],'collet':[2,'2017-02-05','2017-02-06'],'combe':[17,'2017-02-10','2022-02-04'],'combe-folle':[12,'2017-02-05','2022-02-04'],'combe-martin':[1,'2017-02-09','2017-02-09'],'corniche':[4,'2017-02-08','2022-02-03'],'coupe-du-monde':[8,'2017-02-07','2022-02-03'],'creux':[3,'2017-02-07','2022-01-30'],'creux-2':[8,'2017-02-05','2022-02-04'],'crocus':[3,'2017-02-06','2022-02-03'],'crêtes':[10,'2017-02-05','2022-02-04'],'cugnaï-2':[2,'2017-02-09','2017-02-09'],'cyclamen':[6,'2017-02-08','2022-02-04'],'dahu':[2,'2022-02-02','2022-02-03'],'diebold':[8,'2017-02-05','2022-02-03'],'diebold-4':[2,'2017-02-07','2022-02-03'],'diebold-5':[3,'2017-02-09','2022-02-01'],'digues-2':[1,'2017-02-08','2017-02-08'],'double-m':[9,'2022-01-30','2022-02-04'],'edelweiss':[7,'2017-02-07','2022-02-04'],'edelweiss-3':[1,'2017-02-06','2017-02-06'],'epilobes':[1,'2017-02-08','2017-02-08'],'face':[6,'2022-01-30','2022-02-04'],'face-2':[2,'2022-02-03','2022-02-03'],'face-de-bellevarde':[4,'2017-02-07','2022-02-04'],'fontaine-froide':[7,'2017-02-06','2022-02-04'],'forêt':[1,'2022-02-02','2022-02-02'],'fourche':[1,'2022-01-30','2022-01-30'],'fresse':[1,'2017-02-09','2017-02-09'],'fresse-2':[2,'2017-02-09','2022-02-01'],'germain-mattis':[3,'2022-02-02','2022-02-04'],'glacier':[2,'2022-01-30','2022-02-04'],'glacier-2':[4,'2017-02-07','2022-02-04'],'grand-pré':[3,'2017-02-05','2022-02-01'],'grattalu':[5,'2017-02-08','2022-02-02'],'grattalu-2':[6,'2022-01-30','2022-02-03'],'guerlain-chicherit':[2,'2017-02-09','2022-02-01'],'génépy':[3,'2017-02-09','2022-02-03'],'génépy-2':[3,'2017-02-05','2022-02-04'],'johan-clarey':[7,'2017-02-05','2022-02-04'],'lac':[7,'2017-02-08','2022-02-03'],'lac-2':[1,'2017-02-08','2017-02-08'],'lac-céma':[5,'2017-02-07','2022-02-04'],'lac-parc-à-moutons':[2,'2017-02-09','2022-02-04'],'lavachet':[2,'2017-02-05','2022-01-31'],'leissières':[6,'2017-02-07','2022-02-04'],'leissières-2':[1,'2022-02-04','2022-02-04'],'les-tines-edelweiss':[5,'2017-02-05','2022-02-04'],'lys':[19,'2017-02-05','2022-02-04'],'madeleine':[6,'2017-02-07','2022-02-02'],'mangard':[3,'2017-02-07','2022-02-04'],'mangard-2':[2,'2017-02-07','2022-02-04'],'marais':[1,'2017-02-07','2017-02-07'],'marmottons':[3,'2017-02-07','2022-02-04'],'merles':[10,'2017-02-08','2022-02-03'],'montet':[3,'2017-02-07','2022-02-04'],'montet-2':[3,'2022-02-02','2022-02-04'],'moraine':[5,'2017-02-07','2022-02-04'],'mur':[3,'2017-02-08','2022-02-01'],'myosotis':[3,'2017-02-05','2017-02-10'],'mélèzes-4':[1,'2017-02-05','2017-02-05'],'orange':[2,'2017-02-09','2022-01-30'],'pavot':[6,'2017-02-05','2022-02-03'],'petit-col':[1,'2022-02-03','2022-02-03'],'piste-l':[2,'2017-02-07','2022-02-02'],'pitots':[2,'2022-02-03','2022-02-03'],'plan-milet':[6,'2017-02-07','2022-02-04'],'pont-abatte':[3,'2017-02-07','2022-02-04'],'pramecou':[7,'2017-02-09','2022-02-02'],'prariond':[1,'2022-02-03','2022-02-03'],'prémou':[1,'2022-01-30','2022-01-30'],'pyramides':[2,'2022-02-02','2022-02-04'],'raye':[1,'2017-02-07','2017-02-07'],'rhododendron':[7,'2017-02-05','2017-02-10'],'rhône-alpes':[1,'2017-02-09','2017-02-09'],'roches':[2,'2022-02-02','2022-02-04'],'rocs':[2,'2017-02-05','2017-02-05'],'rosset':[2,'2017-02-08','2017-02-08'],'sache':[3,'2017-02-08','2022-02-03'],'saint-jacques':[2,'2017-02-09','2017-02-09'],'santons-haut':[1,'2022-01-30','2022-01-30'],'signal-2':[1,'2022-02-04','2022-02-04'],'signal-bas':[1,'2022-02-04','2022-02-04'],'st-jacques':[1,'2017-02-09','2017-02-09'],'table-d-orientation':[1,'2022-02-02','2022-02-02'],'traversée-des-arses':[2,'2022-02-02','2022-02-04'],'traversée-du-rogoney':[1,'2017-02-07','2017-02-07'],'triffollet':[1,'2017-02-07','2017-02-07'],'trolles-2':[1,'2022-01-30','2022-01-30'],'verte':[2,'2017-02-09','2022-01-30'],'verte-4':[5,'2017-02-09','2022-02-03'],'verte-5':[1,'2022-01-31','2022-01-31'],'verte-mont-blanc':[5,'2017-02-05','2022-02-03']};
+const SKIED_LIFTS = {'aiguille-percée':[5,'2017-02-08','2022-02-04'],'bellevarde-express':[2,'2022-01-30','2022-01-31'],'borsat':[1,'2022-02-01','2022-02-01'],'cascade':[6,'2017-02-07','2022-02-04'],'combe-folle':[1,'2017-02-09','2017-02-09'],'cugnaï':[2,'2017-02-09','2017-02-09'],'céma':[3,'2017-02-07','2022-02-04'],'daille':[2,'2017-02-07','2017-02-07'],'datcha':[4,'2017-02-07','2022-02-04'],'fornet':[2,'2017-02-07','2022-02-04'],'fresse':[2,'2017-02-09','2022-02-01'],'funiculaire-perce-neige':[3,'2017-02-09','2022-02-03'],'funival':[4,'2017-02-09','2022-02-03'],'glacier':[7,'2017-02-07','2022-02-04'],'grand-huit':[1,'2017-02-08','2017-02-08'],'grand-pré':[2,'2017-02-05','2017-02-06'],'grande-motte':[4,'2017-02-09','2022-02-04'],'laisinant':[2,'2017-02-07','2022-02-02'],'lanches':[7,'2022-02-01','2022-02-03'],'leissières':[3,'2017-02-07','2022-02-04'],'loyes-express':[2,'2022-01-30','2022-01-31'],'madeleine-express':[3,'2017-02-07','2022-02-02'],'manchet-express':[8,'2017-02-07','2022-02-04'],'marmottes-express':[20,'2017-02-05','2022-02-04'],'merles':[7,'2017-02-08','2022-02-03'],'mont-blanc':[3,'2017-02-05','2017-02-06'],'montet':[2,'2022-02-02','2022-02-04'],'olympique':[4,'2017-02-07','2022-02-04'],'palafour':[22,'2017-02-05','2022-02-04'],'paquis':[5,'2017-02-09','2022-01-31'],'rosset':[2,'2017-02-08','2017-02-08'],'signal-2':[1,'2022-02-04','2022-02-04'],'solaise':[5,'2017-02-07','2022-02-04'],'tcd10-des-boisses':[4,'2017-02-05','2022-02-03'],'tcd8-des-brévières':[1,'2017-02-05','2017-02-05'],'tommeuses':[14,'2017-02-05','2022-02-04'],'tovière':[17,'2017-02-05','2022-02-04'],'ts-fontaine':[8,'2017-02-05','2022-02-04'],'tsd6-aiguille-rouge':[7,'2017-02-05','2017-02-10'],'tsd6-bollin':[3,'2017-02-08','2022-02-04'],'tsd6-chaudannes':[6,'2017-02-05','2022-02-03'],'tsd6-grattalu':[9,'2017-02-08','2022-02-03'],'tsd6-marais':[3,'2017-02-08','2017-02-10'],'tsd6-tichot':[7,'2017-02-08','2022-02-03'],'tsf3-col-des-vés':[3,'2017-02-09','2022-02-01'],'tufs':[4,'2017-02-08','2022-02-04'],'vallon-de-l-iseran':[3,'2017-02-07','2022-02-02'],'vanoise':[2,'2022-02-03','2022-02-03']};
+
 const TYPE_META = {
   "chair_lift":  { label: "Chairlift", icon: "🪑", group: "chair" },
   "gondola":     { label: "Gondola", icon: "🚠", group: "gondola" },
@@ -1982,7 +2005,8 @@ PISTES.forEach(p=>{
   // colour alone can't distinguish that from a bright rendering error or an unrated grey run in
   // dim light, so give black a genuine second cue: a fine dash texture, not just a hue.
   const dash = p.color === "black" ? {"stroke-dasharray":"3,1.5"} : {};
-  const line = el("polyline",{...common, ...dash, class:"piste-line", stroke:PISTE_COLOR[p.color]||PISTE_COLOR.grey, style:`color:${PISTE_COLOR[p.color]||PISTE_COLOR.grey}`});
+  const skiedCls = SKIED_PISTES[p.id] ? " skied" : "";
+  const line = el("polyline",{...common, ...dash, class:"piste-line"+skiedCls, stroke:PISTE_COLOR[p.color]||PISTE_COLOR.grey, style:`color:${PISTE_COLOR[p.color]||PISTE_COLOR.grey}`});
   pisteGroup.appendChild(line);
   const hit = el("polyline",{...common, class:"piste-line piste-hit"});
   pisteGroup.appendChild(hit);
@@ -2017,8 +2041,9 @@ LIFTS.forEach(l=>{
     "data-cap":l.cap, "data-sectors":[l.baseSector,l.topSector].join(","), "data-name":l.name.toLowerCase(),
     "data-connector": l.connector ? "1":"0"
   };
+  const skiedCls = SKIED_LIFTS[l.id] ? " skied" : "";
   const line = el("line",{...common,
-    class:"lift-line", stroke:speedColor(l), "stroke-width":w,
+    class:"lift-line"+skiedCls, stroke:speedColor(l), "stroke-width":w,
     style:`--w:${w}px; color:${speedColor(l)}`
   });
   liftGroup.appendChild(line);
@@ -2126,8 +2151,14 @@ let selectedId = null;
 
 function fmt(n){ return n.toLocaleString("en-GB"); }
 
+function skiedLine(entry){
+  if(!entry) return "";
+  const [visits, first, last] = entry;
+  const span = first===last ? first : `${first} – ${last}`;
+  return `<br>🎿 <span style="color:var(--gold)">Skied ${visits}×</span> (${span})`;
+}
 function showTooltip(l, x, y){
-  tooltip.innerHTML = `<b>${l.name}</b><br>${TYPE_META[l.type].icon} ${TYPE_META[l.type].label}<br>${fmt(l.cap)} p/h · ${speedLabel(l)}`;
+  tooltip.innerHTML = `<b>${l.name}</b><br>${TYPE_META[l.type].icon} ${TYPE_META[l.type].label}<br>${fmt(l.cap)} p/h · ${speedLabel(l)}${skiedLine(SKIED_LIFTS[l.id])}`;
   tooltip.style.left = (x+14)+"px"; tooltip.style.top = (y+14)+"px"; tooltip.style.display = "block";
 }
 function hideTooltip(){ tooltip.style.display = "none"; }
@@ -2169,7 +2200,7 @@ function clearPisteHover(){
 }
 function showPisteTooltip(p, x, y){
   const label = PISTE_LABEL[p.color] || p.color;
-  tooltip.innerHTML = `<b>${p.name || "Unnamed piste"}</b><br><span style="color:${PISTE_COLOR[p.color]||PISTE_COLOR.grey}">●</span> ${label}`;
+  tooltip.innerHTML = `<b>${p.name || "Unnamed piste"}</b><br><span style="color:${PISTE_COLOR[p.color]||PISTE_COLOR.grey}">●</span> ${label}${skiedLine(SKIED_PISTES[p.id])}`;
   tooltip.style.left = (x+14)+"px"; tooltip.style.top = (y+14)+"px"; tooltip.style.display = "block";
 }
 svg.addEventListener("pointermove", e=>{
@@ -2213,6 +2244,22 @@ document.getElementById("searchInput").oninput = e=>{ state.search = e.target.va
 document.getElementById("connectorOnly").onchange = e=>{ state.connectorOnly = e.target.checked; applyFilters(); };
 document.getElementById("pisteToggle").onchange = e=>{ pisteGroup.style.display = e.target.checked ? "" : "none"; };
 document.getElementById("liftToggle").onchange = e=>{ liftGroup.style.display = e.target.checked ? "" : "none"; };
+
+// "Have I skied this?" layer — dims everything except the pistes/lifts with a real GPS match from
+// the user's own 12 ski days here (see SKIED_PISTES/SKIED_LIFTS above), glowing the ones they have.
+const skiedNote = document.getElementById("skiedNote");
+document.getElementById("skiedToggle").onchange = e=>{
+  const on = e.target.checked;
+  pisteGroup.classList.toggle("skied-mode", on);
+  liftGroup.classList.toggle("skied-mode", on);
+  if(on){
+    const pCount = Object.keys(SKIED_PISTES).length, lCount = Object.keys(SKIED_LIFTS).length;
+    skiedNote.innerHTML = `Glowing = a real GPS track of yours matched here. ${pCount} of ${PISTES.length} named pistes, ${lCount} of ${LIFTS.length} lifts — from 12 real ski days in Tignes/Val d'Isère (Feb 2017 &amp; Jan/Feb 2022).`;
+    skiedNote.style.display = "";
+  } else {
+    skiedNote.style.display = "none";
+  }
+};
 
 function applyFilters(){
   document.querySelectorAll(".lift-line").forEach(line=>{
