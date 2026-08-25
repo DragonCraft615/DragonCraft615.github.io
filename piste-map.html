@@ -119,6 +119,10 @@ svg { width: 100%; height: 100%; display: block; }
 #liftGroup.skied-mode .lift-line.skied { opacity: 1; }
 .hub-dot { fill: #cfe3fa; stroke: #060912; stroke-width: 1.5; }
 .hub-dot.dim { opacity: .15; }
+#shopGroup { display: none; }
+.shop-dot { stroke: #0f1722; stroke-width: 1.5; cursor: pointer; transition: filter .15s; }
+.shop-dot.hovering { filter: drop-shadow(0 0 5px currentColor); }
+.shop-icon { font-size: 11px; text-anchor: middle; pointer-events: none; dominant-baseline: central; }
 
 .map-caption {
   position: absolute; left: 12px; bottom: 10px; font-size: 10.5px; color: rgba(207,227,250,.5);
@@ -304,6 +308,12 @@ footer a { color: var(--gold); text-decoration: none; }
         <input type="checkbox" id="skiedToggle"> 🎿 I've skied this
       </label>
       <div class="legend-note" id="skiedNote" style="display:none"></div>
+      <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;cursor:pointer;margin-top:10px">
+        <input type="checkbox" id="shopToggle"> 🛒 Groceries (for Fabian)
+      </label>
+      <div class="legend-note" id="shopNote" style="display:none">
+        Colour = <b>Lidl Uplift Score</b>: roughly how many Lidl-Bourg-Saint-Maurice baskets you're paying at altitude here. This is a transparent estimate, not a real price survey — captive-market base + elevation above Bourg (840m) + a small per-shop-type add-on. Hover a dot for the number and the shop.
+      </div>
     </div>
 
     <div class="panel">
@@ -935,6 +945,58 @@ const PISTE_LABEL = {
   red: "Red — difficult",        black: "Black — very difficult",
   grey: "Unrated",               orange: "Freeride / itinerary"
 };
+
+// Grocery layer, for Fabian (2026-08-25): real shop locations from OpenStreetMap (shop=supermarket/
+// convenience/grocery/general/bakery, same Overpass-then-filter sourcing pattern as the lifts and
+// pistes), bounded to the resort's own real station footprint rather than the loose query bbox —
+// the naive box also pulled in two shops from Bonneval-sur-Arc, a different village entirely across
+// the Col de l'Iseran, same neighbouring-resort contamination this project has hit before with
+// lifts/pistes; both dropped. 23 real, named shops (Sherpa, Spar, Carrefour Montagne, plus several
+// bakeries) survive.
+// The "Lidl Uplift Score" itself is NOT a real price survey — nobody has audited actual shelf prices
+// here against a Lidl basket, and this file doesn't claim to. It's a transparent, labelled estimate:
+// 1.6 (a flat "captive resort market, no discount competition" tax) + 0.35 per km of elevation above
+// Bourg-Saint-Maurice (840m, the nearest sizeable town with a real Lidl) + a small per-type add-on
+// (convenience +0.30, bakery +0.20, grocery/general +0.15, supermarket +0) reflecting that a full
+// supermarket typically prices a little more competitively than a small altitude kiosk. Elevation
+// per shop comes from its nearest STATIONS point (real data), not a guess. Same honest-approximation
+// spirit as Last Lift Home's closing-time estimate elsewhere on this page: a clearly labelled model,
+// not manufactured precision.
+const SHOP_RAW = [
+["shop0","Spar","convenience","🏪",838.5,563.7,1801,2.24],
+["shop1","Sherpa","convenience","🏪",446.2,454.7,2080,2.33],
+["shop2","Sherpa","supermarket","🛒",374.8,489.4,2093,2.04],
+["shop3","Le Boulanger des Montagnes","bakery","🥖",407.1,495.2,2093,2.24],
+["shop4","La Griottine","bakery","🥖",445.5,457.9,2080,2.23],
+["shop5","Spar","convenience","🏪",388.0,466.5,2093,2.34],
+["shop6","Spar","supermarket","🛒",400.9,491.1,2093,2.04],
+["shop7","Spar","supermarket","🛒",949.7,707.2,1835,1.95],
+["shop8","Sherpa","supermarket","🛒",951.1,698.2,1835,1.95],
+["shop9","Sherpa","convenience","🏪",316.8,655.7,2120,2.35],
+["shop10","Carrefour Montagne","convenience","🏪",370.0,483.4,2093,2.34],
+["shop11","Chevallot","bakery","🥖",951.6,705.8,1835,2.15],
+["shop12","Sherpa","supermarket","🛒",335.6,621.2,2134,2.05],
+["shop13","L'Échoppe de l'Iseran","convenience","🏪",1375.1,1076.0,2785,2.58],
+["shop14","Carmeline","bakery","🥖",837.9,564.0,1801,2.14],
+["shop15","Chevallot","bakery","🥖",973.3,722.0,1842,2.15],
+["shop16","Spar","supermarket","🛒",909.2,664.2,1835,1.95],
+["shop17","Les Sonnailles","convenience","🏪",979.6,727.9,1842,2.25],
+["shop18","Au Pain Quotidien","bakery","🥖",335.8,627.4,2134,2.25],
+["shop19","Perles des Alpes","bakery","🥖",335.6,629.1,2134,2.25],
+["shop20","Spar","convenience","🏪",546.3,173.7,1780,2.23],
+["shop21","Crazy Barm's","bakery","🥖",977.4,715.7,1842,2.15],
+["shop22","Spar","supermarket","🛒",1025.6,738.2,1842,1.95]
+];
+const SHOP_TYPE_LABEL = { supermarket:"Supermarket", convenience:"Convenience store", grocery:"Grocery", general:"General store", bakery:"Bakery" };
+const SHOPS = SHOP_RAW.map(r => ({ id:r[0], name:r[1], type:r[2], icon:r[3], x:r[4], y:r[5], elev:r[6], uplift:r[7] }));
+// Uplift score colour ramp: green near "cheapest on the mountain" up through amber to red at the
+// steepest markup observed (L'Échoppe de l'Iseran, up at the glacier, unsurprisingly the priciest).
+const UPLIFT_MIN = Math.min(...SHOPS.map(s=>s.uplift)), UPLIFT_MAX = Math.max(...SHOPS.map(s=>s.uplift));
+function upliftColor(u){
+  const t = Math.max(0, Math.min(1, (u - UPLIFT_MIN) / (UPLIFT_MAX - UPLIFT_MIN)));
+  const hue = 130 - t*130; // 130=green -> 0=red
+  return `hsl(${hue}, 75%, 55%)`;
+}
 
 // ───────── ROUTE-PLANNER GRAPH ─────────
 // Nodes are "stations": every lift base/top point, clustered with any other lift base/top
@@ -2062,6 +2124,17 @@ Object.entries(SECTORS).forEach(([id,s])=>{
   svg.appendChild(sub);
 });
 
+// Grocery layer (hidden until "🛒 Groceries" is checked) — a coloured dot per real shop, sized by
+// type, coloured by Lidl Uplift Score (see SHOPS above), with its own icon on top.
+const shopGroup = el("g", {id:"shopGroup"});
+svg.appendChild(shopGroup);
+SHOPS.forEach(s=>{
+  const r = s.type === "supermarket" ? 7 : s.type === "bakery" ? 5 : 6;
+  const color = upliftColor(s.uplift);
+  shopGroup.appendChild(el("circle",{cx:s.x, cy:s.y, r, class:"shop-dot", "data-id":s.id, fill:color, style:`color:${color}`}));
+  shopGroup.appendChild(el("text",{x:s.x, y:s.y+0.5, class:"shop-icon"})).textContent = s.icon;
+});
+
 /* ───────────────────────── VIEWBOX / PAN / ZOOM ───────────────────────── */
 const wrap = document.getElementById("svgWrap");
 const BASE = {x:0,y:0,w:1700,h:1192};
@@ -2203,22 +2276,36 @@ function showPisteTooltip(p, x, y){
   tooltip.innerHTML = `<b>${p.name || "Unnamed piste"}</b><br><span style="color:${PISTE_COLOR[p.color]||PISTE_COLOR.grey}">●</span> ${label}${skiedLine(SKIED_PISTES[p.id])}`;
   tooltip.style.left = (x+14)+"px"; tooltip.style.top = (y+14)+"px"; tooltip.style.display = "block";
 }
+let hoveredShopId = null;
+function clearShopHover(){
+  if(hoveredShopId){ document.querySelectorAll(`.shop-dot[data-id="${hoveredShopId}"]`).forEach(el2=>el2.classList.remove("hovering")); hoveredShopId = null; }
+}
+function showShopTooltip(s, x, y){
+  tooltip.innerHTML = `<b>${s.icon} ${s.name}</b><br>${SHOP_TYPE_LABEL[s.type]||s.type} · ${fmt(s.elev)}m<br>🇩🇪 <span style="color:${upliftColor(s.uplift)}">Lidl Uplift: ${s.uplift}×</span> vs Lidl, Bourg-St-Maurice`;
+  tooltip.style.left = (x+14)+"px"; tooltip.style.top = (y+14)+"px"; tooltip.style.display = "block";
+}
 svg.addEventListener("pointermove", e=>{
   if(e.target.classList && e.target.classList.contains("lift-hit")){
-    clearPisteHover();
+    clearPisteHover(); clearShopHover();
     const id = e.target.dataset.id;
     if(hoveredId !== id){ clearHover(); hoveredId = id; document.querySelectorAll(`.lift-line[data-id="${id}"]`).forEach(el2=>el2.classList.add("hovering")); }
     const l = LIFTS.find(x=>x.id===id);
     if(l) showTooltip(l, e.clientX, e.clientY);
   } else if(e.target.classList && e.target.classList.contains("piste-hit")){
-    clearHover();
+    clearHover(); clearShopHover();
     const id = e.target.dataset.id;
     if(hoveredPisteId !== id){ clearPisteHover(); hoveredPisteId = id; document.querySelectorAll(`.piste-line[data-id="${id}"]`).forEach(el2=>el2.classList.add("hovering")); }
     const p = PISTES.find(x=>x.id===id);
     if(p) showPisteTooltip(p, e.clientX, e.clientY);
-  } else { clearHover(); clearPisteHover(); hideTooltip(); }
+  } else if(e.target.classList && e.target.classList.contains("shop-dot")){
+    clearHover(); clearPisteHover();
+    const id = e.target.dataset.id;
+    if(hoveredShopId !== id){ clearShopHover(); hoveredShopId = id; document.querySelectorAll(`.shop-dot[data-id="${id}"]`).forEach(el2=>el2.classList.add("hovering")); }
+    const s = SHOPS.find(x=>x.id===id);
+    if(s) showShopTooltip(s, e.clientX, e.clientY);
+  } else { clearHover(); clearPisteHover(); clearShopHover(); hideTooltip(); }
 });
-svg.addEventListener("pointerleave", ()=>{ clearHover(); clearPisteHover(); hideTooltip(); });
+svg.addEventListener("pointerleave", ()=>{ clearHover(); clearPisteHover(); clearShopHover(); hideTooltip(); });
 svg.addEventListener("click", e=>{
   if(suppressClick){ suppressClick = false; return; }
   if(e.target.classList && e.target.classList.contains("lift-hit")){
@@ -2259,6 +2346,15 @@ document.getElementById("skiedToggle").onchange = e=>{
   } else {
     skiedNote.style.display = "none";
   }
+};
+
+// Grocery layer toggle, for Fabian — real shop locations, coloured by an explicitly-labelled
+// "Lidl Uplift Score" estimate rather than a claimed real price survey (see SHOPS above).
+const shopNote = document.getElementById("shopNote");
+document.getElementById("shopToggle").onchange = e=>{
+  const on = e.target.checked;
+  shopGroup.style.display = on ? "block" : "none";
+  shopNote.style.display = on ? "" : "none";
 };
 
 function applyFilters(){
