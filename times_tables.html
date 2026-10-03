@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dragonia — Times Table Blitz</title>
+<style>
+  :root {
+    --bg:#0a0a14; --surface:#0f0f1e; --card:#131325; --hover:#1a1a35;
+    --accent:#ff6b1a; --gold:#f5a623; --green:#2ecc71; --red:#e74c3c;
+    --correct:#1e8449; --wrong:#922b21; --text:#f0ede6; --sub:#a89880;
+    --muted:#5c5248; --border:#1e1a2e;
+    --scale-line: rgba(245,166,35,.04);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(ellipse 65% 32% at 50% -4%,  rgba(245,107,26,.18) 0%, transparent 70%),
+      radial-gradient(ellipse 48% 26% at 92% 105%, rgba(192,57,43,.14)  0%, transparent 65%),
+      repeating-linear-gradient( 60deg, var(--scale-line) 0, var(--scale-line) 1px, transparent 1px, transparent 28px),
+      repeating-linear-gradient(-60deg, var(--scale-line) 0, var(--scale-line) 1px, transparent 1px, transparent 28px);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  a { color: var(--sub); text-decoration: none; transition: color 0.2s; }
+  a:hover { color: var(--text); }
+  button { font-family: inherit; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+  button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  /* HEADER */
+  header {
+    width: 100%;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0.9rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .back-link { font-size: 0.9rem; white-space: nowrap; }
+  header h1 {
+    font-size: clamp(1rem, 3vw, 1.4rem);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: center;
+    flex: 1;
+  }
+  .score-pill {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0.3rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--gold);
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  main {
+    width: 100%;
+    max-width: 560px;
+    padding: 1.5rem 1rem 3rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2rem;
+  }
+  .screen { display: none; width: 100%; flex-direction: column; align-items: center; gap: 1.2rem; animation: fadeInUp 0.4s ease forwards; }
+  .screen.visible { display: flex; }
+
+  /* SETUP */
+  .hero-title {
+    font-size: clamp(2rem, 9vw, 3rem);
+    font-weight: 900;
+    text-align: center;
+    line-height: 1.1;
+    background: linear-gradient(135deg, #f5d769 0%, #f5a623 28%, #ff6b1a 62%, #c0392b 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero-sub { color: var(--sub); text-align: center; line-height: 1.55; max-width: 420px; }
+  .panel {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.2rem 1.1rem;
+  }
+  .panel h2 { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.9rem; }
+  .chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6rem; }
+  .chip {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 1.25rem;
+    font-weight: 800;
+    padding: 0.8rem 0;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+  }
+  .chip:hover { background: var(--hover); border-color: var(--sub); }
+  .chip:active { transform: scale(0.95); }
+  .chip[aria-pressed="true"] { background: rgba(255,107,26,.16); border-color: var(--accent); color: var(--gold); }
+  .presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.9rem; }
+  .preset {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.35rem 0.8rem;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .preset:hover { border-color: var(--gold); color: var(--text); }
+  .best-line { text-align: center; color: var(--sub); font-size: 0.95rem; min-height: 1.4em; }
+  .best-line b { color: var(--gold); }
+  .pick-warning { color: #ff6b6b; font-size: 0.85rem; text-align: center; min-height: 1.2em; }
+
+  .primary-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 0.9rem 2.5rem;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, transform 0.1s, opacity 0.2s;
+  }
+  .primary-btn:hover:not(:disabled) { background: #e85a0c; transform: translateY(-2px); }
+  .primary-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .ghost-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 600;
+    padding: 0.7rem 1.4rem;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .ghost-btn:hover { border-color: var(--sub); color: var(--text); }
+
+  /* COUNTDOWN */
+  .countdown-num { font-size: clamp(6rem, 30vw, 10rem); font-weight: 900; color: var(--gold); line-height: 1; animation: pulse 0.9s ease infinite; }
+  .countdown-label { color: var(--sub); }
+
+  /* PLAY */
+  .timer-row { width: 100%; display: flex; align-items: center; gap: 0.9rem; }
+  .timer-num { font-size: 1.6rem; font-weight: 800; min-width: 2.4ch; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
+  .timer-num.low { color: var(--red); }
+  .timer-track { flex: 1; height: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; overflow: hidden; }
+  .timer-fill { height: 100%; width: 100%; background: linear-gradient(90deg, #f5d769, #ff6b1a); border-radius: 999px; }
+  .timer-fill.low { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+  .question-card {
+    width: 100%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 1.6rem 1rem 1.3rem;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .question-card.right { border-color: var(--green); background: rgba(46,204,113,.08); }
+  .question-card.miss { border-color: var(--red); background: rgba(231,76,60,.1); animation: shake 0.35s ease; }
+  .question-text { font-size: clamp(2.6rem, 14vw, 4.2rem); font-weight: 900; color: var(--gold); line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .answer-slot {
+    margin: 0.7rem auto 0;
+    min-width: 5.5ch;
+    display: inline-block;
+    font-size: clamp(2rem, 10vw, 3rem);
+    font-weight: 800;
+    border-bottom: 3px solid var(--border);
+    padding: 0 0.6ch;
+    min-height: 1.25em;
+    font-variant-numeric: tabular-nums;
+  }
+  .answer-slot.empty::after { content: "?"; color: var(--muted); }
+  .answer-slot.caret::after { content: ""; display: inline-block; width: 2px; height: 0.9em; background: var(--gold); vertical-align: -0.1em; margin-left: 2px; animation: blink 1s steps(1) infinite; }
+  .reveal { min-height: 1.5em; margin-top: 0.5rem; font-size: 1.05rem; font-weight: 700; color: #ff9b8f; }
+
+  .keypad { width: 100%; max-width: 360px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+  .key {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding: 0.85rem 0;
+    transition: background 0.12s, border-color 0.12s, transform 0.08s;
+    user-select: none;
+  }
+  .key:hover { background: var(--hover); border-color: var(--sub); }
+  .key:active { transform: scale(0.94); background: var(--hover); }
+  .key.fn { font-size: 1.15rem; color: var(--sub); }
+  .play-actions { display: flex; gap: 0.7rem; }
+  .kbd-hint { color: var(--muted); font-size: 0.8rem; text-align: center; }
+
+  .pause-overlay {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(10,10,20,.92);
+    display: none; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
+    text-align: center; padding: 1rem;
+  }
+  .pause-overlay.visible { display: flex; }
+  .pause-overlay h2 { font-size: 2rem; font-weight: 900; }
+
+  /* RESULTS */
+  .end-title { font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 800; text-align: center; }
+  .end-score { font-size: clamp(4rem, 18vw, 6.5rem); font-weight: 900; color: var(--gold); line-height: 1; text-align: center; }
+  .end-score span { display: block; font-size: 0.2em; color: var(--sub); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-top: 0.4rem; }
+  .end-msg { font-size: 1.05rem; font-weight: 600; max-width: 440px; line-height: 1.5; text-align: center; }
+  .pb-banner { background: rgba(245,166,35,.14); border: 1px solid rgba(245,166,35,.45); color: var(--gold); border-radius: 999px; font-weight: 800; padding: 0.35rem 1rem; }
+  .stats { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.8rem 0.4rem; text-align: center; }
+  .stat b { display: block; font-size: 1.4rem; color: var(--text); }
+  .stat span { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .missed-list { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  .missed-list li { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 0.55rem 0.7rem; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; }
+  .missed-list li b { color: var(--gold); }
+  .end-actions { display: flex; flex-direction: column; align-items: center; gap: 0.8rem; margin-top: 0.3rem; }
+  .end-actions .row { display: flex; gap: 0.7rem; flex-wrap: wrap; justify-content: center; }
+
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  @keyframes fadeInUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  @keyframes blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="back-link" href="quiz-games.html">← Dragonia</a>
+  <h1>✖️ Times Table Blitz</h1>
+  <div class="score-pill" id="scorePill" aria-live="off">✓ 0</div>
+</header>
+
+<main>
+
+  <!-- SETUP -->
+  <section class="screen visible" id="setupScreen" aria-label="Choose your times tables">
+    <div class="hero-title">Times Table Blitz</div>
+    <p class="hero-sub">60 seconds on the clock. How many can you get right? Pick the times tables you want to practise, then go.</p>
+
+    <div class="panel">
+      <h2>Which times tables?</h2>
+      <div class="chips" id="chips" role="group" aria-label="Times tables"></div>
+      <div class="presets">
+        <button class="preset" data-preset="2-5">2 – 5</button>
+        <button class="preset" data-preset="6-9">6 – 9</button>
+        <button class="preset" data-preset="10-12">10 – 12</button>
+        <button class="preset" data-preset="all">All</button>
+        <button class="preset" data-preset="none">Clear</button>
+      </div>
+    </div>
+
+    <div class="best-line" id="bestLine"></div>
+    <div class="pick-warning" id="pickWarning" role="status"></div>
+    <button class="primary-btn" id="startBtn">&#9654; Start</button>
+  </section>
+
+  <!-- COUNTDOWN -->
+  <section class="screen" id="countdownScreen" aria-label="Get ready">
+    <div class="countdown-label">Get ready…</div>
+    <div class="countdown-num" id="countdownNum">3</div>
+  </section>
+
+  <!-- PLAY -->
+  <section class="screen" id="playScreen" aria-label="Game">
+    <div class="timer-row">
+      <div class="timer-num" id="timerNum">60</div>
+      <div class="timer-track" aria-hidden="true"><div class="timer-fill" id="timerFill"></div></div>
+    </div>
+
+    <div class="question-card" id="questionCard">
+      <div class="question-text" id="questionText" aria-live="polite">7 × 8</div>
+      <div class="answer-slot empty caret" id="answerSlot" aria-hidden="true"></div>
+      <div class="reveal" id="reveal" aria-live="assertive"></div>
+    </div>
+
+    <div class="keypad" id="keypad">
+      <button class="key" data-key="1">1</button>
+      <button class="key" data-key="2">2</button>
+      <button class="key" data-key="3">3</button>
+      <button class="key" data-key="4">4</button>
+      <button class="key" data-key="5">5</button>
+      <button class="key" data-key="6">6</button>
+      <button class="key" data-key="7">7</button>
+      <button class="key" data-key="8">8</button>
+      <button class="key" data-key="9">9</button>
+      <button class="key fn" data-key="back" aria-label="Delete">⌫</button>
+      <button class="key" data-key="0">0</button>
+      <button class="key fn" data-key="enter" aria-label="Submit answer">↵</button>
+    </div>
+    <div class="kbd-hint">Type on your keyboard or use the keypad — it submits automatically.</div>
+    <div class="play-actions">
+      <button class="ghost-btn" id="pauseBtn">⏸ Pause</button>
+      <button class="ghost-btn" id="quitBtn">Quit</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section class="screen" id="endScreen" aria-label="Results">
+    <div class="end-title">Time's up!</div>
+    <div class="end-score" id="endScore">0<span>correct</span></div>
+    <div class="pb-banner" id="pbBanner" hidden>🏆 New personal best!</div>
+    <div class="end-msg" id="endMsg"></div>
+    <div class="stats">
+      <div class="stat"><b id="statWrong">0</b><span>Wrong</span></div>
+      <div class="stat"><b id="statAcc">–</b><span>Accuracy</span></div>
+      <div class="stat"><b id="statStreak">0</b><span>Best streak</span></div>
+    </div>
+    <div class="panel" id="missedPanel" hidden>
+      <h2>Tricky ones to practise</h2>
+      <ul class="missed-list" id="missedList"></ul>
+    </div>
+    <div class="end-actions">
+      <div class="row">
+        <button class="primary-btn" id="againBtn">&#9654; Play Again</button>
+        <button class="ghost-btn" id="changeBtn">Change tables</button>
+      </div>
+      <a class="back-link" href="quiz-games.html">← Dragonia</a>
+    </div>
+  </section>
+</main>
+
+<div class="pause-overlay" id="pauseOverlay" role="dialog" aria-label="Paused">
+  <h2>⏸ Paused</h2>
+  <p class="hero-sub">The clock is stopped.</p>
+  <button class="primary-btn" id="resumeBtn">&#9654; Resume</button>
+</div>
+
+<script>
+// ─── Pure logic (also covered by tests/times-tables.test.js) ─────────────────
+
+const ROUND_MS = 60000;
+const MAX_MULTIPLIER = 12;
+
+// One random question from the chosen tables. Operand order is shuffled (7 × 8 or 8 × 7) and the
+// same pair never repeats back-to-back, in either order.
+function pickQuestion(tables, prev, rng) {
+  rng = rng || Math.random;
+  for (let tries = 0; tries < 50; tries++) {
+    const t = tables[Math.floor(rng() * tables.length)];
+    const m = 1 + Math.floor(rng() * MAX_MULTIPLIER);
+    const flip = rng() < 0.5;
+    const q = { a: flip ? m : t, b: flip ? t : m, answer: t * m };
+    if (!prev || missKey(q) !== missKey(prev)) return q;
+  }
+  return { a: tables[0], b: 1, answer: tables[0] };
+}
+
+// Auto-submit once as many digits have been typed as the answer has.
+function isComplete(typed, answer) {
+  return typed.length >= String(answer).length;
+}
+
+function bestKey(tables) {
+  return [...tables].sort((x, y) => x - y).join('-');
+}
+
+function accuracy(correct, wrong) {
+  const total = correct + wrong;
+  return total === 0 ? null : Math.round(100 * correct / total);
+}
+
+// 7 × 8 and 8 × 7 are the same fact — list it once.
+function missKey(q) {
+  return Math.min(q.a, q.b) + 'x' + Math.max(q.a, q.b);
+}
+
+function scoreMessage(correct) {
+  if (correct === 0) return "Not a single one? Tables tamed one at a time — go again!";
+  if (correct < 8)   return "A warm-up round. Even dragons start small.";
+  if (correct < 15)  return "Getting there — the hoard is growing!";
+  if (correct < 22)  return "Fast fingers! Dragon-level recall.";
+  if (correct < 30)  return "Blistering pace. The village is impressed.";
+  return "Legendary. Are you secretly a calculator?";
+}
+
+// ─── Game ────────────────────────────────────────────────────────────────────
+
+const LS_TABLES = 'dragonia_tt_tables';
+const LS_BEST = 'dragonia_tt_best';
+const $ = id => document.getElementById(id);
+
+function lsGet(key, fallback) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; }
+}
+function lsSet(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {} }
+
+let selected = new Set(
+  (lsGet(LS_TABLES, [2, 3, 4, 5]) || []).filter(n => Number.isInteger(n) && n >= 1 && n <= 12)
+);
+
+const state = {
+  phase: 'setup',            // setup | countdown | playing | paused | done
+  tables: [],
+  question: null,
+  typed: '',
+  correct: 0, wrong: 0, streak: 0, bestStreak: 0,
+  missed: new Map(),         // missKey -> {a,b,answer}
+  deadline: 0, remainingMs: ROUND_MS,
+  tick: null, feedbackTimer: null, countdownTimer: null, locked: false,
+};
+
+function show(screen) {
+  ['setup', 'countdown', 'play', 'end'].forEach(n => $(n + 'Screen').classList.toggle('visible', n === screen));
+}
+
+// SETUP
+function buildChips() {
+  const box = $('chips');
+  for (let n = 1; n <= 12; n++) {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.textContent = n;
+    b.dataset.n = n;
+    b.setAttribute('aria-label', n + ' times table');
+    b.addEventListener('click', () => { selected.has(n) ? selected.delete(n) : selected.add(n); refreshSetup(); });
+    box.appendChild(b);
+  }
+}
+function refreshSetup() {
+  document.querySelectorAll('.chip').forEach(c => c.setAttribute('aria-pressed', selected.has(+c.dataset.n) ? 'true' : 'false'));
+  const any = selected.size > 0;
+  $('startBtn').disabled = !any;
+  $('pickWarning').textContent = any ? '' : 'Pick at least one times table.';
+  if (any) {
+    const best = lsGet(LS_BEST, {})[bestKey([...selected])];
+    $('bestLine').innerHTML = best != null ? `Your best with these tables: <b>${best}</b>` : 'No score yet with these tables — set one!';
+  } else {
+    $('bestLine').textContent = '';
+  }
+  lsSet(LS_TABLES, [...selected].sort((a, b) => a - b));
+}
+document.querySelectorAll('.preset').forEach(p => p.addEventListener('click', () => {
+  const v = p.dataset.preset;
+  selected = new Set();
+  if (v === 'all') for (let n = 1; n <= 12; n++) selected.add(n);
+  else if (v !== 'none') { const [lo, hi] = v.split('-').map(Number); for (let n = lo; n <= hi; n++) selected.add(n); }
+  refreshSetup();
+}));
+
+// ROUND
+function startCountdown() {
+  if (selected.size === 0) return;
+  state.tables = [...selected].sort((a, b) => a - b);
+  state.phase = 'countdown';
+  show('countdown');
+  let n = 3;
+  $('countdownNum').textContent = n;
+  clearInterval(state.countdownTimer);
+  state.countdownTimer = setInterval(() => {
+    n--;
+    if (n <= 0) { clearInterval(state.countdownTimer); beginRound(); }
+    else $('countdownNum').textContent = n;
+  }, 800);
+}
+
+function beginRound() {
+  Object.assign(state, { correct: 0, wrong: 0, streak: 0, bestStreak: 0, typed: '', question: null, locked: false, remainingMs: ROUND_MS });
+  state.missed = new Map();
+  state.phase = 'playing';
+  $('scorePill').textContent = '✓ 0';
+  show('play');
+  nextQuestion();
+  runClock();
+}
+
+function runClock() {
+  state.deadline = Date.now() + state.remainingMs;
+  clearInterval(state.tick);
+  state.tick = setInterval(updateClock, 100);
+  updateClock();
+}
+function updateClock() {
+  const left = Math.max(0, state.deadline - Date.now());
+  state.remainingMs = left;
+  const secs = Math.ceil(left / 1000);
+  $('timerNum').textContent = secs;
+  $('timerNum').classList.toggle('low', secs <= 10);
+  $('timerFill').classList.toggle('low', secs <= 10);
+  $('timerFill').style.width = (100 * left / ROUND_MS) + '%';
+  if (left <= 0) endRound();
+}
+
+function nextQuestion() {
+  state.question = pickQuestion(state.tables, state.question);
+  state.typed = '';
+  state.locked = false;
+  $('questionText').textContent = state.question.a + ' × ' + state.question.b;
+  $('questionCard').className = 'question-card';
+  $('reveal').textContent = '';
+  renderAnswer();
+}
+function renderAnswer() {
+  const slot = $('answerSlot');
+  slot.textContent = state.typed;
+  slot.classList.toggle('empty', state.typed === '');
+  slot.classList.toggle('caret', !state.locked);
+}
+
+function press(key) {
+  if (state.phase !== 'playing' || state.locked) return;
+  if (key === 'back') state.typed = state.typed.slice(0, -1);
+  else if (key === 'enter') { if (state.typed !== '') return submit(); return; }
+  else if (state.typed.length < 3) state.typed += key;
+  renderAnswer();
+  if (key !== 'back' && isComplete(state.typed, state.question.answer)) submit();
+}
+
+function submit() {
+  const q = state.question;
+  if (Number(state.typed) === q.answer) {
+    state.correct++; state.streak++;
+    state.bestStreak = Math.max(state.bestStreak, state.streak);
+    $('scorePill').textContent = '✓ ' + state.correct;
+    $('questionCard').className = 'question-card right';
+    nextQuestionSoon(120);
+  } else {
+    state.wrong++; state.streak = 0;
+    state.missed.set(missKey(q), q);
+    $('questionCard').className = 'question-card miss';
+    $('reveal').textContent = q.a + ' × ' + q.b + ' = ' + q.answer;
+    nextQuestionSoon(900);
+  }
+  state.locked = true;
+  renderAnswer();
+}
+function nextQuestionSoon(ms) {
+  clearTimeout(state.feedbackTimer);
+  state.feedbackTimer = setTimeout(() => { if (state.phase === 'playing') nextQuestion(); }, ms);
+}
+
+function pause() {
+  if (state.phase !== 'playing') return;
+  clearInterval(state.tick); clearTimeout(state.feedbackTimer);
+  updateClock();
+  if (state.phase !== 'playing') return;      // clock may have just run out
+  state.phase = 'paused';
+  $('pauseOverlay').classList.add('visible');
+  $('resumeBtn').focus();
+}
+function resume() {
+  if (state.phase !== 'paused') return;
+  $('pauseOverlay').classList.remove('visible');
+  state.phase = 'playing';
+  if (state.locked) nextQuestion();            // paused mid-feedback: move on rather than freeze
+  runClock();
+}
+
+function stopTimers() {
+  clearInterval(state.tick); clearInterval(state.countdownTimer); clearTimeout(state.feedbackTimer);
+}
+function quit() {
+  stopTimers();
+  $('pauseOverlay').classList.remove('visible');
+  state.phase = 'setup';
+  refreshSetup();
+  show('setup');
+}
+
+function endRound() {
+  stopTimers();
+  state.phase = 'done';
+  $('pauseOverlay').classList.remove('visible');
+  const best = lsGet(LS_BEST, {});
+  const key = bestKey(state.tables);
+  const prev = best[key];
+  const isPb = state.correct > 0 && (prev == null || state.correct > prev);
+  if (isPb) { best[key] = state.correct; lsSet(LS_BEST, best); }
+
+  $('endScore').innerHTML = state.correct + '<span>correct</span>';
+  $('pbBanner').hidden = !(isPb && prev != null);   // no banner for a first-ever score
+  $('endMsg').textContent = scoreMessage(state.correct);
+  $('statWrong').textContent = state.wrong;
+  const acc = accuracy(state.correct, state.wrong);
+  $('statAcc').textContent = acc == null ? '–' : acc + '%';
+  $('statStreak').textContent = state.bestStreak;
+
+  const list = $('missedList');
+  list.innerHTML = '';
+  [...state.missed.values()].forEach(q => {
+    const li = document.createElement('li');
+    li.innerHTML = q.a + ' × ' + q.b + ' = <b>' + q.answer + '</b>';
+    list.appendChild(li);
+  });
+  $('missedPanel').hidden = state.missed.size === 0;
+  show('end');
+}
+
+// WIRING
+$('startBtn').addEventListener('click', startCountdown);
+$('againBtn').addEventListener('click', startCountdown);
+$('changeBtn').addEventListener('click', quit);
+$('pauseBtn').addEventListener('click', pause);
+$('resumeBtn').addEventListener('click', resume);
+$('quitBtn').addEventListener('click', quit);
+$('keypad').addEventListener('click', e => { const b = e.target.closest('.key'); if (b) press(b.dataset.key); });
+
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (state.phase === 'playing') {
+    if (e.key >= '0' && e.key <= '9') { e.preventDefault(); press(e.key); }
+    else if (e.key === 'Backspace') { e.preventDefault(); press('back'); }
+    else if (e.key === 'Enter') { e.preventDefault(); press('enter'); }
+    else if (e.key === 'Escape') pause();
+  } else if (state.phase === 'paused' && (e.key === 'Escape' || e.key === 'Enter')) {
+    e.preventDefault(); resume();
+  }
+});
+// Switching tab or app mid-round shouldn't burn the clock.
+document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+
+buildChips();
+refreshSetup();
+</script>
+</body>
+</html>
