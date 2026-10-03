@@ -8,7 +8,7 @@
  *   - accuracy(correct, wrong)        — percentage, null before any answer
  *   - missKey(q)                      — de-dupes 7×8 / 8×7 in the practise list
  *   - scoreMessage(correct)           — end-of-round tier message
- *   - complexity(a, b)                — 1–10 difficulty of a fact
+ *   - complexity(a, b) / factProfile  — 1–10 difficulty from modelled error rate × speed
  *   - describeTables(tables)          — "2–5, 8" label for the results page
  *
  * Why these matter:
@@ -61,14 +61,49 @@ function scoreMessage(correct) {
   return "Legendary. Are you secretly a calculator?";
 }
 
-function complexity(a, b) {
+// How hard a fact is, scored out of 10 from two things: how often people get it WRONG and how SLOW
+// they are on it. Honest caveat: no public per-fact table of error rates and response times could be
+// retrieved, so these are MODELLED from the well-replicated findings rather than measured per fact:
+//  - problem-size effect: bigger products mean more errors and slower answers;
+//  - tie effect: 7 × 7 and 8 × 8 are easier than their neighbours;
+//  - shortcut tables are near-trivial: ×1, ×10, ×2 (doubling), ×5 (count-by-fives), and ×11 up to 9
+//    (repeated digit, but 11 × 11 and 11 × 12 break the pattern);
+//  - the 9s have a digit-sum trick, so a little easier than their size suggests;
+//  - 12 × n is treated as two steps (a 6 × n fact, doubled), so a touch harder than 6 × n.
+// The error scale is calibrated to one verified number: Campbell & Graham (1985) found adults get
+// about 8% of single-digit (2–9) facts wrong, and the model's mean over 2–9 × 2–9 lands there.
+// Error and speed are each min-max scaled over the whole 12 × 12 grid and averaged, so the easiest
+// fact scores exactly 1 and the hardest exactly 10. Swap in real norms by replacing factProfile().
+function factGap(a, b) {
+  const ea = a === 12 ? 6 : a, eb = b === 12 ? 6 : b;
+  let g = Math.max(0, Math.min(1, (ea * eb - 9) / 72));
+  if (a === b) g *= 0.65;
+  if (a === 9 || b === 9) g *= 0.9;
+  return Math.min(1, g + 0.08 * ((a === 12) + (b === 12)));
+}
+function factProfile(a, b) {            // -> { err: chance of a wrong answer, secs: typical answer time }
   const lo = Math.min(a, b), hi = Math.max(a, b);
-  if (lo === 1) return 1;
-  if (lo === 10 || hi === 10) return 2;
-  if (lo === 2) return 2;
-  if (lo === 5 || hi === 5) return 3;
-  if (lo === 11 || hi === 11) return lo >= 11 ? 4 : 3;
-  return Math.min(10, Math.max(2, Math.round(lo * hi / 12)));
+  if (lo === 1) return { err: 0.005, secs: 0.8 };
+  if (lo === 10 || hi === 10) return { err: 0.01, secs: 0.9 };
+  if (lo === 2) return { err: 0.02, secs: 1.0 };
+  if (lo === 5 || hi === 5) return { err: 0.03, secs: 1.1 };
+  if (lo === 11 || hi === 11) return lo >= 11 ? { err: 0.06, secs: 1.7 } : { err: 0.03, secs: 1.3 };
+  const g = factGap(a, b);
+  return { err: 0.03 + 0.26 * g, secs: 1.0 + 1.2 * g };
+}
+const FACT_RANGE = (() => {
+  let eMin = Infinity, eMax = -Infinity, sMin = Infinity, sMax = -Infinity;
+  for (let a = 1; a <= 12; a++) for (let b = 1; b <= 12; b++) {
+    const p = factProfile(a, b);
+    eMin = Math.min(eMin, p.err); eMax = Math.max(eMax, p.err);
+    sMin = Math.min(sMin, p.secs); sMax = Math.max(sMax, p.secs);
+  }
+  return { eMin, eMax, sMin, sMax };
+})();
+function complexity(a, b) {
+  const p = factProfile(a, b), r = FACT_RANGE;
+  const h = 0.5 * (p.err - r.eMin) / (r.eMax - r.eMin) + 0.5 * (p.secs - r.sMin) / (r.sMax - r.sMin);
+  return Math.round((1 + 9 * h) * 10) / 10;
 }
 
 function describeTables(tables) {
@@ -242,31 +277,33 @@ describe('scoreMessage — tier boundaries', () => {
   });
 });
 
-// ─── complexity ──────────────────────────────────────────────────────────────
+// ─── complexity (modelled error rate × speed, out of 10) ─────────────────────
 
-describe('complexity — anchor values', () => {
-  it('1 × 1 is trivial (1)', () => { expect(complexity(1, 1)).toBe(1); });
-  it('anything × 1 is 1, in either order', () => {
+describe('complexity — anchors', () => {
+  it('1 × 1 is trivial: exactly 1', () => { expect(complexity(1, 1)).toBe(1); });
+  it('anything × 1 scores 1, in either order', () => {
     for (let n = 1; n <= 12; n++) {
       expect(complexity(n, 1)).toBe(1);
       expect(complexity(1, n)).toBe(1);
     }
   });
-  it('the 10s and 2s are easy (2)', () => {
-    expect(complexity(10, 7)).toBe(2);
-    expect(complexity(12, 10)).toBe(2);
-    expect(complexity(2, 9)).toBe(2);
+  it('the shortcut tables (10s, 2s, 5s) stay easy', () => {
+    for (let n = 1; n <= 12; n++) {
+      expect(complexity(10, n) <= 2).toBeTrue();
+      expect(complexity(2, n) <= 2.5).toBeTrue();
+      expect(complexity(5, n) <= 3).toBeTrue();
+    }
   });
-  it('the 5s and most 11s are 3, but 11 × 11 and 11 × 12 are 4', () => {
-    expect(complexity(5, 7)).toBe(3);
-    expect(complexity(3, 5)).toBe(3);
-    expect(complexity(11, 9)).toBe(3);
-    expect(complexity(11, 11)).toBe(4);
-    expect(complexity(12, 11)).toBe(4);
+  it('8 × 7 and 9 × 12 are hard (7.5 or more)', () => {
+    expect(complexity(8, 7) >= 7.5).toBeTrue();
+    expect(complexity(9, 12) >= 7.5).toBeTrue();
   });
-  it('8 × 7 is mid-hard (5) and 9 × 12 is harder (9)', () => {
-    expect(complexity(8, 7)).toBe(5);
-    expect(complexity(9, 12)).toBe(9);
+  it('the hardest fact in the 12 × 12 grid scores exactly 10 and the easiest exactly 1', () => {
+    let max = 0, min = 99;
+    for (let a = 1; a <= 12; a++)
+      for (let b = 1; b <= 12; b++) { max = Math.max(max, complexity(a, b)); min = Math.min(min, complexity(a, b)); }
+    expect(max).toBe(10);
+    expect(min).toBe(1);
   });
 });
 
@@ -276,23 +313,48 @@ describe('complexity — shape', () => {
       for (let b = 1; b <= 12; b++)
         expect(complexity(a, b)).toBe(complexity(b, a));
   });
-  it('is always a whole number from 1 to 10', () => {
+  it('is always between 1 and 10, to one decimal place', () => {
     for (let a = 1; a <= 12; a++)
       for (let b = 1; b <= 12; b++) {
         const c = complexity(a, b);
-        expect(Number.isInteger(c) && c >= 1 && c <= 10).toBeTrue();
+        expect(c >= 1 && c <= 10).toBeTrue();
+        expect(Math.abs(c * 10 - Math.round(c * 10)) < 1e-9).toBeTrue();
       }
   });
-  it('the hard middle-table facts outrank the easy ones', () => {
-    expect(complexity(8, 7) > complexity(6, 3)).toBeTrue();
-    expect(complexity(9, 12) > complexity(8, 7)).toBeTrue();
-    expect(complexity(7, 8) > complexity(5, 8)).toBeTrue();
+  it('problem-size effect: bigger products in the same tables score higher', () => {
+    expect(complexity(3, 4) < complexity(6, 7)).toBeTrue();
+    expect(complexity(6, 7) < complexity(8, 9)).toBeTrue();
+    expect(complexity(4, 6) < complexity(7, 8)).toBeTrue();
   });
-  it('the hardest fact in the whole grid scores at least 9', () => {
-    let max = 0;
+  it('tie effect: n × n is easier than its neighbours', () => {
+    expect(complexity(7, 7) < complexity(7, 8)).toBeTrue();
+    expect(complexity(8, 8) < complexity(8, 9)).toBeTrue();
+    expect(complexity(9, 9) < complexity(8, 9)).toBeTrue();
+  });
+  it('11 × 11 and 11 × 12 are harder than the rest of the 11s', () => {
+    expect(complexity(11, 11) > complexity(11, 9)).toBeTrue();
+    expect(complexity(11, 12) > complexity(11, 3)).toBeTrue();
+  });
+});
+
+describe('factProfile — modelled error rate and speed', () => {
+  it('mean error over 2–9 × 2–9 matches the ~8% adult figure (Campbell & Graham 1985)', () => {
+    let sum = 0, n = 0;
+    for (let a = 2; a <= 9; a++) for (let b = 2; b <= 9; b++) { sum += factProfile(a, b).err; n++; }
+    const mean = sum / n;
+    expect(mean >= 0.07 && mean <= 0.09).toBeTrue();
+  });
+  it('harder facts are both more error-prone and slower than easy ones', () => {
+    const easy = factProfile(3, 4), hard = factProfile(8, 9);
+    expect(hard.err > easy.err).toBeTrue();
+    expect(hard.secs > easy.secs).toBeTrue();
+  });
+  it('error rates are probabilities and times are positive for every fact', () => {
     for (let a = 1; a <= 12; a++)
-      for (let b = 1; b <= 12; b++) max = Math.max(max, complexity(a, b));
-    expect(max >= 9).toBeTrue();
+      for (let b = 1; b <= 12; b++) {
+        const p = factProfile(a, b);
+        expect(p.err > 0 && p.err < 1 && p.secs > 0).toBeTrue();
+      }
   });
 });
 

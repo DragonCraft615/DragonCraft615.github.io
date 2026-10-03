@@ -396,17 +396,49 @@ function accuracy(correct, wrong) {
   return total === 0 ? null : Math.round(100 * correct / total);
 }
 
-// How hard a fact is, 1 (trivial) to 10 (brutal). The "easy" tables get fixed low scores — ×1 is
-// 1, ×10 and ×2 are 2, ×5 and ×11 are 3 (11 × 11 and 11 × 12 are 4) — and everything else scales
-// with the size of the product, so 3 × 4 = 2, 6 × 7 = 4, 8 × 7 = 5, 9 × 9 = 7, 9 × 12 = 9.
-function complexity(a, b) {
+// How hard a fact is, scored out of 10 from two things: how often people get it WRONG and how SLOW
+// they are on it. Honest caveat: no public per-fact table of error rates and response times could be
+// retrieved, so these are MODELLED from the well-replicated findings rather than measured per fact:
+//  - problem-size effect: bigger products mean more errors and slower answers;
+//  - tie effect: 7 × 7 and 8 × 8 are easier than their neighbours;
+//  - shortcut tables are near-trivial: ×1, ×10, ×2 (doubling), ×5 (count-by-fives), and ×11 up to 9
+//    (repeated digit, but 11 × 11 and 11 × 12 break the pattern);
+//  - the 9s have a digit-sum trick, so a little easier than their size suggests;
+//  - 12 × n is treated as two steps (a 6 × n fact, doubled), so a touch harder than 6 × n.
+// The error scale is calibrated to one verified number: Campbell & Graham (1985) found adults get
+// about 8% of single-digit (2–9) facts wrong, and the model's mean over 2–9 × 2–9 lands there.
+// Error and speed are each min-max scaled over the whole 12 × 12 grid and averaged, so the easiest
+// fact scores exactly 1 and the hardest exactly 10. Swap in real norms by replacing factProfile().
+function factGap(a, b) {
+  const ea = a === 12 ? 6 : a, eb = b === 12 ? 6 : b;
+  let g = Math.max(0, Math.min(1, (ea * eb - 9) / 72));
+  if (a === b) g *= 0.65;
+  if (a === 9 || b === 9) g *= 0.9;
+  return Math.min(1, g + 0.08 * ((a === 12) + (b === 12)));
+}
+function factProfile(a, b) {            // -> { err: chance of a wrong answer, secs: typical answer time }
   const lo = Math.min(a, b), hi = Math.max(a, b);
-  if (lo === 1) return 1;
-  if (lo === 10 || hi === 10) return 2;
-  if (lo === 2) return 2;
-  if (lo === 5 || hi === 5) return 3;
-  if (lo === 11 || hi === 11) return lo >= 11 ? 4 : 3;
-  return Math.min(10, Math.max(2, Math.round(lo * hi / 12)));
+  if (lo === 1) return { err: 0.005, secs: 0.8 };
+  if (lo === 10 || hi === 10) return { err: 0.01, secs: 0.9 };
+  if (lo === 2) return { err: 0.02, secs: 1.0 };
+  if (lo === 5 || hi === 5) return { err: 0.03, secs: 1.1 };
+  if (lo === 11 || hi === 11) return lo >= 11 ? { err: 0.06, secs: 1.7 } : { err: 0.03, secs: 1.3 };
+  const g = factGap(a, b);
+  return { err: 0.03 + 0.26 * g, secs: 1.0 + 1.2 * g };
+}
+const FACT_RANGE = (() => {
+  let eMin = Infinity, eMax = -Infinity, sMin = Infinity, sMax = -Infinity;
+  for (let a = 1; a <= 12; a++) for (let b = 1; b <= 12; b++) {
+    const p = factProfile(a, b);
+    eMin = Math.min(eMin, p.err); eMax = Math.max(eMax, p.err);
+    sMin = Math.min(sMin, p.secs); sMax = Math.max(sMax, p.secs);
+  }
+  return { eMin, eMax, sMin, sMax };
+})();
+function complexity(a, b) {
+  const p = factProfile(a, b), r = FACT_RANGE;
+  const h = 0.5 * (p.err - r.eMin) / (r.eMax - r.eMin) + 0.5 * (p.secs - r.sMin) / (r.sMax - r.sMin);
+  return Math.round((1 + 9 * h) * 10) / 10;
 }
 
 // "2, 3, 4, 5, 8" -> "2–5, 8" (runs of three or more collapse); all twelve -> "All (1–12)".
@@ -442,7 +474,7 @@ function scoreMessage(correct) {
 
 const LS_TABLES = 'dragonia_tt_tables';
 const LS_BEST = 'dragonia_tt_best';
-const LS_BEST_CX = 'dragonia_tt_best_cx';
+const LS_BEST_CX = 'dragonia_tt_best_cx2';   // v2: scores from the error-rate × speed model (v1 was a different scale)
 const $ = id => document.getElementById(id);
 
 function lsGet(key, fallback) {
@@ -491,7 +523,7 @@ function refreshSetup() {
     const key = bestKey([...selected]);
     const best = lsGet(LS_BEST, {})[key], bestCx = lsGet(LS_BEST_CX, {})[key];
     $('bestLine').innerHTML = best != null
-      ? `Your best with these tables: <b>${best}</b> correct` + (bestCx != null ? ` · complexity <b>${bestCx}</b>` : '')
+      ? `Your best with these tables: <b>${best}</b> correct` + (bestCx != null ? ` · complexity <b>${bestCx.toFixed(1)}</b>` : '')
       : 'No score yet with these tables — set one!';
   } else {
     $('bestLine').textContent = '';
@@ -579,7 +611,7 @@ function submit() {
   if (Number(state.typed) === q.answer) {
     state.correct++; state.streak++;
     const c = complexity(q.a, q.b);
-    state.cx += c;
+    state.cx = Math.round((state.cx + c) * 10) / 10;
     if (!state.hardest || c > state.hardest.c) state.hardest = { a: q.a, b: q.b, c };
     state.bestStreak = Math.max(state.bestStreak, state.streak);
     $('scorePill').textContent = '✓ ' + state.correct;
@@ -642,12 +674,12 @@ function endRound() {
 
   $('tablesPill').innerHTML = '✖️ Tables: <b>' + describeTables(state.tables) + '</b>';
   $('endScore').innerHTML = state.correct + '<span>correct</span>';
-  $('cxScore').textContent = state.cx;
+  $('cxScore').textContent = state.cx.toFixed(1);
   $('cxSub').textContent = state.correct === 0
     ? 'Answer a few to get on the board'
-    : 'avg ' + (state.cx / state.correct).toFixed(1) + ' per answer · hardest: ' + state.hardest.a + ' × ' + state.hardest.b;
-  $('cxHint').textContent = 'Each right answer scores 1–10 by how hard the fact is: 1 × 1 = ' + complexity(1, 1) +
-    ', 8 × 7 = ' + complexity(8, 7) + ', 9 × 12 = ' + complexity(9, 12) + '.';
+    : 'avg ' + (state.cx / state.correct).toFixed(1) + ' / 10 per answer · hardest: ' + state.hardest.a + ' × ' + state.hardest.b + ' (' + state.hardest.c.toFixed(1) + ' / 10)';
+  $('cxHint').textContent = 'Each right answer is scored out of 10 for how often people get that fact wrong and how slowly they answer it (modelled from published patterns, not measured per fact): 1 × 1 = ' +
+    complexity(1, 1).toFixed(1) + ', 8 × 7 = ' + complexity(8, 7).toFixed(1) + ', 9 × 12 = ' + complexity(9, 12).toFixed(1) + '.';
   // No banner for a first-ever score — there's nothing to have beaten.
   const beatCorrect = isPb && prev != null, beatCx = isCxPb && prevCx != null;
   $('pbBanner').hidden = !(beatCorrect || beatCx);
