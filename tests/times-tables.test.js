@@ -8,6 +8,8 @@
  *   - accuracy(correct, wrong)        — percentage, null before any answer
  *   - missKey(q)                      — de-dupes 7×8 / 8×7 in the practise list
  *   - scoreMessage(correct)           — end-of-round tier message
+ *   - complexity(a, b)                — 1–10 difficulty of a fact
+ *   - describeTables(tables)          — "2–5, 8" label for the results page
  *
  * Why these matter:
  *   pickQuestion() decides what a child is asked: a question from a table they did
@@ -57,6 +59,30 @@ function scoreMessage(correct) {
   if (correct < 22)  return "Fast fingers! Dragon-level recall.";
   if (correct < 30)  return "Blistering pace. The village is impressed.";
   return "Legendary. Are you secretly a calculator?";
+}
+
+function complexity(a, b) {
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  if (lo === 1) return 1;
+  if (lo === 10 || hi === 10) return 2;
+  if (lo === 2) return 2;
+  if (lo === 5 || hi === 5) return 3;
+  if (lo === 11 || hi === 11) return lo >= 11 ? 4 : 3;
+  return Math.min(10, Math.max(2, Math.round(lo * hi / 12)));
+}
+
+function describeTables(tables) {
+  const t = [...new Set(tables)].sort((x, y) => x - y);
+  if (t.length === 12) return 'All (1–12)';
+  const parts = [];
+  for (let i = 0; i < t.length;) {
+    let j = i;
+    while (j + 1 < t.length && t[j + 1] === t[j] + 1) j++;
+    if (j - i >= 2) parts.push(t[i] + '–' + t[j]);
+    else for (let k = i; k <= j; k++) parts.push(String(t[k]));
+    i = j + 1;
+  }
+  return parts.join(', ');
 }
 
 // ─── pickQuestion ────────────────────────────────────────────────────────────
@@ -213,5 +239,90 @@ describe('scoreMessage — tier boundaries', () => {
   });
   it('every score gets a non-empty message', () => {
     for (let n = 0; n <= 80; n++) expect(scoreMessage(n).length > 0).toBeTrue();
+  });
+});
+
+// ─── complexity ──────────────────────────────────────────────────────────────
+
+describe('complexity — anchor values', () => {
+  it('1 × 1 is trivial (1)', () => { expect(complexity(1, 1)).toBe(1); });
+  it('anything × 1 is 1, in either order', () => {
+    for (let n = 1; n <= 12; n++) {
+      expect(complexity(n, 1)).toBe(1);
+      expect(complexity(1, n)).toBe(1);
+    }
+  });
+  it('the 10s and 2s are easy (2)', () => {
+    expect(complexity(10, 7)).toBe(2);
+    expect(complexity(12, 10)).toBe(2);
+    expect(complexity(2, 9)).toBe(2);
+  });
+  it('the 5s and most 11s are 3, but 11 × 11 and 11 × 12 are 4', () => {
+    expect(complexity(5, 7)).toBe(3);
+    expect(complexity(3, 5)).toBe(3);
+    expect(complexity(11, 9)).toBe(3);
+    expect(complexity(11, 11)).toBe(4);
+    expect(complexity(12, 11)).toBe(4);
+  });
+  it('8 × 7 is mid-hard (5) and 9 × 12 is harder (9)', () => {
+    expect(complexity(8, 7)).toBe(5);
+    expect(complexity(9, 12)).toBe(9);
+  });
+});
+
+describe('complexity — shape', () => {
+  it('is symmetric: a × b scores the same as b × a', () => {
+    for (let a = 1; a <= 12; a++)
+      for (let b = 1; b <= 12; b++)
+        expect(complexity(a, b)).toBe(complexity(b, a));
+  });
+  it('is always a whole number from 1 to 10', () => {
+    for (let a = 1; a <= 12; a++)
+      for (let b = 1; b <= 12; b++) {
+        const c = complexity(a, b);
+        expect(Number.isInteger(c) && c >= 1 && c <= 10).toBeTrue();
+      }
+  });
+  it('the hard middle-table facts outrank the easy ones', () => {
+    expect(complexity(8, 7) > complexity(6, 3)).toBeTrue();
+    expect(complexity(9, 12) > complexity(8, 7)).toBeTrue();
+    expect(complexity(7, 8) > complexity(5, 8)).toBeTrue();
+  });
+  it('the hardest fact in the whole grid scores at least 9', () => {
+    let max = 0;
+    for (let a = 1; a <= 12; a++)
+      for (let b = 1; b <= 12; b++) max = Math.max(max, complexity(a, b));
+    expect(max >= 9).toBeTrue();
+  });
+});
+
+// ─── describeTables ──────────────────────────────────────────────────────────
+
+describe('describeTables — results-page label', () => {
+  it('collapses runs of three or more', () => {
+    expect(describeTables([2, 3, 4, 5])).toBe('2–5');
+    expect(describeTables([10, 11, 12])).toBe('10–12');
+  });
+  it('lists pairs and singles individually', () => {
+    expect(describeTables([6, 7])).toBe('6, 7');
+    expect(describeTables([9])).toBe('9');
+  });
+  it('mixes runs and singles', () => {
+    expect(describeTables([2, 3, 4, 5, 8, 10, 11, 12])).toBe('2–5, 8, 10–12');
+    expect(describeTables([2, 3, 4, 7, 9, 10])).toBe('2–4, 7, 9, 10');
+  });
+  it('is independent of selection order and ignores duplicates', () => {
+    expect(describeTables([5, 3, 4, 3])).toBe('3–5');
+  });
+  it('all twelve tables read as "All (1–12)"', () => {
+    expect(describeTables([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])).toBe('All (1–12)');
+  });
+  it('11 tables (everything but one) is not "All"', () => {
+    expect(describeTables([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])).toBe('1–11');
+  });
+  it('does not mutate the array it is given', () => {
+    const a = [9, 3];
+    describeTables(a);
+    expect(a).toEqual([9, 3]);
   });
 });

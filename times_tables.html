@@ -226,6 +226,13 @@
   .end-score span { display: block; font-size: 0.2em; color: var(--sub); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-top: 0.4rem; }
   .end-msg { font-size: 1.05rem; font-weight: 600; max-width: 440px; line-height: 1.5; text-align: center; }
   .pb-banner { background: rgba(245,166,35,.14); border: 1px solid rgba(245,166,35,.45); color: var(--gold); border-radius: 999px; font-weight: 800; padding: 0.35rem 1rem; }
+  .tables-pill { background: var(--card); border: 1px solid var(--border); border-radius: 999px; color: var(--sub); font-size: 0.9rem; font-weight: 600; padding: 0.35rem 1rem; text-align: center; }
+  .tables-pill b { color: var(--gold); }
+  .cx-card { width: 100%; background: var(--surface); border: 1px solid rgba(245,166,35,.35); border-radius: 16px; padding: 1rem 1rem 0.9rem; text-align: center; }
+  .cx-num { font-size: clamp(2.4rem, 11vw, 3.4rem); font-weight: 900; color: var(--gold); line-height: 1; }
+  .cx-label { margin-top: 0.3rem; font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; }
+  .cx-sub { margin-top: 0.6rem; color: var(--text); font-weight: 600; font-size: 0.95rem; font-variant-numeric: tabular-nums; }
+  .cx-hint { margin-top: 0.4rem; color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
   .stats { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
   .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 0.8rem 0.4rem; text-align: center; }
   .stat b { display: block; font-size: 1.4rem; color: var(--text); }
@@ -320,9 +327,16 @@
   <!-- RESULTS -->
   <section class="screen" id="endScreen" aria-label="Results">
     <div class="end-title">Time's up!</div>
+    <div class="tables-pill" id="tablesPill">✖️ Tables: <b>–</b></div>
     <div class="end-score" id="endScore">0<span>correct</span></div>
     <div class="pb-banner" id="pbBanner" hidden>🏆 New personal best!</div>
     <div class="end-msg" id="endMsg"></div>
+    <div class="cx-card">
+      <div class="cx-num" id="cxScore">0</div>
+      <div class="cx-label">Complexity score</div>
+      <div class="cx-sub" id="cxSub"></div>
+      <div class="cx-hint" id="cxHint"></div>
+    </div>
     <div class="stats">
       <div class="stat"><b id="statWrong">0</b><span>Wrong</span></div>
       <div class="stat"><b id="statAcc">–</b><span>Accuracy</span></div>
@@ -382,6 +396,34 @@ function accuracy(correct, wrong) {
   return total === 0 ? null : Math.round(100 * correct / total);
 }
 
+// How hard a fact is, 1 (trivial) to 10 (brutal). The "easy" tables get fixed low scores — ×1 is
+// 1, ×10 and ×2 are 2, ×5 and ×11 are 3 (11 × 11 and 11 × 12 are 4) — and everything else scales
+// with the size of the product, so 3 × 4 = 2, 6 × 7 = 4, 8 × 7 = 5, 9 × 9 = 7, 9 × 12 = 9.
+function complexity(a, b) {
+  const lo = Math.min(a, b), hi = Math.max(a, b);
+  if (lo === 1) return 1;
+  if (lo === 10 || hi === 10) return 2;
+  if (lo === 2) return 2;
+  if (lo === 5 || hi === 5) return 3;
+  if (lo === 11 || hi === 11) return lo >= 11 ? 4 : 3;
+  return Math.min(10, Math.max(2, Math.round(lo * hi / 12)));
+}
+
+// "2, 3, 4, 5, 8" -> "2–5, 8" (runs of three or more collapse); all twelve -> "All (1–12)".
+function describeTables(tables) {
+  const t = [...new Set(tables)].sort((x, y) => x - y);
+  if (t.length === 12) return 'All (1–12)';
+  const parts = [];
+  for (let i = 0; i < t.length;) {
+    let j = i;
+    while (j + 1 < t.length && t[j + 1] === t[j] + 1) j++;
+    if (j - i >= 2) parts.push(t[i] + '–' + t[j]);
+    else for (let k = i; k <= j; k++) parts.push(String(t[k]));
+    i = j + 1;
+  }
+  return parts.join(', ');
+}
+
 // 7 × 8 and 8 × 7 are the same fact — list it once.
 function missKey(q) {
   return Math.min(q.a, q.b) + 'x' + Math.max(q.a, q.b);
@@ -400,6 +442,7 @@ function scoreMessage(correct) {
 
 const LS_TABLES = 'dragonia_tt_tables';
 const LS_BEST = 'dragonia_tt_best';
+const LS_BEST_CX = 'dragonia_tt_best_cx';
 const $ = id => document.getElementById(id);
 
 function lsGet(key, fallback) {
@@ -416,7 +459,7 @@ const state = {
   tables: [],
   question: null,
   typed: '',
-  correct: 0, wrong: 0, streak: 0, bestStreak: 0,
+  correct: 0, wrong: 0, streak: 0, bestStreak: 0, cx: 0, hardest: null,
   missed: new Map(),         // missKey -> {a,b,answer}
   deadline: 0, remainingMs: ROUND_MS,
   tick: null, feedbackTimer: null, countdownTimer: null, locked: false,
@@ -445,8 +488,11 @@ function refreshSetup() {
   $('startBtn').disabled = !any;
   $('pickWarning').textContent = any ? '' : 'Pick at least one times table.';
   if (any) {
-    const best = lsGet(LS_BEST, {})[bestKey([...selected])];
-    $('bestLine').innerHTML = best != null ? `Your best with these tables: <b>${best}</b>` : 'No score yet with these tables — set one!';
+    const key = bestKey([...selected]);
+    const best = lsGet(LS_BEST, {})[key], bestCx = lsGet(LS_BEST_CX, {})[key];
+    $('bestLine').innerHTML = best != null
+      ? `Your best with these tables: <b>${best}</b> correct` + (bestCx != null ? ` · complexity <b>${bestCx}</b>` : '')
+      : 'No score yet with these tables — set one!';
   } else {
     $('bestLine').textContent = '';
   }
@@ -477,7 +523,7 @@ function startCountdown() {
 }
 
 function beginRound() {
-  Object.assign(state, { correct: 0, wrong: 0, streak: 0, bestStreak: 0, typed: '', question: null, locked: false, remainingMs: ROUND_MS });
+  Object.assign(state, { correct: 0, wrong: 0, streak: 0, bestStreak: 0, cx: 0, hardest: null, typed: '', question: null, locked: false, remainingMs: ROUND_MS });
   state.missed = new Map();
   state.phase = 'playing';
   $('scorePill').textContent = '✓ 0';
@@ -532,6 +578,9 @@ function submit() {
   const q = state.question;
   if (Number(state.typed) === q.answer) {
     state.correct++; state.streak++;
+    const c = complexity(q.a, q.b);
+    state.cx += c;
+    if (!state.hardest || c > state.hardest.c) state.hardest = { a: q.a, b: q.b, c };
     state.bestStreak = Math.max(state.bestStreak, state.streak);
     $('scorePill').textContent = '✓ ' + state.correct;
     $('questionCard').className = 'question-card right';
@@ -583,14 +632,27 @@ function endRound() {
   stopTimers();
   state.phase = 'done';
   $('pauseOverlay').classList.remove('visible');
-  const best = lsGet(LS_BEST, {});
+  const best = lsGet(LS_BEST, {}), bestCx = lsGet(LS_BEST_CX, {});
   const key = bestKey(state.tables);
-  const prev = best[key];
+  const prev = best[key], prevCx = bestCx[key];
   const isPb = state.correct > 0 && (prev == null || state.correct > prev);
+  const isCxPb = state.cx > 0 && (prevCx == null || state.cx > prevCx);
   if (isPb) { best[key] = state.correct; lsSet(LS_BEST, best); }
+  if (isCxPb) { bestCx[key] = state.cx; lsSet(LS_BEST_CX, bestCx); }
 
+  $('tablesPill').innerHTML = '✖️ Tables: <b>' + describeTables(state.tables) + '</b>';
   $('endScore').innerHTML = state.correct + '<span>correct</span>';
-  $('pbBanner').hidden = !(isPb && prev != null);   // no banner for a first-ever score
+  $('cxScore').textContent = state.cx;
+  $('cxSub').textContent = state.correct === 0
+    ? 'Answer a few to get on the board'
+    : 'avg ' + (state.cx / state.correct).toFixed(1) + ' per answer · hardest: ' + state.hardest.a + ' × ' + state.hardest.b;
+  $('cxHint').textContent = 'Each right answer scores 1–10 by how hard the fact is: 1 × 1 = ' + complexity(1, 1) +
+    ', 8 × 7 = ' + complexity(8, 7) + ', 9 × 12 = ' + complexity(9, 12) + '.';
+  // No banner for a first-ever score — there's nothing to have beaten.
+  const beatCorrect = isPb && prev != null, beatCx = isCxPb && prevCx != null;
+  $('pbBanner').hidden = !(beatCorrect || beatCx);
+  $('pbBanner').textContent = beatCorrect && beatCx ? '🏆 New personal best — most correct and highest complexity!'
+    : beatCorrect ? '🏆 New personal best — most correct!' : '🏆 New best complexity score!';
   $('endMsg').textContent = scoreMessage(state.correct);
   $('statWrong').textContent = state.wrong;
   const acc = accuracy(state.correct, state.wrong);
