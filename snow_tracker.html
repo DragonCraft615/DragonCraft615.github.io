@@ -75,6 +75,25 @@
   .tip .r strong { color: var(--text); font-variant-numeric: tabular-nums; }
   .status { font-size: .8rem; color: var(--sub); margin-top: .6rem; line-height: 1.5; min-height: 1.2em; }
   .status.warn { color: #ffb86b; }
+  .fc-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; -webkit-overflow-scrolling: touch; }
+  table.fc { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; font-size: .8rem; font-variant-numeric: tabular-nums; }
+  table.fc th, table.fc td { text-align: center; padding: .28rem .15rem; min-width: 52px; border-bottom: 1px solid rgba(255,255,255,.05); white-space: nowrap; }
+  table.fc th.rowh { position: sticky; left: 0; z-index: 2; background: #0c0c1a; min-width: 92px; text-align: left; padding-left: .6rem; color: var(--sub); font-weight: 700; font-size: .72rem; border-right: 1px solid var(--border); }
+  table.fc th.rowh small { display: block; color: var(--muted); font-weight: 600; }
+  table.fc .dayh { font-weight: 800; color: var(--text); font-size: .85rem; padding: .45rem .2rem; border-left: 1px solid var(--border); background: rgba(255,255,255,.03); }
+  table.fc .dayh.today { color: var(--gold); }
+  table.fc .per { color: var(--muted); font-size: .7rem; text-transform: lowercase; }
+  table.fc .d0 { border-left: 1px solid var(--border); }
+  table.fc .past { opacity: .5; }
+  table.fc .wx { font-size: 1.5rem; line-height: 1.1; padding-top: .45rem; }
+  table.fc .wxl { font-size: .7rem; color: var(--sub); white-space: normal; line-height: 1.15; height: 2.3em; vertical-align: top; }
+  .wind { display: inline-flex; align-items: center; justify-content: center; gap: 2px; min-width: 34px; padding: 2px 5px; border-radius: 999px; font-weight: 800; font-size: .78rem; color: #fff; background: #1c1c30; }
+  .wind svg { width: 10px; height: 10px; flex: none; }
+  .cell-snow { font-weight: 800; color: #fff; }
+  .cell-dim { color: var(--muted); }
+  .fl { color: #7db4ff; font-weight: 700; }
+  table.fc tr.tot td { font-weight: 800; color: var(--gold); border-left: 1px solid var(--border); background: rgba(245,166,35,.06); }
+  table.fc tr.tot td small { display: block; font-weight: 600; color: var(--sub); font-size: .7rem; }
   details.panel summary { cursor: pointer; font-weight: 700; color: var(--gold); }
   details.panel p, details.panel li { color: var(--sub); font-size: .86rem; line-height: 1.6; margin-top: .55rem; }
   details.panel ul { padding-left: 1.2rem; }
@@ -133,6 +152,19 @@
   </section>
 
   <section class="cards" id="cards" aria-label="Summary"></section>
+
+  <section class="panel" aria-label="12-day forecast">
+    <div class="chart-head">
+      <div class="chart-title">Next 12 days · forecast</div>
+      <div class="seg" id="fcBandSeg" role="group" aria-label="Forecast elevation">
+        <button data-fcband="top" aria-pressed="false">Top 3,400 m</button>
+        <button data-fcband="mid" aria-pressed="true">Mid 2,750 m</button>
+        <button data-fcband="base" aria-pressed="false">Base 2,100 m</button>
+      </div>
+    </div>
+    <div class="fc-scroll" id="fcScroll" tabindex="0" aria-label="12-day forecast table, scrolls sideways"></div>
+    <div class="status" id="fcStatus"></div>
+  </section>
 
   <section class="panel" aria-label="Chart">
     <div class="chart-head">
@@ -226,6 +258,59 @@ function simulateDepth(d0, snow, temp, m) {
   return out;
 }
 
+// ── forecast-table helpers ──
+const PERIODS = ['am', 'pm', 'night'];
+function prevDate(iso) { return new Date(Date.parse(iso + 'T12:00:00Z') - MS_DAY).toISOString().slice(0, 10); }
+// Which table column an hour belongs to: AM 06-12, PM 12-18, night 18-06 (the small hours belong to the night before).
+function periodOf(t) {
+  const date = t.slice(0, 10), h = +t.slice(11, 13);
+  if (h >= 6 && h < 12) return { date, p: 'am' };
+  if (h >= 12 && h < 18) return { date, p: 'pm' };
+  if (h >= 18) return { date, p: 'night' };
+  return { date: prevDate(date), p: 'night' };
+}
+// Environment Canada / NWS wind chill (°C, km/h); only defined for cold, breezy conditions.
+function windChill(t, v) {
+  if (t > 10 || v < 4.8) return t;
+  const x = Math.pow(v, 0.16);
+  return 13.12 + 0.6215 * t - 11.37 * x + 0.3965 * t * x;
+}
+// Height of the 0 °C line, estimated from a temperature at a known elevation with a standard 6.5 °C/km lapse rate.
+function freezingLevel(t, elev) { return elev + t / 0.0065; }
+// Wind at height z, blended between pressure levels (ascending {z, spd, dir}); direction comes from the nearer level.
+function windAt(z, levels) {
+  if (z <= levels[0].z) return { spd: levels[0].spd, dir: levels[0].dir };
+  for (let i = 1; i < levels.length; i++) {
+    const a = levels[i - 1], b = levels[i];
+    if (z <= b.z) { const f = (z - a.z) / (b.z - a.z); return { spd: a.spd + (b.spd - a.spd) * f, dir: f < .5 ? a.dir : b.dir }; }
+  }
+  const l = levels[levels.length - 1];
+  return { spd: l.spd, dir: l.dir };
+}
+// Average direction (degrees the wind blows FROM) of several readings, weighted by speed.
+function vectorMeanDir(spd, dir) {
+  let u = 0, v = 0;
+  spd.forEach((s, i) => { const r = dir[i] * Math.PI / 180; u += s * Math.sin(r); v += s * Math.cos(r); });
+  if (Math.abs(u) < 1e-9 && Math.abs(v) < 1e-9) return null;
+  return (Math.atan2(u, v) * 180 / Math.PI + 360) % 360;
+}
+// Plain-words weather for one column from its snow (cm), rain (mm) and mean cloud cover (%).
+function classifyPeriod(snowCm, rainMm, cloud, night) {
+  const snowy = snowCm >= 0.5, rainy = rainMm >= 0.3;
+  if (snowy && rainy && Math.min(snowCm / 7.7, rainMm) >= 0.3) return { label: 'rain & snow', icon: '🌨️', kind: 'mix' };
+  if (snowy && (!rainy || snowCm / 7.7 >= rainMm)) {
+    return snowCm < 2 ? { label: 'light snow', icon: '🌨️', kind: 'snow' }
+      : snowCm < 8 ? { label: 'mod. snow', icon: '🌨️', kind: 'snow' } : { label: 'heavy snow', icon: '❄️', kind: 'snow' };
+  }
+  if (rainy) {
+    return rainMm < 1.5 ? { label: 'light rain', icon: '🌦️', kind: 'rain' }
+      : rainMm < 5 ? { label: 'mod. rain', icon: '🌧️', kind: 'rain' } : { label: 'heavy rain', icon: '🌧️', kind: 'rain' };
+  }
+  if (cloud < 20) return { label: 'clear', icon: night ? '🌙' : '☀️', kind: 'clear' };
+  if (cloud < 60) return { label: 'some clouds', icon: night ? '☁️' : '🌤️', kind: 'part' };
+  return { label: 'cloudy', icon: '☁️', kind: 'cloud' };
+}
+
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 const $ = id => document.getElementById(id);
@@ -236,7 +321,7 @@ const DG_DATASET = '6569b51ae64326786e4e8e1a';
 const LAT = SNOW_DATA ? SNOW_DATA.lat : 45.47, LON = SNOW_DATA ? SNOW_DATA.lon : 6.91;
 
 const todayIso = new Date().toLocaleDateString('sv-SE');          // local calendar date, YYYY-MM-DD
-const state = { season: null, metric: 'daily', band: 'mid', model: 'ecmwf_ifs025', smooth: true };
+const state = { season: null, metric: 'daily', band: 'mid', model: 'ecmwf_ifs025', smooth: true, fcBand: 'mid' };
 const live = {};       // season -> { ready, actual, ifs, station, ens: {model: data}, notes: [] }
 let lastSpec = null;
 
@@ -655,6 +740,124 @@ async function render() {
     : `Historical average is every other winter ${first}/${String(first + 1).slice(2)}–${lastY}/${String(lastY + 1).slice(2)}. Hover or tap the chart for numbers.`);
 }
 
+// ── 12-day forecast table ───────────────────────────────────────────────────
+let fcPromise = null;
+function loadForecast() {
+  if (!fcPromise) {
+    const hourlyBand = 'temperature_2m,snowfall,rain';
+    const common = 'relative_humidity_2m,cloud_cover,wind_speed_850hPa,wind_speed_700hPa,wind_speed_500hPa,wind_direction_850hPa,wind_direction_700hPa,wind_direction_500hPa,geopotential_height_850hPa,geopotential_height_700hPa,geopotential_height_500hPa';
+    const tail = '&models=ecmwf_ifs025&forecast_days=14&timezone=Europe%2FParis';
+    fcPromise = Promise.all([
+      getJSON(`https://api.open-meteo.com/v1/forecast?${multiLoc()}&hourly=${hourlyBand}${tail}`, 30000),
+      getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=${common}${tail}`, 30000),
+    ]).then(([a, b]) => ({ loc: asList(a), common: b.hourly }));
+    fcPromise.catch(() => { fcPromise = null; });
+  }
+  return fcPromise;
+}
+const ensCache = {};
+function ensembleFor(model) {
+  if (!ensCache[model]) { ensCache[model] = loadEnsemble(0, model); ensCache[model].catch(() => { delete ensCache[model]; }); }
+  return ensCache[model];
+}
+
+function buildForecastDays(fc, band, nDays) {
+  const zBand = SNOW_DATA.bands[band], loc = fc.loc[BAND_ORDER.indexOf(band)].hourly, baseH = fc.loc[0].hourly, c = fc.common;
+  const groups = new Map();
+  loc.time.forEach((t, h) => {
+    const { date, p } = periodOf(t);
+    const w = windAt(zBand, [
+      { z: c.geopotential_height_850hPa[h], spd: c.wind_speed_850hPa[h], dir: c.wind_direction_850hPa[h] },
+      { z: c.geopotential_height_700hPa[h], spd: c.wind_speed_700hPa[h], dir: c.wind_direction_700hPa[h] },
+      { z: c.geopotential_height_500hPa[h], spd: c.wind_speed_500hPa[h], dir: c.wind_direction_500hPa[h] }]);
+    const key = date + '|' + p;
+    let g = groups.get(key);
+    if (!g) { g = { date, p, snow: 0, rain: 0, temp: [], chill: [], hum: [], fl: [], cloud: [], wspd: [], wdir: [] }; groups.set(key, g); }
+    const T = loc.temperature_2m[h];
+    g.snow += loc.snowfall[h] || 0; g.rain += loc.rain[h] || 0;
+    g.temp.push(T); g.chill.push(windChill(T, w.spd)); g.hum.push(c.relative_humidity_2m[h]);
+    g.fl.push(freezingLevel(baseH.temperature_2m[h], SNOW_DATA.bands.base)); g.cloud.push(c.cloud_cover[h]);
+    g.wspd.push(w.spd); g.wdir.push(w.dir);
+  });
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const dates = [...new Set(loc.time.map(t => t.slice(0, 10)))].slice(0, nDays);
+  return dates.map(date => ({
+    date,
+    periods: PERIODS.map(p => {
+      const g = groups.get(date + '|' + p);
+      if (!g) return null;
+      const end = p === 'am' ? date + 'T12:00' : p === 'pm' ? date + 'T18:00' : nextDate(date) + 'T06:00';
+      return { p, end, snow: g.snow, rain: g.rain, tmax: Math.max(...g.temp), tmin: Math.min(...g.temp), chill: Math.min(...g.chill),
+        hum: mean(g.hum), fl: mean(g.fl), wspd: mean(g.wspd), wdir: vectorMeanDir(g.wspd, g.wdir),
+        cls: classifyPeriod(g.snow, g.rain, mean(g.cloud), p === 'night') };
+    }),
+  }));
+}
+function nextDate(iso) { return new Date(Date.parse(iso + 'T12:00:00Z') + MS_DAY).toISOString().slice(0, 10); }
+
+function tempColor(t) {
+  const stops = [[-20, 235], [-8, 215], [0, 190], [5, 150], [10, 110], [20, 55]];
+  let hue = stops[stops.length - 1][1];
+  if (t <= stops[0][0]) hue = stops[0][1];
+  else for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) { const a = stops[i - 1], b = stops[i]; hue = a[1] + (b[1] - a[1]) * (t - a[0]) / (b[0] - a[0]); break; }
+  return `hsl(${hue.toFixed(0)},75%,${t < -8 ? 42 : 52}%)`;
+}
+function windColor(v) { return v < 15 ? '#1c1c30' : v < 30 ? '#8a6d1f' : v < 50 ? '#b4530f' : '#a3262a'; }
+const WIND_ARROW = dir => dir == null ? '' : `<svg viewBox="0 0 10 10" style="transform:rotate(${Math.round(dir + 180)}deg)" aria-hidden="true"><path d="M5 0 L9 9 L5 7 L1 9 Z" fill="currentColor"/></svg>`;
+
+async function renderForecast() {
+  const box = $('fcScroll'), st = $('fcStatus');
+  document.querySelectorAll('#fcBandSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.fcband === state.fcBand));
+  st.className = 'status';
+  let fc;
+  try { fc = await loadForecast(); } catch (e) {
+    box.innerHTML = ''; st.className = 'status warn'; st.textContent = 'The forecast table could not be loaded (' + e.message + ').'; return;
+  }
+  let ens = null;
+  try { ens = await ensembleFor(state.model); } catch (e) { /* the table still works without the ensemble row */ }
+  const days = buildForecastDays(fc, state.fcBand, 12);
+  const nowParis = new Date().toLocaleString('sv-SE', { timeZone: 'Europe/Paris' }).replace(' ', 'T').slice(0, 16);
+  const todayParis = nowParis.slice(0, 10);
+  const lbl = (name, unit) => `<th class="rowh" scope="row">${name}${unit ? `<small>${unit}</small>` : ''}</th>`;
+  const cellsAll = (fn) => days.map(d => d.periods.map((p, i) => p ? fn(p, i, d) : '<td></td>').join('')).join('');
+  const cls = (p, i) => (i === 0 ? 'd0 ' : '') + (p.end < nowParis ? 'past' : '');
+  const snowBg = v => v >= 0.5 ? `background:rgba(120,190,255,${(0.18 + Math.min(1, v / 12) * 0.62).toFixed(2)})` : '';
+  const rainBg = v => v >= 0.3 ? `background:rgba(70,110,255,${(0.2 + Math.min(1, v / 8) * 0.6).toFixed(2)})` : '';
+  const tcell = (v, p, i) => `<td class="${cls(p, i)}" style="background:${tempColor(v)};color:#0a0a14;font-weight:800">${Math.round(v)}</td>`;
+  let h = '<table class="fc"><tbody>';
+  h += `<tr><th class="rowh" scope="row">${SNOW_DATA.bands[state.fcBand].toLocaleString('en-GB')} m</th>` + days.map(d => {
+    const dt = new Date(d.date + 'T12:00:00Z'), isToday = d.date === todayParis;
+    const text = dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', timeZone: 'UTC' }) + (dt.getUTCDate() === 1 || d === days[0] ? ' ' + dt.toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' }) : '');
+    return `<td class="dayh${isToday ? ' today' : ''}" colspan="3">${isToday ? 'Today · ' : ''}${text}</td>`;
+  }).join('') + '</tr>';
+  h += '<tr><th class="rowh"></th>' + cellsAll((p, i) => `<td class="per ${cls(p, i)}">${p.p === 'night' ? 'night' : p.p.toUpperCase()}</td>`) + '</tr>';
+  h += '<tr><th class="rowh" scope="row">Weather</th>' + cellsAll((p, i) => `<td class="wx ${cls(p, i)}" title="${p.cls.label}">${p.cls.icon}</td>`) + '</tr>';
+  h += '<tr><th class="rowh"></th>' + cellsAll((p, i) => `<td class="wxl ${cls(p, i)}">${p.cls.label}</td>`) + '</tr>';
+  h += lbl('Wind', 'km/h') + cellsAll((p, i) => `<td class="${cls(p, i)}"><span class="wind" style="background:${windColor(p.wspd)}" title="from ${p.wdir == null ? '–' : Math.round(p.wdir) + '°'}">${WIND_ARROW(p.wdir)}${Math.round(p.wspd)}</span></td>`) + '</tr>';
+  h += lbl('Snow', 'cm') + cellsAll((p, i) => `<td class="cell-snow ${cls(p, i)}" style="${snowBg(p.snow)}" title="${r1(p.snow)} cm">${p.snow >= 0.5 ? r0(p.snow) : '<span class="cell-dim">–</span>'}</td>`) + '</tr>';
+  h += lbl('Rain', 'mm') + cellsAll((p, i) => `<td class="cell-snow ${cls(p, i)}" style="${rainBg(p.rain)}" title="${r1(p.rain)} mm">${p.rain >= 0.3 ? r0(p.rain) : '<span class="cell-dim">–</span>'}</td>`) + '</tr>';
+  h += lbl('Max', '°C') + cellsAll((p, i) => tcell(p.tmax, p, i)) + '</tr>';
+  h += lbl('Min', '°C') + cellsAll((p, i) => tcell(p.tmin, p, i)) + '</tr>';
+  h += lbl('Wind chill', '°C') + cellsAll((p, i) => tcell(p.chill, p, i)) + '</tr>';
+  h += lbl('Humidity', '%') + cellsAll((p, i) => `<td class="${cls(p, i)}" style="background:rgba(100,150,255,${(Math.max(0, p.hum - 30) / 70 * 0.4).toFixed(2)})">${r0(p.hum)}</td>`) + '</tr>';
+  h += lbl('Freezing level', 'm') + cellsAll((p, i) => `<td class="fl ${cls(p, i)}">${Math.max(0, Math.round(p.fl / 50) * 50)}</td>`) + '</tr>';
+  // day totals with the ensemble's uncertainty, from the same chosen ensemble as the chart
+  h += `<tr class="tot"><th class="rowh" scope="row">Day snow<small>cm · likely range</small></th>` + days.map(d => {
+    const k = ens ? ens.dates.indexOf(d.date) : -1;
+    if (k < 0) {
+      const sum = d.periods.reduce((a, p) => a + (p ? p.snow : 0), 0);
+      return `<td colspan="3">${r0(sum)}<small>model run</small></td>`;
+    }
+    const vals = ens.snow[state.fcBand].map(m => m[k]).filter(v => v != null);
+    if (!vals.length) return '<td colspan="3">–</td>';
+    return `<td colspan="3">${r0(percentile(vals, .5))}<small>${r0(percentile(vals, .1))}–${r0(percentile(vals, .9))} (${vals.length} members)</small></td>`;
+  }).join('') + '</tr>';
+  h += '</tbody></table>';
+  box.innerHTML = h;
+  st.textContent = `ECMWF IFS model, ~28 km grid · ${BAND_LABEL[state.fcBand]}. Scroll sideways for all 12 days. Dimmed columns have already happened.` +
+    (ens ? '' : ' (Ensemble range unavailable.)');
+}
+
 function buildNotes() {
   const m = SNOW_DATA.depthModel;
   const li = t => `<li>${t}</li>`;
@@ -663,6 +866,7 @@ function buildNotes() {
     li(`<b>Snowpack</b> is real: daily readings from Météo-France's <b>${SNOW_DATA.station.name}</b> station (${SNOW_DATA.station.elev} m), 06:00 UTC, ${SNOW_DATA.depthSeasons.length} winters since ${SNOW_DATA.depthSeasons[0]}/${String(SNOW_DATA.depthSeasons[0] + 1).slice(2)} (a couple of gaps, e.g. 2017/18). It's one spot in the village, not the pistes, and the page picks up new days live with a 2–4 day lag.`),
     li(`<b>The last few days</b> (past where ERA5 has caught up, ~5 days) come from ECMWF's own recent forecast steps.`),
     li(`<b>Forecast range:</b> each ensemble run is the same model started from slightly different conditions. The orange band holds the middle 80% of members (10th–90th percentile), the faint band is the full min–max, the dashed line the median. ECMWF has 51 members (15 days); GFS/GEFS has 31 but only 10 days of daily data — the same family of model as the chart on meteoexploration.com. When the two disagree, that disagreement is itself the uncertainty.`),
+    li(`<b>12-day table:</b> the ECMWF IFS model (~28 km grid), summed into AM (06–12), PM (12–18) and night (18–06) columns. Temperatures, snow vs rain and wind chill are worked out for the elevation you pick. <b>Wind</b> is the model's wind at that height, blended between its pressure levels — what an exposed ridge would see; sheltered pistes get less, and it's an average, not gusts. <b>Humidity</b> and <b>cloud</b> are for the whole grid square. <b>Freezing level</b> is estimated from the temperature at 2,100 m with a standard 6.5 °C/km lapse rate. The bottom row is the ensemble's median day total and its 10–90% range, so a single run's number isn't taken as gospel.`),
     li(`<b>Snowpack projection:</b> each member's snow and temperature is run through a small snow budget fitted to the station's own readings (${SNOW_DATA.depthModel.n_fit} days): fresh snow settles to ${Math.round(m.a * 100)}% of its depth, ${Math.abs(m.b).toFixed(1)} cm melts per °C above freezing per day, and the pack compacts ${Math.abs(m.c * 100).toFixed(1)}% a day. Fed the real weather it lands within about ${m.mae7} cm after 7 days and ${m.mae15} cm after 15 (tested on the winters it was fitted on) — before adding the forecast's own uncertainty.`),
     li(`Data: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) serving ECMWF ERA5/IFS/ENS and NOAA GEFS; <a href="https://www.data.gouv.fr/datasets/donnees-climatologiques-de-base-quotidiennes" target="_blank" rel="noopener">Météo-France open climatology</a> (Licence Ouverte). Baked-in history last rebuilt ${SNOW_DATA.generated} with <code>scripts/build_snow_history.py</code>.`),
   ].join('');
@@ -681,11 +885,13 @@ function init() {
   sel.onchange = () => { state.season = +sel.value; render(); };
   document.querySelectorAll('#metricSeg button').forEach(b => b.onclick = () => { state.metric = b.dataset.metric; render(); });
   document.querySelectorAll('#bandSeg button').forEach(b => b.onclick = () => { state.band = b.dataset.band; render(); });
-  document.querySelectorAll('#modelSeg button').forEach(b => b.onclick = () => { state.model = b.dataset.model; render(); });
+  document.querySelectorAll('#modelSeg button').forEach(b => b.onclick = () => { state.model = b.dataset.model; render(); renderForecast(); });
+  document.querySelectorAll('#fcBandSeg button').forEach(b => b.onclick = () => { state.fcBand = b.dataset.fcband; renderForecast(); });
   $('smoothBtn').onclick = () => { state.smooth = !state.smooth; render(); };
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => lastSpec && render(), 150); });
   buildNotes();
   render();
+  renderForecast();
 }
 init();
 </script>

@@ -3,6 +3,7 @@
  *   isLeap / seasonLength / dateOfIdx / idxOfDate / defaultSeason — the 1 Nov–end Feb calendar
  *   percentile / smoothSeries / cumsum / statsByDay               — the average-and-range maths
  *   depthStep / simulateDepth                                     — the snow-budget projection
+ *   periodOf / windChill / freezingLevel / windAt / vectorMeanDir / classifyPeriod — the 12-day table
  *
  * Why these matter:
  *   Every line on the chart is indexed by days since 1 Nov, so an off-by-one in dateOfIdx/idxOfDate
@@ -78,6 +79,59 @@ function simulateDepth(d0, snow, temp, m) {
   let d = d0;
   for (let i = 0; i < snow.length; i++) { d = depthStep(d, snow[i] || 0, temp[i] == null ? 0 : temp[i], m); out.push(d); }
   return out;
+}
+
+// ── forecast-table helpers ──
+const PERIODS = ['am', 'pm', 'night'];
+function prevDate(iso) { return new Date(Date.parse(iso + 'T12:00:00Z') - MS_DAY).toISOString().slice(0, 10); }
+// Which table column an hour belongs to: AM 06-12, PM 12-18, night 18-06 (the small hours belong to the night before).
+function periodOf(t) {
+  const date = t.slice(0, 10), h = +t.slice(11, 13);
+  if (h >= 6 && h < 12) return { date, p: 'am' };
+  if (h >= 12 && h < 18) return { date, p: 'pm' };
+  if (h >= 18) return { date, p: 'night' };
+  return { date: prevDate(date), p: 'night' };
+}
+// Environment Canada / NWS wind chill (°C, km/h); only defined for cold, breezy conditions.
+function windChill(t, v) {
+  if (t > 10 || v < 4.8) return t;
+  const x = Math.pow(v, 0.16);
+  return 13.12 + 0.6215 * t - 11.37 * x + 0.3965 * t * x;
+}
+// Height of the 0 °C line, estimated from a temperature at a known elevation with a standard 6.5 °C/km lapse rate.
+function freezingLevel(t, elev) { return elev + t / 0.0065; }
+// Wind at height z, blended between pressure levels (ascending {z, spd, dir}); direction comes from the nearer level.
+function windAt(z, levels) {
+  if (z <= levels[0].z) return { spd: levels[0].spd, dir: levels[0].dir };
+  for (let i = 1; i < levels.length; i++) {
+    const a = levels[i - 1], b = levels[i];
+    if (z <= b.z) { const f = (z - a.z) / (b.z - a.z); return { spd: a.spd + (b.spd - a.spd) * f, dir: f < .5 ? a.dir : b.dir }; }
+  }
+  const l = levels[levels.length - 1];
+  return { spd: l.spd, dir: l.dir };
+}
+// Average direction (degrees the wind blows FROM) of several readings, weighted by speed.
+function vectorMeanDir(spd, dir) {
+  let u = 0, v = 0;
+  spd.forEach((s, i) => { const r = dir[i] * Math.PI / 180; u += s * Math.sin(r); v += s * Math.cos(r); });
+  if (Math.abs(u) < 1e-9 && Math.abs(v) < 1e-9) return null;
+  return (Math.atan2(u, v) * 180 / Math.PI + 360) % 360;
+}
+// Plain-words weather for one column from its snow (cm), rain (mm) and mean cloud cover (%).
+function classifyPeriod(snowCm, rainMm, cloud, night) {
+  const snowy = snowCm >= 0.5, rainy = rainMm >= 0.3;
+  if (snowy && rainy && Math.min(snowCm / 7.7, rainMm) >= 0.3) return { label: 'rain & snow', icon: '🌨️', kind: 'mix' };
+  if (snowy && (!rainy || snowCm / 7.7 >= rainMm)) {
+    return snowCm < 2 ? { label: 'light snow', icon: '🌨️', kind: 'snow' }
+      : snowCm < 8 ? { label: 'mod. snow', icon: '🌨️', kind: 'snow' } : { label: 'heavy snow', icon: '❄️', kind: 'snow' };
+  }
+  if (rainy) {
+    return rainMm < 1.5 ? { label: 'light rain', icon: '🌦️', kind: 'rain' }
+      : rainMm < 5 ? { label: 'mod. rain', icon: '🌧️', kind: 'rain' } : { label: 'heavy rain', icon: '🌧️', kind: 'rain' };
+  }
+  if (cloud < 20) return { label: 'clear', icon: night ? '🌙' : '☀️', kind: 'clear' };
+  if (cloud < 60) return { label: 'some clouds', icon: night ? '☁️' : '🌤️', kind: 'part' };
+  return { label: 'cloudy', icon: '☁️', kind: 'cloud' };
 }
 
 // ─── calendar ────────────────────────────────────────────────────────────────
@@ -246,5 +300,124 @@ describe('depthStep / simulateDepth', () => {
   });
   it('returns one depth per day of weather', () => {
     expect(simulateDepth(10, [1, 2, 3], [0, 0, 0], M).length).toBe(3);
+  });
+});
+
+// ─── 12-day forecast table ───────────────────────────────────────────────────
+
+describe('periodOf — which column an hour belongs to', () => {
+  it('06:00–11:59 is AM, 12:00–17:59 is PM', () => {
+    expect(periodOf('2026-11-11T06:00')).toEqual({ date: '2026-11-11', p: 'am' });
+    expect(periodOf('2026-11-11T11:00')).toEqual({ date: '2026-11-11', p: 'am' });
+    expect(periodOf('2026-11-11T12:00')).toEqual({ date: '2026-11-11', p: 'pm' });
+    expect(periodOf('2026-11-11T17:00')).toEqual({ date: '2026-11-11', p: 'pm' });
+  });
+  it('evening 18:00–23:59 is that day\'s night', () => {
+    expect(periodOf('2026-11-11T18:00')).toEqual({ date: '2026-11-11', p: 'night' });
+    expect(periodOf('2026-11-11T23:00')).toEqual({ date: '2026-11-11', p: 'night' });
+  });
+  it('the small hours belong to the previous day\'s night', () => {
+    expect(periodOf('2026-11-12T00:00')).toEqual({ date: '2026-11-11', p: 'night' });
+    expect(periodOf('2026-11-12T05:00')).toEqual({ date: '2026-11-11', p: 'night' });
+  });
+  it('rolls back across a month and year boundary', () => {
+    expect(periodOf('2027-01-01T02:00').date).toBe('2026-12-31');
+    expect(periodOf('2026-12-01T03:00').date).toBe('2026-11-30');
+  });
+  it('every hour of a day lands in exactly one column and the 24 hours split 6/6/12', () => {
+    const counts = { am: 0, pm: 0, night: 0 };
+    for (let h = 0; h < 24; h++) counts[periodOf('2026-11-11T' + String(h).padStart(2, '0') + ':00').p]++;
+    expect(counts).toEqual({ am: 6, pm: 6, night: 12 });
+  });
+});
+
+describe('windChill', () => {
+  it('matches the published chart: -10 °C at 20 km/h feels like -18', () => {
+    expect(Math.round(windChill(-10, 20))).toBe(-18);
+  });
+  it('is colder than the air temperature when it is cold and windy', () => {
+    expect(windChill(-5, 30) < -5).toBeTrue();
+  });
+  it('stronger wind means a colder chill', () => {
+    expect(windChill(-5, 40) < windChill(-5, 10)).toBeTrue();
+  });
+  it('falls back to the air temperature in light wind or mild air', () => {
+    expect(windChill(-5, 3)).toBe(-5);
+    expect(windChill(15, 40)).toBe(15);
+  });
+});
+
+describe('freezingLevel / windAt / vectorMeanDir', () => {
+  it('freezing level sits above the station when it is warm there and below when cold', () => {
+    expect(freezingLevel(3, 2100) > 2100).toBeTrue();
+    expect(freezingLevel(-3, 2100) < 2100).toBeTrue();
+    expect(Math.round(freezingLevel(0, 2100))).toBe(2100);
+  });
+  it('6.5 °C of cooling is 1,000 m', () => {
+    expect(Math.round(freezingLevel(6.5, 2000))).toBe(3000);
+  });
+  const L = [{ z: 1400, spd: 5, dir: 90 }, { z: 2900, spd: 20, dir: 120 }, { z: 5500, spd: 60, dir: 230 }];
+  it('wind at a level equals that level\'s wind', () => {
+    expect(windAt(2900, L).spd).toBe(20);
+    expect(windAt(1400, L).spd).toBe(5);
+  });
+  it('interpolates speed between levels and increases with height here', () => {
+    const lo = windAt(2100, L), hi = windAt(3400, L);
+    expect(lo.spd > 5 && lo.spd < 20).toBeTrue();
+    expect(hi.spd > 20 && hi.spd < 60).toBeTrue();
+    expect(hi.spd > lo.spd).toBeTrue();
+  });
+  it('clamps below the lowest and above the highest level', () => {
+    expect(windAt(500, L).spd).toBe(5);
+    expect(windAt(9000, L).spd).toBe(60);
+  });
+  it('takes direction from the nearer level', () => {
+    expect(windAt(1500, L).dir).toBe(90);
+    expect(windAt(2800, L).dir).toBe(120);
+  });
+  it('vector mean of opposite equal winds has no direction; steady wind keeps it', () => {
+    expect(vectorMeanDir([10, 10], [0, 180])).toBe(null);
+    expect(Math.round(vectorMeanDir([5, 9, 12], [90, 90, 90]))).toBe(90);
+  });
+  it('averages across north without going wrong (350° and 10° give ~0°)', () => {
+    const d = vectorMeanDir([10, 10], [350, 10]);
+    expect(d < 1 || d > 359).toBeTrue();
+  });
+  it('a stronger reading pulls the average toward it', () => {
+    expect(vectorMeanDir([30, 3], [90, 270]) < 180).toBeTrue();
+  });
+});
+
+describe('classifyPeriod — plain-words weather', () => {
+  it('no precipitation: clear, some clouds, cloudy by cloud cover', () => {
+    expect(classifyPeriod(0, 0, 5, false).label).toBe('clear');
+    expect(classifyPeriod(0, 0, 40, false).label).toBe('some clouds');
+    expect(classifyPeriod(0, 0, 95, false).label).toBe('cloudy');
+  });
+  it('clear night shows a moon, clear day a sun', () => {
+    expect(classifyPeriod(0, 0, 0, true).icon).toBe('🌙');
+    expect(classifyPeriod(0, 0, 0, false).icon).toBe('☀️');
+  });
+  it('snow gets heavier with the amount', () => {
+    expect(classifyPeriod(1, 0, 100, false).label).toBe('light snow');
+    expect(classifyPeriod(4, 0, 100, false).label).toBe('mod. snow');
+    expect(classifyPeriod(12, 0, 100, false).label).toBe('heavy snow');
+  });
+  it('rain gets heavier with the amount', () => {
+    expect(classifyPeriod(0, 1, 100, false).label).toBe('light rain');
+    expect(classifyPeriod(0, 3, 100, false).label).toBe('mod. rain');
+    expect(classifyPeriod(0, 9, 100, false).label).toBe('heavy rain');
+  });
+  it('a trace below the thresholds doesn\'t count as precipitation', () => {
+    expect(classifyPeriod(0.3, 0.1, 10, false).label).toBe('clear');
+  });
+  it('meaningful rain and snow together read as rain & snow', () => {
+    expect(classifyPeriod(3, 1, 100, false).label).toBe('rain & snow');
+  });
+  it('mostly-snow with a dribble of rain is still snow', () => {
+    expect(classifyPeriod(6, 0.1, 100, false).kind).toBe('snow');
+  });
+  it('precipitation overrides cloud cover', () => {
+    expect(classifyPeriod(5, 0, 0, false).kind).toBe('snow');
   });
 });
