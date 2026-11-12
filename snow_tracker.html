@@ -94,6 +94,9 @@
   .fl { color: #7db4ff; font-weight: 700; }
   table.fc tr.tot td { font-weight: 800; color: var(--gold); border-left: 1px solid var(--border); background: rgba(245,166,35,.06); }
   table.fc tr.tot td small { display: block; font-weight: 600; color: var(--sub); font-size: .7rem; }
+  #limitWrap { margin-top: 1rem; }
+  #limitWrap svg { display: block; width: 100%; }
+  .fc-head-controls { display: flex; flex-wrap: wrap; gap: .5rem .9rem; align-items: center; }
   details.panel summary { cursor: pointer; font-weight: 700; color: var(--gold); }
   details.panel p, details.panel li { color: var(--sub); font-size: .86rem; line-height: 1.6; margin-top: .55rem; }
   details.panel ul { padding-left: 1.2rem; }
@@ -155,15 +158,22 @@
 
   <section class="panel" aria-label="12-day forecast">
     <div class="chart-head">
-      <div class="chart-title">Next 12 days · forecast</div>
-      <div class="seg" id="fcBandSeg" role="group" aria-label="Forecast elevation">
-        <button data-fcband="top" aria-pressed="false">Top 3,400 m</button>
-        <button data-fcband="mid" aria-pressed="true">Mid 2,750 m</button>
-        <button data-fcband="base" aria-pressed="false">Base 2,100 m</button>
+      <div class="chart-title" id="fcTitle">Next 12 days · forecast</div>
+      <div class="fc-head-controls">
+        <div class="seg" id="modelSeg2" role="group" aria-label="Forecast model">
+          <button data-model="ecmwf_ifs025" aria-pressed="true">ECMWF</button>
+          <button data-model="gfs025" aria-pressed="false">GFS</button>
+        </div>
+        <div class="seg" id="fcBandSeg" role="group" aria-label="Forecast elevation">
+          <button data-fcband="top" aria-pressed="false">Top 3,400 m</button>
+          <button data-fcband="mid" aria-pressed="true">Mid 2,750 m</button>
+          <button data-fcband="base" aria-pressed="false">Base 2,100 m</button>
+        </div>
       </div>
     </div>
     <div class="fc-scroll" id="fcScroll" tabindex="0" aria-label="12-day forecast table, scrolls sideways"></div>
     <div class="status" id="fcStatus"></div>
+    <div id="limitWrap"></div>
   </section>
 
   <section class="panel" aria-label="Chart">
@@ -277,6 +287,9 @@ function windChill(t, v) {
 }
 // Height of the 0 °C line, estimated from a temperature at a known elevation with a standard 6.5 °C/km lapse rate.
 function freezingLevel(t, elev) { return elev + t / 0.0065; }
+// Where snow reaches down to: about 300 m below the 0 °C line (falling snow survives a little way into the warmth).
+const SNOW_LIMIT_BELOW_FREEZING = 300;
+function snowLimit(freezing) { return Math.max(0, freezing - SNOW_LIMIT_BELOW_FREEZING); }
 // Wind at height z, blended between pressure levels (ascending {z, spd, dir}); direction comes from the nearer level.
 function windAt(z, levels) {
   if (z <= levels[0].z) return { spd: levels[0].spd, dir: levels[0].dir };
@@ -316,7 +329,10 @@ function classifyPeriod(snowCm, rainMm, cloud, night) {
 const $ = id => document.getElementById(id);
 const BAND_LABEL = { base: 'Base 2,100 m', mid: 'Mid 2,750 m', top: 'Top 3,400 m' };
 const BAND_ORDER = ['base', 'mid', 'top'];
-const MODEL_INFO = { ecmwf_ifs025: { label: 'ECMWF ensemble', members: 51 }, gfs025: { label: 'GFS ensemble (GEFS)', members: 31 } };
+const MODEL_INFO = {
+  ecmwf_ifs025: { label: 'ECMWF ensemble', short: 'ECMWF', det: 'ecmwf_ifs025', detLabel: 'ECMWF IFS model, ~28 km grid', members: 51, ensDays: 15 },
+  gfs025: { label: 'GFS ensemble (GEFS)', short: 'GFS', det: 'gfs_global', detLabel: 'NOAA GFS model, ~25 km grid', members: 31, ensDays: 10 },
+};
 const DG_DATASET = '6569b51ae64326786e4e8e1a';
 const LAT = SNOW_DATA ? SNOW_DATA.lat : 45.47, LON = SNOW_DATA ? SNOW_DATA.lon : 6.91;
 
@@ -697,7 +713,7 @@ async function render() {
   const season = state.season, L = seasonLength(season);
   document.querySelectorAll('#metricSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.metric === state.metric));
   document.querySelectorAll('#bandSeg button').forEach(b => { b.setAttribute('aria-pressed', b.dataset.band === state.band); b.disabled = state.metric === 'depth'; });
-  document.querySelectorAll('#modelSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.model === state.model));
+  document.querySelectorAll('[data-model]').forEach(b => b.setAttribute('aria-pressed', b.dataset.model === state.model));
   $('smoothBtn').setAttribute('aria-pressed', state.smooth);
   $('smoothBtn').style.display = state.metric === 'daily' ? '' : 'none';
   $('bandHint').textContent = state.metric === 'depth'
@@ -724,7 +740,7 @@ async function render() {
   $('legend').innerHTML = sw('line', 'background:#f5a623', fmtSeason(season) + (isLive(season) ? ' so far' : '')) +
     sw('line', 'background:#8aa3c4', `Average of ${nHist} winters`) +
     sw('', 'background:rgba(138,163,196,.3)', 'Historical range') +
-    (spec.proj ? sw('dash', '', 'Forecast median') + sw('', 'background:rgba(255,107,26,.4)', '10–90% of members') : '');
+    (spec.proj ? sw('dash', '', `${MODEL_INFO[state.model].short} ensemble median`) + sw('', 'background:rgba(255,107,26,.4)', '10–90% of members') : '');
   drawChart(spec, L, season, todayIdx);
   buildCards({ season, L, todayIdx, cum, depth, band: state.band, data });
 
@@ -736,24 +752,25 @@ async function render() {
   }
   if (data && !data.ens || (data && data.base.notes.length)) status.className = 'status warn';
   status.textContent = msgs.join(' ') || (isLive(season)
-    ? `${MODEL_INFO[state.model].label}: ${data.ens.members} members. Hover or tap the chart for numbers.`
+    ? `${MODEL_INFO[state.model].label}: ${data.ens.members} members, ${MODEL_INFO[state.model].ensDays}-day horizon. Switch ECMWF/GFS above to compare. Hover or tap the chart for numbers.`
     : `Historical average is every other winter ${first}/${String(first + 1).slice(2)}–${lastY}/${String(lastY + 1).slice(2)}. Hover or tap the chart for numbers.`);
 }
 
 // ── 12-day forecast table ───────────────────────────────────────────────────
-let fcPromise = null;
-function loadForecast() {
-  if (!fcPromise) {
+const fcCache = {};
+function loadForecast(model) {
+  const det = MODEL_INFO[model].det;
+  if (!fcCache[det]) {
     const hourlyBand = 'temperature_2m,snowfall,rain';
     const common = 'relative_humidity_2m,cloud_cover,wind_speed_850hPa,wind_speed_700hPa,wind_speed_500hPa,wind_direction_850hPa,wind_direction_700hPa,wind_direction_500hPa,geopotential_height_850hPa,geopotential_height_700hPa,geopotential_height_500hPa';
-    const tail = '&models=ecmwf_ifs025&forecast_days=14&timezone=Europe%2FParis';
-    fcPromise = Promise.all([
+    const tail = `&models=${det}&forecast_days=14&timezone=Europe%2FParis`;
+    fcCache[det] = Promise.all([
       getJSON(`https://api.open-meteo.com/v1/forecast?${multiLoc()}&hourly=${hourlyBand}${tail}`, 30000),
       getJSON(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=${common}${tail}`, 30000),
     ]).then(([a, b]) => ({ loc: asList(a), common: b.hourly }));
-    fcPromise.catch(() => { fcPromise = null; });
+    fcCache[det].catch(() => { delete fcCache[det]; });
   }
-  return fcPromise;
+  return fcCache[det];
 }
 const ensCache = {};
 function ensembleFor(model) {
@@ -788,7 +805,7 @@ function buildForecastDays(fc, band, nDays) {
       if (!g) return null;
       const end = p === 'am' ? date + 'T12:00' : p === 'pm' ? date + 'T18:00' : nextDate(date) + 'T06:00';
       return { p, end, snow: g.snow, rain: g.rain, tmax: Math.max(...g.temp), tmin: Math.min(...g.temp), chill: Math.min(...g.chill),
-        hum: mean(g.hum), fl: mean(g.fl), wspd: mean(g.wspd), wdir: vectorMeanDir(g.wspd, g.wdir),
+        hum: mean(g.hum), fl: mean(g.fl), sl: snowLimit(mean(g.fl)), wspd: mean(g.wspd), wdir: vectorMeanDir(g.wspd, g.wdir),
         cls: classifyPeriod(g.snow, g.rain, mean(g.cloud), p === 'night') };
     }),
   }));
@@ -810,7 +827,9 @@ async function renderForecast() {
   document.querySelectorAll('#fcBandSeg button').forEach(b => b.setAttribute('aria-pressed', b.dataset.fcband === state.fcBand));
   st.className = 'status';
   let fc;
-  try { fc = await loadForecast(); } catch (e) {
+  const mi = MODEL_INFO[state.model];
+  $('fcTitle').textContent = `Next 12 days · ${mi.short} forecast`;
+  try { fc = await loadForecast(state.model); } catch (e) {
     box.innerHTML = ''; st.className = 'status warn'; st.textContent = 'The forecast table could not be loaded (' + e.message + ').'; return;
   }
   let ens = null;
@@ -841,6 +860,7 @@ async function renderForecast() {
   h += lbl('Wind chill', '°C') + cellsAll((p, i) => tcell(p.chill, p, i)) + '</tr>';
   h += lbl('Humidity', '%') + cellsAll((p, i) => `<td class="${cls(p, i)}" style="background:rgba(100,150,255,${(Math.max(0, p.hum - 30) / 70 * 0.4).toFixed(2)})">${r0(p.hum)}</td>`) + '</tr>';
   h += lbl('Freezing level', 'm') + cellsAll((p, i) => `<td class="fl ${cls(p, i)}">${Math.max(0, Math.round(p.fl / 50) * 50)}</td>`) + '</tr>';
+  h += lbl('Snow limit', 'm') + cellsAll((p, i) => `<td class="fl ${cls(p, i)}" style="color:#d6ecff">${Math.round(p.sl / 50) * 50}</td>`) + '</tr>';
   // day totals with the ensemble's uncertainty, from the same chosen ensemble as the chart
   h += `<tr class="tot"><th class="rowh" scope="row">Day snow<small>cm · likely range</small></th>` + days.map(d => {
     const k = ens ? ens.dates.indexOf(d.date) : -1;
@@ -854,8 +874,59 @@ async function renderForecast() {
   }).join('') + '</tr>';
   h += '</tbody></table>';
   box.innerHTML = h;
-  st.textContent = `ECMWF IFS model, ~28 km grid · ${BAND_LABEL[state.fcBand]}. Scroll sideways for all 12 days. Dimmed columns have already happened.` +
-    (ens ? '' : ' (Ensemble range unavailable.)');
+  st.textContent = `${mi.detLabel} · ${BAND_LABEL[state.fcBand]}. Scroll sideways for all 12 days. Dimmed columns have already happened.` +
+    (ens ? (mi.ensDays < 12 ? ` The ${mi.short} ensemble only runs ${mi.ensDays} days, so the day-total range stops there.` : '') : ' (Ensemble range unavailable.)');
+  drawLimitChart(days, ens, mi);
+}
+
+// Snow limit and freezing level across the 12 days, against the three resort heights — when does it rain at the base?
+function drawLimitChart(days, ens, mi) {
+  const wrap = $('limitWrap');
+  const cols = [];
+  days.forEach((d, di) => d.periods.forEach((p, i) => { if (p) cols.push({ x: di * 3 + i, di, i, p }); }));
+  if (!cols.length) { wrap.innerHTML = ''; return; }
+  const W = Math.max(300, wrap.clientWidth || $('fcScroll').clientWidth), H = W < 520 ? 250 : 290;
+  const m = { l: 44, r: 62, t: 14, b: 26 }, N = days.length * 3;
+  const lo = Math.max(0, Math.floor((Math.min(...cols.map(c => c.p.sl)) - 300) / 500) * 500);
+  const hi = Math.ceil((Math.max(SNOW_DATA.bands.top + 200, ...cols.map(c => c.p.fl)) + 100) / 500) * 500;
+  const X = x => m.l + (x + .5) / N * (W - m.l - m.r), Y = v => m.t + (1 - (v - lo) / (hi - lo)) * (H - m.t - m.b);
+  let g = '';
+  for (let v = lo; v <= hi; v += 500) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(255,255,255,.07)"/><text x="${m.l - 6}" y="${Y(v) + 4}" text-anchor="end" fill="#a89880" font-size="11">${v}</text>`;
+  // ensemble: likely range of each day's snow limit (from the members' daily mean temperature at 2,100 m)
+  if (ens) days.forEach((d, di) => {
+    const k = ens.dates.indexOf(d.date);
+    if (k < 0) return;
+    const sls = ens.tempBase.map(a => a[k]).filter(v => v != null).map(t => snowLimit(freezingLevel(t, SNOW_DATA.bands.base)));
+    if (sls.length < 3) return;
+    const a = percentile(sls, .1), b = percentile(sls, .9);
+    g += `<rect x="${X(di * 3) - (W - m.l - m.r) / N / 2}" width="${(W - m.l - m.r) / N * 3}" y="${Y(Math.min(hi, b))}" height="${Math.max(2, Y(Math.max(lo, a)) - Y(Math.min(hi, b)))}" fill="rgba(255,107,26,.22)"/>`;
+  });
+  // snow zone: everything above the snow limit
+  const pts = cols.map(c => [X(c.x), Y(Math.max(lo, Math.min(hi, c.p.sl)))]);
+  g += `<path d="M${pts[0][0]} ${m.t}${pts.map(q => `L${q[0]} ${q[1]}`).join('')}L${pts[pts.length - 1][0]} ${m.t}Z" fill="rgba(160,210,255,.14)"/>`;
+  [['top', '#f0ede6'], ['mid', '#f5a623'], ['base', '#8fd6a3']].forEach(([b, col]) => {
+    const z = SNOW_DATA.bands[b];
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(z)}" y2="${Y(z)}" stroke="${col}" stroke-dasharray="3 4" opacity=".8"/>` +
+         `<text x="${W - m.r + 5}" y="${Y(z) + 4}" fill="${col}" font-size="11">${b === 'top' ? 'Top' : b === 'mid' ? 'Mid' : 'Base'} ${z.toLocaleString('en-GB')}</text>`;
+  });
+  const path = key => 'M' + cols.map(c => `${X(c.x).toFixed(1)} ${Y(Math.max(lo, Math.min(hi, c.p[key]))).toFixed(1)}`).join('L');
+  g += `<path d="${path('fl')}" fill="none" stroke="#7db4ff" stroke-width="1.6" stroke-dasharray="5 4"/>`;
+  g += `<path d="${path('sl')}" fill="none" stroke="#d6ecff" stroke-width="2.8" stroke-linejoin="round"/>`;
+  days.forEach((d, di) => {
+    const dt = new Date(d.date + 'T12:00:00Z');
+    const cx = m.l + (di * 3 + 1.5) / N * (W - m.l - m.r);
+    const ps = d.periods.filter(Boolean);
+    const tip = `${dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}: snow limit ${Math.round(Math.min(...ps.map(p => p.sl)) / 50) * 50}–${Math.round(Math.max(...ps.map(p => p.sl)) / 50) * 50} m, freezing level ${Math.round(Math.min(...ps.map(p => p.fl)) / 50) * 50}–${Math.round(Math.max(...ps.map(p => p.fl)) / 50) * 50} m`;
+    const dayLabel = W < 520 ? (di % 2 === 0 ? String(dt.getUTCDate()) : '') : dt.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' }) + ' ' + dt.getUTCDate();
+    g += `<text x="${cx}" y="${H - 8}" text-anchor="middle" fill="#a89880" font-size="11">${dayLabel}</text>` +
+         `<rect x="${cx - (W - m.l - m.r) / N * 1.5}" y="${m.t}" width="${(W - m.l - m.r) / N * 3}" height="${H - m.t - m.b}" fill="transparent"><title>${tip}</title></rect>`;
+  });
+  wrap.innerHTML = `<div class="chart-head"><div class="chart-title" style="font-size:.95rem">Snow limit · ${mi.short}</div><div class="legend">` +
+    `<span><i class="sw line" style="background:#d6ecff"></i>Snow limit (≈ freezing level − ${SNOW_LIMIT_BELOW_FREEZING} m)</span>` +
+    `<span><i class="sw line" style="background:#7db4ff"></i>Freezing level</span>` +
+    `<span><i class="sw" style="background:rgba(160,210,255,.3)"></i>Snow falls above the line</span>` +
+    (ens ? `<span><i class="sw" style="background:rgba(255,107,26,.4)"></i>Ensemble 10–90%</span>` : '') + `</div></div>` +
+    `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Snow limit and freezing level over the next 12 days against the base, mid and top station heights">${g}</svg>`;
 }
 
 function buildNotes() {
@@ -866,7 +937,7 @@ function buildNotes() {
     li(`<b>Snowpack</b> is real: daily readings from Météo-France's <b>${SNOW_DATA.station.name}</b> station (${SNOW_DATA.station.elev} m), 06:00 UTC, ${SNOW_DATA.depthSeasons.length} winters since ${SNOW_DATA.depthSeasons[0]}/${String(SNOW_DATA.depthSeasons[0] + 1).slice(2)} (a couple of gaps, e.g. 2017/18). It's one spot in the village, not the pistes, and the page picks up new days live with a 2–4 day lag.`),
     li(`<b>The last few days</b> (past where ERA5 has caught up, ~5 days) come from ECMWF's own recent forecast steps.`),
     li(`<b>Forecast range:</b> each ensemble run is the same model started from slightly different conditions. The orange band holds the middle 80% of members (10th–90th percentile), the faint band is the full min–max, the dashed line the median. ECMWF has 51 members (15 days); GFS/GEFS has 31 but only 10 days of daily data — the same family of model as the chart on meteoexploration.com. When the two disagree, that disagreement is itself the uncertainty.`),
-    li(`<b>12-day table:</b> the ECMWF IFS model (~28 km grid), summed into AM (06–12), PM (12–18) and night (18–06) columns. Temperatures, snow vs rain and wind chill are worked out for the elevation you pick. <b>Wind</b> is the model's wind at that height, blended between its pressure levels — what an exposed ridge would see; sheltered pistes get less, and it's an average, not gusts. <b>Humidity</b> and <b>cloud</b> are for the whole grid square. <b>Freezing level</b> is estimated from the temperature at 2,100 m with a standard 6.5 °C/km lapse rate. The bottom row is the ensemble's median day total and its 10–90% range, so a single run's number isn't taken as gospel.`),
+    li(`<b>12-day table:</b> the model you pick — ECMWF IFS (~28 km grid) or NOAA GFS (~25 km) — summed into AM (06–12), PM (12–18) and night (18–06) columns. Temperatures, snow vs rain and wind chill are worked out for the elevation you pick. <b>Wind</b> is the model's wind at that height, blended between its pressure levels — what an exposed ridge would see; sheltered pistes get less, and it's an average, not gusts. <b>Humidity</b> and <b>cloud</b> are for the whole grid square. <b>Freezing level</b> is estimated from the temperature at 2,100 m with a standard 6.5 °C/km lapse rate, and the <b>snow limit</b> is taken as 300 m below that — a common rule of thumb, since falling snow survives a little way into the warmth (drier air lets it reach lower, a humid mild day higher). Neither model publishes a snow limit for Tignes, so both are worked out the same way and the two stay comparable. The ECMWF/GFS switch drives the whole page: this table, its snow-limit chart, and the ensemble bands and cards. The bottom row is the ensemble's median day total and its 10–90% range, so a single run's number isn't taken as gospel.`),
     li(`<b>Snowpack projection:</b> each member's snow and temperature is run through a small snow budget fitted to the station's own readings (${SNOW_DATA.depthModel.n_fit} days): fresh snow settles to ${Math.round(m.a * 100)}% of its depth, ${Math.abs(m.b).toFixed(1)} cm melts per °C above freezing per day, and the pack compacts ${Math.abs(m.c * 100).toFixed(1)}% a day. Fed the real weather it lands within about ${m.mae7} cm after 7 days and ${m.mae15} cm after 15 (tested on the winters it was fitted on) — before adding the forecast's own uncertainty.`),
     li(`Data: <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) serving ECMWF ERA5/IFS/ENS and NOAA GEFS; <a href="https://www.data.gouv.fr/datasets/donnees-climatologiques-de-base-quotidiennes" target="_blank" rel="noopener">Météo-France open climatology</a> (Licence Ouverte). Baked-in history last rebuilt ${SNOW_DATA.generated} with <code>scripts/build_snow_history.py</code>.`),
   ].join('');
@@ -885,7 +956,7 @@ function init() {
   sel.onchange = () => { state.season = +sel.value; render(); };
   document.querySelectorAll('#metricSeg button').forEach(b => b.onclick = () => { state.metric = b.dataset.metric; render(); });
   document.querySelectorAll('#bandSeg button').forEach(b => b.onclick = () => { state.band = b.dataset.band; render(); });
-  document.querySelectorAll('#modelSeg button').forEach(b => b.onclick = () => { state.model = b.dataset.model; render(); renderForecast(); });
+  document.querySelectorAll('[data-model]').forEach(b => b.onclick = () => { state.model = b.dataset.model; render(); renderForecast(); });
   document.querySelectorAll('#fcBandSeg button').forEach(b => b.onclick = () => { state.fcBand = b.dataset.fcband; renderForecast(); });
   $('smoothBtn').onclick = () => { state.smooth = !state.smooth; render(); };
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => lastSpec && render(), 150); });

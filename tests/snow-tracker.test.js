@@ -3,7 +3,7 @@
  *   isLeap / seasonLength / dateOfIdx / idxOfDate / defaultSeason — the 1 Nov–end Feb calendar
  *   percentile / smoothSeries / cumsum / statsByDay               — the average-and-range maths
  *   depthStep / simulateDepth                                     — the snow-budget projection
- *   periodOf / windChill / freezingLevel / windAt / vectorMeanDir / classifyPeriod — the 12-day table
+ *   periodOf / windChill / freezingLevel / snowLimit / windAt / vectorMeanDir / classifyPeriod — the 12-day table
  *
  * Why these matter:
  *   Every line on the chart is indexed by days since 1 Nov, so an off-by-one in dateOfIdx/idxOfDate
@@ -133,6 +133,10 @@ function classifyPeriod(snowCm, rainMm, cloud, night) {
   if (cloud < 60) return { label: 'some clouds', icon: night ? '☁️' : '🌤️', kind: 'part' };
   return { label: 'cloudy', icon: '☁️', kind: 'cloud' };
 }
+
+// Where snow reaches down to: about 300 m below the 0 °C line (falling snow survives a little way into the warmth).
+const SNOW_LIMIT_BELOW_FREEZING = 300;
+function snowLimit(freezing) { return Math.max(0, freezing - SNOW_LIMIT_BELOW_FREEZING); }
 
 // ─── calendar ────────────────────────────────────────────────────────────────
 
@@ -419,5 +423,25 @@ describe('classifyPeriod — plain-words weather', () => {
   });
   it('precipitation overrides cloud cover', () => {
     expect(classifyPeriod(5, 0, 0, false).kind).toBe('snow');
+  });
+});
+
+describe('snowLimit — how far down the snow reaches', () => {
+  it('sits 300 m below the freezing level', () => {
+    expect(snowLimit(2500)).toBe(2200);
+  });
+  it('never goes below sea level', () => {
+    expect(snowLimit(100)).toBe(0);
+    expect(snowLimit(0)).toBe(0);
+  });
+  it('rises and falls with the freezing level', () => {
+    expect(snowLimit(3000) > snowLimit(2000)).toBeTrue();
+  });
+  it('a 0 °C line at the base station puts the snow limit just under the base', () => {
+    expect(snowLimit(freezingLevel(0, 2100)) < 2100).toBeTrue();
+  });
+  it('a mild day (+5 °C at 2,100 m) pushes the snow limit above the base but below mid-mountain', () => {
+    const sl = snowLimit(freezingLevel(5, 2100));
+    expect(sl > 2100 && sl < 2750).toBeTrue();
   });
 });
