@@ -445,3 +445,15 @@ describe('snowLimit — how far down the snow reaches', () => {
     expect(sl > 2100 && sl < 2750).toBeTrue();
   });
 });
+
+describe('windAt — low-lying resorts (extra 925 hPa level)', () => {
+  const L4 = [{ z: 740, spd: 3, dir: 200 }, { z: 1420, spd: 5, dir: 220 }, { z: 2900, spd: 20, dir: 250 }, { z: 5500, spd: 60, dir: 260 }];
+  it('a 900 m base station gets the lowest level\'s light wind, not the 1,400 m wind', () => {
+    const w = windAt(900, L4);
+    expect(w.spd > 3 && w.spd < 5).toBeTrue();
+  });
+  it('wind rises monotonically with height through all four levels here', () => {
+    let prev = -1;
+    [800, 1100, 1500, 2030, 3400].forEach(z => { const s = windAt(z, L4).spd; expect(s > prev).toBeTrue(); prev = s; });
+  });
+});
